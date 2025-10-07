@@ -35,7 +35,7 @@ public class RarityUtil {
             "iron-boulder", "iron-crown", "indeedee", "mothim"
     );
     private static final Set<String> CUSTOM_ULTRA_RARES = Set.of(
-            "bouffalant", "bulbasaur", "ivysaur", "venusaur", "charmander", "charmeleon", "charizard",
+            "bulbasaur", "ivysaur", "venusaur", "charmander", "charmeleon", "charizard",
             "squirtle", "wartortle", "blastoise", "ditto", "articuno", "zapdos", "moltres",
             "mewtwo", "mew", "chikorita", "bayleef", "meganium", "cyndaquil", "quilava",
             "typhlosion", "totodile", "croconaw", "feraligatr", "espeon", "umbreon",
