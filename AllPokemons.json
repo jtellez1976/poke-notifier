@@ -26,15 +26,7 @@ Arbok	Common
 Pikachu	Uncommon
 Raichu	Uncommon
 Sandshrew	Common
-
-
-
-
 Sandslash	Common
-
-
-
-
 Nidoran♀	Uncommon
 Nidorina	Uncommon
 Nidoqueen	Uncommon
@@ -45,7 +37,6 @@ Clefairy	Uncommon
 Clefable	Uncommon
 Vulpix	Uncommon
 Ninetales	Uncommon
-
 Jigglypuff	Common
 Wigglytuff	Common
 Zubat	Common
@@ -60,29 +51,16 @@ Venomoth	Common
 Diglett	Common
 Dugtrio	Common
 Meowth	Common
-
-
 Persian	Common
-
-
-
-
 Psyduck	Common
-
 Golduck	Common
-
 Mankey	Common
 Primeape	Common
 Growlithe	Common
-
 Arcanine	Common
-
 Poliwag	Common
-
 Poliwhirl	Common
-
 Poliwrath	Common
-
 Abra	Uncommon
 Kadabra	Rare
 Alakazam	Rare
@@ -131,11 +109,8 @@ Hitmonchan	Uncommon
 Lickitung	Uncommon
 Koffing	Common
 Weezing	Common
-
 Rhyhorn	Common
-
 Rhydon	Common
-
 Chansey	Rare
 Tangela	Common
 Kangaskhan	Rare
@@ -158,63 +133,34 @@ Lapras	Uncommon
 Ditto	Ultra-Rare
 Eevee	Uncommon
 Vaporeon	Rare
-
 Jolteon	Rare
 Flareon	Rare
-
 Porygon	Rare
 Omanyte	Rare
-
 Omastar	Rare
-
 Kabuto	Rare
-
 Kabutops	Rare
-
 Aerodactyl	Rare
-
 Snorlax	Rare
 Articuno	Ultra-Rare
-
-
 Zapdos	Ultra-Rare
-
-
 Moltres	Ultra-Rare
-
 Dratini	Rare
 Dragonair	Rare
 Dragonite	Rare
 Mewtwo	Ultra-Rare
-
 Mew	Ultra-Rare
-
-
-
-
-POKÉMON	RARITY
 Chikorita	Ultra-Rare
-
 Bayleef	Ultra-Rare
-
 Meganium	Ultra-Rare
-
 Cyndaquil	Ultra-Rare
-
 Quilava	Ultra-Rare
-
 Typhlosion	Ultra-Rare
-
 Totodile	Ultra-Rare
-
 Croconaw	Ultra-Rare
-
 Feraligatr	Ultra-Rare
-
 Sentret	Common
-
 Furret	Common
-
 Hoothoot	Common
 Noctowl	Common
 Ledyba	Common
@@ -223,93 +169,53 @@ Spinarak	Common
 Ariados	Common
 Crobat	Common
 Chinchou	Common
-
-
-
 Lanturn	Common
-
-
-
 Pichu	Uncommon
 Cleffa	Uncommon
 Igglybuff	Common
-
 Togepi	Common
-
 Togetic	Common
-
 Natu	Common
 Xatu	Common
 Mareep	Common
 Flaaffy	Common
 Ampharos	Uncommon
 Bellossom	Common
-
 Marill	Uncommon
 Azumarill	Uncommon
 Sudowoodo	Uncommon
 Politoed	Common
-
-
 Hoppip	Common
-
 Skiploom	Common
-
 Jumpluff	Common
-
 Aipom	Common
 Sunkern	Common
 Sunflora	Common
 Yanma	Uncommon
-
 Wooper	Common
-
 Quagsire	Common
-
 Espeon	Ultra-Rare
-
 Umbreon	Ultra-Rare
-
-
 Murkrow	Common
-
 Slowking	Common
-
 Misdreavus	Common
-
 Unown	Common
 Wobbuffet	Rare
 Girafarig	Common
 Pineco	Common
 Forretress	Common
 Dunsparce	Rare
-
-
 Gligar	Common
 Steelix	Uncommon
 Snubbull	Common
-
-
 Granbull	Common
-
-
 Qwilfish	Common
-
-
-
 Scizor	Uncommon
 Shuckle	Uncommon
 Heracross	Rare
 Sneasel	Uncommon
-
-
-
 Teddiursa	Common
-
-
 Ursaring	Common
-
-
 Slugma	Common
 Magcargo	Common
 Swinub	Common
@@ -318,55 +224,32 @@ Corsola	Uncommon
 Remoraid	Common
 Octillery	Common
 Delibird	Uncommon
-
 Mantine	Common
-
-
-
 Skarmory	Rare
 Houndour	Common
 Houndoom	Common
 Kingdra	Common
-
-
-
 Phanpy	Common
 Donphan	Common
 Porygon2	Uncommon
 Stantler	Common
 Smeargle	Rare
-
-
-
 Tyrogue	Uncommon
 Hitmontop	Uncommon
 Smoochum	Uncommon
-
 Elekid	Uncommon
 Magby	Common
 Miltank	Common
 Blissey	Rare
 Raikou	Rare
-
 Entei	Rare
-
 Suicune	Rare
-
 Larvitar	Rare
 Pupitar	Rare
 Tyranitar	Rare
-
 Lugia	Ultra-Rare
-
 Ho-Oh	Ultra-Rare
-
-
 Celebi	Ultra-Rare
-
-
-
-
-POKÉMON	RARITY
 Treecko	Ultra-Rare
 Grovyle	Ultra-Rare
 Sceptile	Ultra-Rare
@@ -374,27 +257,18 @@ Torchic	Ultra-Rare
 Combusken	Ultra-Rare
 Blaziken	Ultra-Rare
 Mudkip	Ultra-Rare
-
-
 Marshtomp	Ultra-Rare
-
-
 Swampert	Ultra-Rare
-
-
 Poochyena	Common
 Mightyena	Common
 Zigzagoon	Common
-
 Linoone	Common
 Wurmple	Common
 Silcoon	Uncommon
 Beautifly	Uncommon
-
 Cascoon	Uncommon
 Dustox	Uncommon
 Lotad	Common
-
 Lombre	Common
 Ludicolo	Common
 Seedot	Common
@@ -403,22 +277,14 @@ Shiftry	Common
 Taillow	Common
 Swellow	Common
 Wingull	Common
-
 Pelipper	Common
-
 Ralts	Rare
-
 Kirlia	Rare
-
 Gardevoir	Rare
 Surskit	Uncommon
-
 Masquerain	Uncommon
-
 Shroomish	Common
-
 Breloom	Common
-
 Slakoth	Common
 Vigoroth	Common
 Slaking	Common
@@ -429,23 +295,16 @@ Whismur	Uncommon
 Loudred	Uncommon
 Exploud	Uncommon
 Makuhita	Common
-
 Hariyama	Common
-
 Azurill	Uncommon
 Nosepass	Uncommon
 Skitty	Common
-
 Delcatty	Common
-
 Sableye	Rare
 Mawile	Uncommon
 Aron	Common
-
 Lairon	Common
-
 Aggron	Common
-
 Meditite	Common
 Medicham	Common
 Electrike	Common
@@ -453,19 +312,14 @@ Manectric	Common
 Plusle	Uncommon
 Minun	Uncommon
 Volbeat	Common
-
 Illumise	Common
 Roselia	Common
 Gulpin	Common
 Swalot	Uncommon
 Carvanha	Common
-
 Sharpedo	Common
-
 Wailmer	Uncommon
-
 Wailord	Uncommon
-
 Numel	Common
 Camerupt	Common
 Torkoal	Common
@@ -478,30 +332,15 @@ Flygon	Rare
 Cacnea	Common
 Cacturne	Common
 Swablu	Common
-
 Altaria	Uncommon
-
 Zangoose	Uncommon
 Seviper	Uncommon
 Lunatone	Common
-
 Solrock	Common
-
 Barboach	Common
-
-
 Whiscash	Common
-
-
-
 Corphish	Common
-
-
-
 Crawdaunt	Common
-
-
-
 Baltoy	Common
 Claydol	Uncommon
 Lileep	Ultra-Rare
@@ -509,12 +348,8 @@ Cradily	Ultra-Rare
 Anorith	Ultra-Rare
 Armaldo	Ultra-Rare
 Feebas	Common
-
 Milotic	Common
-
 Castform	Uncommon
-
-
 Kecleon	Uncommon
 Shuppet	Common
 Banette	Uncommon
@@ -522,74 +357,34 @@ Duskull	Common
 Dusclops	Common
 Tropius	Uncommon
 Chimecho	Uncommon
-
 Absol	Rare
-
 Wynaut	Rare
 Snorunt	Common
-
-
-
 Glalie	Uncommon
-
-
-
 Spheal	Common
-
 Sealeo	Common
-
 Walrein	Common
-
 Clamperl	Rare
-
-
 Huntail	Rare
-
-
 Gorebyss	Rare
-
-
 Relicanth	Uncommon
-
-
 Luvdisc	Common
-
-
 Bagon	Ultra-Rare
 Shelgon	Ultra-Rare
 Salamence	Ultra-Rare
 Beldum	Ultra-Rare
-
 Metang	Ultra-Rare
-
 Metagross	Ultra-Rare
-
 Regirock	Ultra-Rare
-
 Regice	Ultra-Rare
-
 Registeel	Ultra-Rare
-
 Latias	Ultra-Rare
-
-
 Latios	Ultra-Rare
-
-
 Kyogre	Ultra-Rare
-
 Groudon	Ultra-Rare
-
 Rayquaza	Ultra-Rare
-
 Jirachi	Ultra-Rare
-
 Deoxys	Ultra-Rare
-
-
-
-
-POKÉMON	RARITY
 Turtwig	Ultra-Rare
 Grotle	Ultra-Rare
 Torterra	Ultra-Rare
@@ -597,133 +392,73 @@ Chimchar	Ultra-Rare
 Monferno	Ultra-Rare
 Infernape	Ultra-Rare
 Piplup	Ultra-Rare
-
 Prinplup	Ultra-Rare
-
 Empoleon	Ultra-Rare
-
 Starly	Common
-
 Staravia	Common
-
 Staraptor	Common
-
 Bidoof	Common
-
 Bibarel	Common
-
 Kricket	Common
-
 Kricketune	Common
-
 Shinx	Uncommon
 Luxio	Uncommon
 Luxray	Uncommon
 Budew	Common
-
 Roserade	Common
-
 Cranidos	Ultra-Rare
-
 Rampardos	Ultra-Rare
 Shieldon	Ultra-Rare
-
 Bastiodon	Ultra-Rare
 Burmy	Common
-
-
-
 Wormadam	Uncommon
-
-
-
 Mothim	Rare
-
 Combee	Common
-
 Vespiquen	Common
-
 Pachirisu	Uncommon
 Buizel	Common
-
 Floatzel	Common
-
 Cherubi	Common
-
 Cherrim	Common
-
 Shellos	Uncommon
-
-
 Gastrodon	Uncommon
-
-
 Ambipom	Common
 Drifloon	Uncommon
-
-
-
 Drifblim	Uncommon
-
-
-
 Buneary	Common
-
 Lopunny	Common
-
 Mismagius	Common
 Honchkrow	Common
-
 Glameow	Common
 Purugly	Uncommon
 Chingling	Uncommon
-
 Stunky	Common
 Skuntank	Uncommon
 Bronzor	Rare
 Bronzong	Rare
 Bonsly	Uncommon
 Mime Jr.	Uncommon
-
-
 Happiny	Rare
 Chatot	Uncommon
 Spiritomb	Rare
-
-
 Gible	Ultra-Rare
-
-
 Gabite	Ultra-Rare
-
-
 Garchomp	Ultra-Rare
-
-
 Munchlax	Rare
 Riolu	Rare
-
 Lucario	Rare
-
 Hippopotas	Common
 Hippowdon	Common
 Skorupi	Common
-
 Drapion	Rare
-
 Croagunk	Common
 Toxicroak	Rare
 Carnivine	Uncommon
 Finneon	Common
-
 Lumineon	Common
-
 Mantyke	Uncommon
-
 Snover	Common
-
 Abomasnow	Uncommon
-
 Weavile	Uncommon
 Magnezone	Uncommon
 Lickilicky	Uncommon
@@ -731,64 +466,33 @@ Rhyperior	Common
 Tangrowth	Common
 Electivire	Uncommon
 Magmortar	Common
-
 Togekiss	Common
-
 Yanmega	Uncommon
-
 Leafeon	Ultra-Rare
 Glaceon	Ultra-Rare
-
 Gliscor	Uncommon
-
 Mamoswine	Common
 Porygon-Z	Uncommon
 Gallade	Rare
-
 Probopass	Uncommon
 Dusknoir	Common
 Froslass	Rare
-
-
-
 Rotom	Common
-
-
-
-
-
-
-
-
-
-
 Uxie	Ultra-Rare
 Mesprit	Ultra-Rare
 Azelf	Ultra-Rare
 Dialga	Ultra-Rare
-
 Palkia	Ultra-Rare
-
 Heatran	Ultra-Rare
 Regigigas	Ultra-Rare
-
-
 Giratina	Ultra-Rare
-
 Cresselia	Ultra-Rare
 Phione	Ultra-Rare
 Manaphy	Ultra-Rare
 Darkrai	Ultra-Rare
 Shaymin	Ultra-Rare
-
 Arceus	Ultra-Rare
-
-
-
-POKÉMON	RARITY
 Victini	Ultra-Rare
-
-
 Snivy	Ultra-Rare
 Servine	Ultra-Rare
 Serperior	Ultra-Rare
@@ -796,26 +500,15 @@ Tepig	Ultra-Rare
 Pignite	Ultra-Rare
 Emboar	Ultra-Rare
 Oshawott	Ultra-Rare
-
-
 Dewott	Ultra-Rare
-
-
 Samurott	Ultra-Rare
-
-
 Patrat	Common
 Watchog	Common
 Lillipup	Common
-
 Herdier	Common
-
 Stoutland	Common
-
 Purrloin	Common
-
 Liepard	Common
-
 Pansage	Uncommon
 Simisage	Rare
 Pansear	Uncommon
@@ -824,12 +517,9 @@ Panpour	Uncommon
 Simipour	Rare
 Munna	Uncommon
 Musharna	Uncommon
-Pidove
-
-Tranquill
-
-Unfezant
-
+Pidove Ultra-Rare
+Tranquill Ultra-Rare
+Unfezant Ultra-Rare
 Blitzle	Common
 Zebstrika	Uncommon
 Roggenrola	Common
@@ -838,43 +528,27 @@ Gigalith	Common
 Woobat	Common
 Swoobat	Common
 Drilbur	Common
-
 Excadrill	Rare
-
 Audino	Rare
-
 Timburr	Common
-
 Gurdurr	Common
-
 Conkeldurr	Common
-
 Tympole	Common
 Palpitoad	Common
 Seismitoad	Uncommon
 Throh	Rare
-
 Sawk	Rare
-
 Sewaddle	Uncommon
 Swadloon	Uncommon
 Leavanny	Ultra-Rare
 Venipede	Common
-
 Whirlipede	Common
-
 Scolipede	Common
-
 Cottonee	Common
 Whimsicott	Common
 Petilil	Common
-
 Lilligant	Common
-
-
 Basculin	Common
-
-
 Sandile	Common
 Krokorok	Common
 Krookodile	Common
@@ -886,28 +560,16 @@ Crustle	Common
 Scraggy	Common
 Scrafty	Common
 Sigilyph	Uncommon
-
 Yamask	Uncommon
-
 Cofagrigus	Uncommon
-
 Tirtouga	Ultra-Rare
-
-
-
-
 Carracosta	Ultra-Rare
 Archen	Ultra-Rare
-
-
 Archeops	Ultra-Rare
 Trubbish	Common
 Garbodor	Rare
 Zorua	Uncommon
-
-
 Zoroark	Uncommon
-
 Minccino	Rare
 Cinccino	Ultra-Rare
 Gothita	Uncommon
@@ -917,32 +579,20 @@ Solosis	Rare
 Duosion	Rare
 Reuniclus	Ultra-Rare
 Ducklett	Common
-
 Swanna	Common
-
 Vanillite	Common
-
 Vanillish	Rare
-
 Vanilluxe	Ultra-Rare
-
 Deerling	Common
-
-
 Sawsbuck	Common
-
-
 Emolga	Uncommon
 Karrablast	Common
 Escavalier	Common
 Foongus	Common
 Amoonguss	Common
 Frillish	Common
-
 Jellicent	Common
-
 Alomomola	Common
-
 Joltik	Common
 Galvantula	Common
 Ferroseed	Common
@@ -959,25 +609,18 @@ Litwick	Common
 Lampent	Common
 Chandelure	Common
 Axew	Rare
-
 Fraxure	Rare
-
 Haxorus	Rare
-
 Cubchoo	Common
 Beartic	Common
 Cryogonal	Uncommon
-
 Shelmet	Common
 Accelgor	Common
 Stunfisk	Uncommon
 Mienfoo	Uncommon
 Mienshao	Rare
 Druddigon	Rare
-
-
 Golett	Common
-
 Golurk	Common
 Pawniard	Uncommon
 Bisharp	Uncommon
@@ -991,34 +634,20 @@ Durant	Common
 Deino	Rare
 Zweilous	Rare
 Hydreigon	Rare
-Larvesta	Uncommon
-
-
-Volcarona	Uncommon
-
-
+Larvesta	Rare
+Volcarona	Rare
 Cobalion	Ultra-Rare
 Terrakion	Ultra-Rare
 Virizion	Ultra-Rare
 Tornadus	Ultra-Rare
-
 Thundurus	Ultra-Rare
-
 Reshiram	Ultra-Rare
-
 Zekrom	Ultra-Rare
-
 Landorus	Ultra-Rare
 Kyurem	Ultra-Rare
-
 Keldeo	Ultra-Rare
-
 Meloetta	Ultra-Rare
 Genesect	Ultra-Rare
-
-
-
-POKÉMON	RARITY
 Chespin	Ultra-Rare
 Quilladin	Ultra-Rare
 Chesnaught	Ultra-Rare
@@ -1026,67 +655,39 @@ Fennekin	Ultra-Rare
 Braixen	Ultra-Rare
 Delphox	Ultra-Rare
 Froakie	Ultra-Rare
-
 Frogadier	Ultra-Rare
-
 Greninja	Ultra-Rare
-
 Bunnelby	Common
 Diggersby	Common
 Fletchling	Common
 Fletchinder	Common
 Talonflame	Common
 Scatterbug	Common
-
 Spewpa	Common
-
 Vivillion	Common
-
-
 Litleo	Common
 Pyroar	Uncommon
 Flabébé	Common
-
-
 Floette	Common
-
-
 Florges	Common
-
-
 Skiddo	Common
 Gogoat	Uncommon
 Pancham	Common
 Pangoro	Common
 Furfrou	Uncommon
-
-
-
-
-
-
-
 Espurr	Uncommon
 Meowstic	Rare
 Honedge	Uncommon
 Doublade	Uncommon
 Aegislash	Uncommon
 Spritzee	Common
-
-
-
 Aromatisse	Uncommon
-
-
-
 Swirlix	Common
 Slurpuff	Rare
 Inkay	Common
 Malamar	Rare
 Binacle	Uncommon
-
 Barbaracle	Uncommon
-
 Skrelp	Common
 Dragalge	Common
 Clauncher	Common
@@ -1094,14 +695,11 @@ Clawitzer	Common
 Helioptile	Uncommon
 Heliolisk	Uncommon
 Tyrunt	Rare
-
-Tyrantrum
+Tyrantrum Rare
 Amaura	Rare
-
-Aurorus
+Aurorus Rare
 Sylveon	Ultra-Rare
 Hawlucha	Rare
-
 Dedenne	Uncommon
 Carbink	Common
 Goomy	Rare
@@ -1114,43 +712,23 @@ Pumpkaboo	Common
 Gourgeist	Common
 Bergmite	Common
 Avalugg	Common
-
 Noibat	Uncommon
 Noivern	Uncommon
 Xerneas	Ultra-Rare
-
 Yveltal	Ultra-Rare
-
 Zygarde	Ultra-Rare
-
-
-
-
-
-
 Diancie	Ultra-Rare
 Hoopa	Ultra-Rare
 Volcanion	Ultra-Rare
-
-
-
-
-POKÉMON	RARITY
 Rowlet	Ultra-Rare
-
 Dartrix	Ultra-Rare
-
 Decidueye	Ultra-Rare
-
 Litten	Ultra-Rare
 Torracat	Ultra-Rare
 Incineroar	Ultra-Rare
 Popplio	Ultra-Rare
-
 Brionne	Ultra-Rare
-
 Primarina	Ultra-Rare
-
 Pikipek	Common
 Trumbeak	Common
 Toucannon	Common
@@ -1161,83 +739,44 @@ Charjabug	Uncommon
 Vikavolt	Uncommon
 Crabrawler	Common
 Crabomibale	Uncommon
-
 Oricorio	Uncommon
-
-
-
-
-
-
-
 Cutiefly	Common
-
 Ribombee	Common
-
 Rockruff	Uncommon
-
 Lycanroc	Uncommon
-
-
 Wishiwashi	Common
-
 Mareanie	Uncommon
 Toxapex	Uncommon
 Mudbray	Common
 Mudsdale	Common
 Dewpider	Common
-
 Araquanid	Common
-
 Fomantis	Common
-
 Lurantis	Common
-
 Morelull	Common
-
 Shiinotic	Common
-
 Salandit	Common
-
-
 Salazzle	Common
-
-
 Stufful	Common
 Bewear	Common
 Bounsweet	Common
 Steenee	Common
 Tsareena	Common
 Comfey	Uncommon
-
 Oranguru	Rare
 Passimian	Rare
 Wimpod	Uncommon
-
 Golisopod	Uncommon
-
 Sandygast	Common
 Palossand	Common
 Pyukumuku	Uncommon
-Type: Null	Ultra-Rare
-
-
-Silvally
-
+Silvally	Ultra-Rare
 Minior	Uncommon
-
-
-
-
-
-
 Komala	Common
 Turtonator	Uncommon
 Togedemaru	Uncommon
-
 Mimikyu	Rare
 Bruxish	Uncommon
-
 Drampa	Rare
 Dhelmise	Common
 Jangmo-o	Ultra-Rare
@@ -1245,13 +784,10 @@ Hakamo-o	Ultra-Rare
 Kommo-o	Ultra-Rare
 Tapu Koko	Ultra-Rare
 Tapu Lele	Ultra-Rare
-
 Tapu Bulu	Ultra-Rare
 Tapu Fini	Ultra-Rare
 Cosmog	Ultra-Rare
-
 Cosmoem	Ultra-Rare
-
 Solgaleo	Ultra-Rare
 Lunala	Ultra-Rare
 Nihilego	Ultra-Rare
@@ -1262,23 +798,15 @@ Celesteela	Ultra-Rare
 Kartana	Ultra-Rare
 Guzzlord	Ultra-Rare
 Necrozma	Ultra-Rare
-
 Magearna	Ultra-Rare
 Marshadow	Ultra-Rare
-
 Poipole	Ultra-Rare
 Naganadel	Ultra-Rare
 Stakataka	Ultra-Rare
 Blacephalon	Ultra-Rare
 Zeraora	Ultra-Rare
 Meltan	Rare
-
-Melmetal
-
-
-
-
-POKÉMON	RARITY
+Melmetal Ultra-Rare
 Grookey	Ultra-Rare
 Thwackey	Ultra-Rare
 Rillaboom	Ultra-Rare
@@ -1299,57 +827,33 @@ Orbeetle	Rare
 Nickit	Common
 Thievul	Common
 Gossifleur	Common
-
 Eldegoss	Common
-
 Wooloo	Common
-
 Dubwool	Common
-
 Chewtle	Common
 Drednaw	Rare
 Yamper	Common
-
 Boltund	Common
-
 Rolycoly	Common
-
 Carkol	Common
-
 Coalossal	Rare
-
 Applin	Rare
 Flapple	Rare
 Appletun	Rare
 Silicobra	Uncommon
-
 Sandaconda	Rare
-
 Cramorant	Uncommon
 Arrokuda	Common
-
 Barraskewda	Common
-
 Toxel	Common
-
 Toxtricity	Rare
-
-
-
-
-
-
-
 Sizzlipede	Common
 Centiskorch	Common
 Clobbopus	Common
 Grapploct	Common
 Sinistea	Uncommon
-
 Polteageist	Uncommon
-
 Hatenna	Common
-
 Hattrem	Common
 Hatterene	Common
 Impidimp	Common
@@ -1357,116 +861,59 @@ Morgrem	Common
 Grimmsnarl	Common
 Obstagoon	Common
 Perrserker	Common
-
 Cursola	Uncommon
-
 Sirfetch’d	Rare
 Mr. Rime	Rare
-
 Runerigus	Uncommon
-
-
-
 Milcery	Common
 Alcremie	Common
 Falinks	Uncommon
 Pincurchin	Uncommon
 Snom	Common
-
 Frosmoth	Common
-
 Stonjourner	Uncommon
 Eiscue	Common
 Indeedee	Rare
 Morpeko	Uncommon
-
 Cufant	Uncommon
-
 Copperajah	Uncommon
-
-Dracozolt
-
-
-
-
-Arctozolt
-
-
-
-
-Dracovish
-
-
-
-
-
-
-Arctovish
-
-
-
+Dracozolt Ultra-Rare
+Arctozolt Ultra-Rare
+Dracovish Ultra-Rare
+Arctovish Ultra-Rare
 Duraludon	Rare
 Dreepy	Ultra-Rare
 Drakloak	Ultra-Rare
 Dragapult	Ultra-Rare
 Zacian	Ultra-Rare
-
 Zamazenta	Ultra-Rare
-
 Eternatus	Ultra-Rare
 Kubfu	Ultra-Rare
-
 Urshifu	Ultra-Rare
-
 Zarude	Ultra-Rare
 Regieleki	Ultra-Rare
-
 Regidrago	Ultra-Rare
-
 Glastrier	Ultra-Rare
-
 Spectrier	Ultra-Rare
-
-
 Calyrex	Ultra-Rare
-
 Wyrdeer	Common
 Kleavor	Rare
 Ursaluna	Common
-
 Basculegion	Common
-
 Sneasler	Uncommon
-
 Overqwil	Common
 Enamorus	Ultra-Rare
-
-
-
-
-POKÉMON	RARITY
 Sprigatito	Ultra-Rare
-
 Floragato	Ultra-Rare
-
 Meowscarada	Ultra-Rare
-
 Fuecoco	Ultra-Rare
 Crocalor	Ultra-Rare
 Skeledirge	Ultra-Rare
 Quaxly	Ultra-Rare
-
-
 Quaxwell	Ultra-Rare
-
-
 Quaquaval	Ultra-Rare
-
-
 Lechonk	Common
-
 Oinkologne	Common
-
 Tarountula	Common
 Spidops	Uncommon
 Nymble	Common
@@ -1485,19 +932,15 @@ Squawkabilly	Common
 Nacli	Common
 Naclstack	Common
 Garganacl	Common
-Charcadet	Uncommon
-Armarouge	Uncommon
-Ceruledge	Uncommon
+Charcadet	Rare
+Armarouge	Rare
+Ceruledge	Rare
 Tadbulb	Common
 Bellibolt	Uncommon
 Wattrel	Common
 Kilowattrel	Uncommon
 Maschiff	Common
-
-
 Mabosstiff	Common
-
-
 Shroodle	Common
 Grafaiai	Common
 Bramblin	Common
@@ -1519,7 +962,6 @@ Wugtrio	Common
 Bombirdier	Common
 Finizen	Common
 Palafin	Common
-
 Varoom	Uncommon
 Revavroom	Uncommon
 Cyclizar	Rare
@@ -1529,7 +971,6 @@ Glimmora	Common
 Greavard	Rare
 Houndstone	Rare
 Flamigo	Common
-
 Cetoddle	Uncommon
 Cetitan	Uncommon
 Veluza	Common
@@ -1539,9 +980,7 @@ Annihilape	Common
 Clodsire	Common
 Farigiraf	Common
 Dudunsparce	Ultra-Rare
-
 Kingambit	Ultra-Rare
-
 Great Tusk	Rare
 Scream Tail	Rare
 Brute Bonnet	Rare
@@ -1549,47 +988,27 @@ Flutter Mane	Rare
 Slither Wing	Rare
 Sandy Shocks	Rare
 Iron Treads	Rare
-
 Iron Bundle	Rare
 Iron Hands	Rare
 Iron Jugulis	Rare
-
 Iron Moth	Rare
 Iron Thorns	Rare
-
 Frigibax	Rare
-
-
-
 Arctibax	Rare
-
-
-
 Baxcalibur	Ultra-Rare
-
-
-
 Gimmighoul	Common
-
-Gholdengo
-
+Gholdengo Rare
 Wo-Chien	Ultra-Rare
 Chien-Pao	Ultra-Rare
 Ting-Lu	Ultra-Rare
 Chi-Yu	Ultra-Rare
 Roaring Moon	Ultra-Rare
-
 Iron Valiant	Rare
 Koraidon	Ultra-Rare
 Miraidon	Ultra-Rare
 Walking Wake	Ultra-Rare
-
 Iron Leaves	Ultra-Rare
 Dipplin	Rare
-
-
-
-
 Poltchageist	Rare
 Sinistcha	Rare
 Okidogi	Ultra-Rare
@@ -1598,13 +1017,143 @@ Fezandipiti	Ultra-Rare
 Ogerpon	Ultra-Rare
 Archaludon	Ultra-Rare
 Hydrapple	Ultra-Rare
-
-
-
-
 Gouging Fire	Ultra-Rare
 Raging Bolt	Ultra-Rare
 Iron Boulder	Rare
 Iron Crown	Rare
 Terapagos	Ultra-Rare
 Pecharunt	Ultra-Rare
+
+LEGENDARIES
+144, // Articuno
+145, // Zapdos
+146, // Moltres
+150, // Mewtwo
+243, // Raikou
+244, // Entei
+245, // Suicune
+249, // Lugia
+250, // Ho-Oh
+377, // Regirock
+378, // Regice
+379, // Registeel
+380, // Latias
+381, // Latios
+382, // Kyogre
+383, // Groudon
+384, // Rayquaza
+480, // Uxie
+481, // Mesprit
+482, // Azelf
+483, // Dialga
+484, // Palkia
+485, // Heatran
+486, // Regigigas
+487, // Giratina
+488, // Cresselia
+638, // Cobalion
+639, // Terrakion
+640, // Virizion
+641, // Tornadus
+642, // Thundurus
+643, // Reshiram
+644, // Zekrom
+645, // Landorus
+646, // Kyurem
+716, // Xerneas
+717, // Yveltal
+718, // Zygarde
+772, // Type: Null
+773, // Silvally
+785, // Tapu Koko
+786, // Tapu Lele
+787, // Tapu Bulu
+788, // Tapu Fini
+789, // Cosmog
+790, // Cosmoem
+791, // Solgaleo
+792, // Lunala
+800, // Necrozma
+888, // Zacian
+889, // Zamazenta
+890, // Eternatus
+891, // Kubfu
+892, // Urshifu
+894, // Regieleki
+895, // Regidrago
+896, // Glastrier
+897, // Spectrier
+898, // Calyrex
+905, // Enamorus
+1001, // Wo-Chien
+1002, // Chien-Pao
+1003, // Ting-Lu
+1004, // Chi-Yu
+1007, // Koraidon
+1008, // Miraidon
+1014, // Okidogi
+1015, // Munkidori
+1016, // Fezandipiti
+1017, // Ogerpon
+1024  // Terapagos
+
+
+MYTHICALS
+151, // Mew
+251, // Celebi
+385, // Jirachi
+386, // Deoxys
+489, // Phione
+490, // Manaphy
+491, // Darkrai
+492, // Shaymin
+493, // Arceus
+494, // Victini
+647, // Keldeo
+648, // Meloetta
+649, // Genesect
+719, // Diancie
+720, // Hoopa
+721, // Volcanion
+801, // Magearna
+802, // Marshadow
+807, // Zeraora
+808, // Meltan
+809, // Melmetal
+893, // Zarude
+1025 // Pecharunt
+
+ULTRA_BEASTS
+793, // Nihilego
+794, // Buzzwole
+795, // Pheromosa
+796, // Xurkitree
+797, // Celesteela
+798, // Kartana
+799, // Guzzlord
+803, // Poipole
+804, // Naganadel
+805, // Stakataka
+806  // Blacephalon
+
+PARADOX
+984, // Great Tusk
+985, // Scream Tail
+986, // Brute Bonnet
+987, // Flutter Mane
+988, // Slither Wing
+989, // Sandy Shocks
+1005, // Roaring Moon
+1009, // Walking Wake
+1020, // Gouging Fire
+1021, // Raging Bolt
+990, // Iron Treads
+991, // Iron Bundle
+992, // Iron Hands
+993, // Iron Jugulis
+994, // Iron Moth
+995, // Iron Thorns
+1006, // Iron Valiant
+1010, // Iron Leaves
+1022, // Iron Boulder
+1023  // Iron Crown
