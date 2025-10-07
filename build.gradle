@@ -46,13 +46,16 @@ dependencies {
 	// --- Dependencias del Mod ---
 	// Se usa 'modImplementation' con 'include' para asegurar que el JAR de Cobblemon
 	// esté disponible para la compilación, los mixins y el entorno de desarrollo.
-	modImplementation(include("com.cobblemon:fabric:1.6.1+1.21.1"))
+	modImplementation("com.cobblemon:fabric:1.6.1+1.21.1")
 
 	// Añadimos la biblioteca de Kotlin para que nuestro mod sea compatible con Cobblemon
 	modImplementation "net.fabricmc:fabric-language-kotlin:1.12.3+kotlin.2.0.21"
 
 	// Kyori Adventure para un manejo de texto avanzado y ClickEvents robustos.
-	modImplementation(include("net.kyori:adventure-platform-fabric:5.14.1"))
+	// Usamos 'modApi' para exponer la API de Adventure a nuestro mod y 'include' para
+	// empaquetarla, ya que es una dependencia pequeña y crucial que no siempre está
+	// presente en todos los modpacks. Esto resuelve el crasheo.
+	modApi(include("net.kyori:adventure-platform-fabric:5.14.1"))
 
 }
 
