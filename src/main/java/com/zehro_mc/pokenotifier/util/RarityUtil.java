@@ -141,9 +141,9 @@ public class RarityUtil {
         // --- INICIO DEL CÓDIGO DE PRUEBA ---
         // Para probar, forzamos a bouffalant a ser de una categoría específica.
         // Cambia 'LEGENDARY' por 'MYTHICAL', 'SHINY', 'PARADOX', etc. para probar cada mensaje.
-        if (pokemon.getSpecies().getResourceIdentifier().getPath().equals("bouffalant")) {
-            return RarityCategory.ULTRA_BEAST;
-        }
+        //if (pokemon.getSpecies().getResourceIdentifier().getPath().equals("bouffalant")) {
+        //    return RarityCategory.ULTRA_BEAST;
+        //}
         // --- FIN DEL CÓDIGO DE PRUEBA ---
 
         if (pokemon.getAspects().contains("shiny")) {
