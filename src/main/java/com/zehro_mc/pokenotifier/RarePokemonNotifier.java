@@ -1,147 +1,102 @@
 package com.zehro_mc.pokenotifier;
 
-import com.cobblemon.mod.common.api.Priority;
-import com.zehro_mc.pokenotifier.util.RarityUtil;
-import com.cobblemon.mod.common.api.events.CobblemonEvents;
 import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
 import com.cobblemon.mod.common.pokemon.Pokemon;
-import kotlin.Unit;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
-import net.minecraft.entity.Entity;
+import com.zehro_mc.pokenotifier.networking.WaypointPayload;
+import com.zehro_mc.pokenotifier.util.RarityUtil;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.kyori.adventure.platform.fabric.FabricServerAudiences;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.Style;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-
-import static com.zehro_mc.pokenotifier.PokeNotifier.LOGGER;
+import net.minecraft.world.biome.Biome;
+import net.minecraft.world.biome.BiomeKeys;
 
 public class RarePokemonNotifier {
 
-    // Usamos un mapa para rastrear qué jugador fue notificado por cada Pokémon.
-    private static final Map<UUID, UUID> ANNOUNCED_POKEMON = new HashMap<>();
+    public static void onPokemonSpawn(PokemonEntity pokemonEntity) {
+        Pokemon pokemon = pokemonEntity.getPokemon();
+        RarityUtil.RarityCategory rarity = RarityUtil.getRarity(pokemon);
 
-    public static void register() {
-        // Evento principal - spawn de Pokémon
-        CobblemonEvents.POKEMON_ENTITY_SPAWN.subscribe(Priority.NORMAL, event -> {
-            PokemonEntity pokemonEntity = event.getEntity();
-            World world = pokemonEntity.getWorld();
-
-            if (world.isClient()) {
-                return Unit.INSTANCE;
-            }
-
-            Pokemon pokemon = pokemonEntity.getPokemon();
-            RarityUtil.RarityCategory rarity = RarityUtil.getRarity(pokemon);
-
-            if (rarity != RarityUtil.RarityCategory.NONE) {
-                LOGGER.info("[PokeNotifier-Debug] Pokémon spawned: {}", pokemon.getDisplayName().getString());
-                LOGGER.info("[PokeNotifier-Debug] Recognized as {}!", rarity.name());
-                handleRarePokemonSpawn(pokemonEntity, rarity);
-            }
-
-            return Unit.INSTANCE;
-        });
-
-        // Evento de despawn
-        ServerEntityEvents.ENTITY_UNLOAD.register((entity, world) -> {
-            if (!world.isClient() && entity instanceof PokemonEntity pokemonEntity) {
-                UUID notifiedPlayerUUID = ANNOUNCED_POKEMON.remove(pokemonEntity.getUuid());
-                if (notifiedPlayerUUID != null) {
-                    Pokemon pokemon = pokemonEntity.getPokemon();
-                    LOGGER.info("[PokeNotifier-Debug] Announced Pokémon despawned: {}", pokemon.getDisplayName().getString());
-                    handleStatusUpdate(pokemonEntity, notifiedPlayerUUID, StatusUpdatePayload.UpdateType.DESPAWNED);
-                }
-            }
-        });
-
-        // Evento de captura
-        CobblemonEvents.POKEMON_CAPTURED.subscribe(Priority.NORMAL, event -> {
-            Pokemon pokemon = event.getPokemon();
-            UUID notifiedPlayerUUID = ANNOUNCED_POKEMON.remove(pokemon.getUuid());
-            if (notifiedPlayerUUID != null) {
-                LOGGER.info("[PokeNotifier-Debug] Announced Pokémon captured: {}", pokemon.getDisplayName().getString());
-                handleStatusUpdate(pokemon.getEntity(), notifiedPlayerUUID, StatusUpdatePayload.UpdateType.CAPTURED);
-            }
-            return Unit.INSTANCE;
-        });
-    }
-
-    private static void handleRarePokemonSpawn(PokemonEntity pokemonEntity, RarityUtil.RarityCategory rarity) {
-        try {
-            BlockPos pos = pokemonEntity.getBlockPos();
-            Pokemon pokemon = pokemonEntity.getPokemon();
-
-            pokemonEntity.addStatusEffect(new StatusEffectInstance(StatusEffects.GLOWING, 20 * 120, 0));
-
-            PlayerEntity closestPlayer = pokemonEntity.getWorld().getClosestPlayer(pos.getX(), pos.getY(), pos.getZ(), 128.0, false);
-
-            if (closestPlayer instanceof ServerPlayerEntity serverPlayer) {
-                ANNOUNCED_POKEMON.put(pokemonEntity.getUuid(), serverPlayer.getUuid());
-                ANNOUNCED_POKEMON.put(pokemon.getUuid(), serverPlayer.getUuid());
-
-                LOGGER.info("[PokeNotifier-Debug] Found player '{}'. Sending waypoint packet...", serverPlayer.getName().getString());
-                sendWaypointPacket(serverPlayer, pokemonEntity, pos, rarity);
-            } else {
-                LOGGER.info("[PokeNotifier-Debug] Rare Pokémon spawned, but no player was found nearby.");
-            }
-        } catch (Exception e) {
-            LOGGER.error("[PokeNotifier] Error in handleRarePokemonSpawn: {}", e.getMessage(), e);
+        // No notificar si la rareza es NONE o UNCOMMON por defecto
+        if (rarity == RarityUtil.RarityCategory.NONE || rarity == RarityUtil.RarityCategory.UNCOMMON) {
+            return;
         }
-    }
 
-    private static void sendWaypointPacket(ServerPlayerEntity player, PokemonEntity pokemonEntity, BlockPos pos, RarityUtil.RarityCategory rarity) {
-        try {
-            Identifier biomeId = player.getWorld().getBiome(pos).getKey().get().getValue();
-            Pokemon pokemon = pokemonEntity.getPokemon();
-            double distance = player.distanceTo(pokemonEntity);
+        PokeNotifier.TRACKED_POKEMON.put(pokemonEntity, rarity);
+        PokeNotifier.LOGGER.info("Started tracking Pokémon: " + pokemon.getSpecies().getName());
 
-            var payload = new WaypointPayload(
-                    pokemon.getDisplayName().getString(),
-                    pokemon.getSpecies().getName().substring(0, 1).toUpperCase(),
-                    pos,
+        // Aplicar el efecto de brillo al Pokémon
+        pokemonEntity.addStatusEffect(new StatusEffectInstance(StatusEffects.GLOWING, 2400, 0, false, false)); // 2 minutos de brillo
+
+        BlockPos pokemonPos = pokemonEntity.getBlockPos();
+
+        if (pokemonEntity.getServer() == null) return;
+
+        FabricServerAudiences adventure = FabricServerAudiences.of(pokemonEntity.getServer());
+
+        for (ServerPlayerEntity player : pokemonEntity.getServer().getPlayerManager().getPlayerList()) {
+            double distance = player.getPos().distanceTo(pokemonPos.toCenterPos());
+
+            if (distance > 200) {
+                continue;
+            }
+
+            // Construir el mensaje detallado y colorido aquí en el servidor
+            Component rarityText = rarity.getRarityName().color(rarity.getChatColor());
+            Component pokemonName = Component.text(pokemon.getDisplayName().getString(), Style.style(rarity.getChatColor(), TextDecoration.BOLD));
+            Component levelText = Component.text(" (Lvl. " + pokemon.getLevel() + ")");
+            Component coordsText = Component.text(String.format("%d, %d, %d", pokemonPos.getX(), pokemonPos.getY(), pokemonPos.getZ()), NamedTextColor.GREEN);
+            String distanceString = String.format("%.1f", distance);
+            Component distanceText = Component.text(" (" + distanceString + " blocks away)");
+
+            RegistryEntry<Biome> biomeRegistryEntry = player.getWorld().getBiome(pokemonPos);
+            Identifier biomeId = biomeRegistryEntry.getKey().map(key -> key.getValue()).orElse(BiomeKeys.PLAINS.getValue());
+            Component biomeName = Component.translatable("biome." + biomeId.getNamespace() + "." + biomeId.getPath());
+
+            Component message = Component.text()
+                    .append(Component.text("A wild ", NamedTextColor.WHITE))
+                    .append(rarityText)
+                    .append(Component.text(" "))
+                    .append(pokemonName)
+                    .append(levelText)
+                    .append(Component.text(" has appeared at ", NamedTextColor.WHITE))
+                    .append(coordsText)
+                    .append(distanceText)
+                    .append(Component.text(" in a ", NamedTextColor.WHITE))
+                    .append(biomeName)
+                    .append(Component.text(" biome!", NamedTextColor.WHITE))
+                    .build();
+
+            // Enviar el mensaje de chat al jugador
+            adventure.audience(player).sendMessage(message);
+
+            // Reproducir sonido para el jugador
+            player.playSoundToPlayer(SoundEvents.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 0.5F, 1.0F);
+
+            // Crear y enviar el paquete para el waypoint (esto es para la parte visual del waypoint, no el chat)
+            WaypointPayload payload = new WaypointPayload(
+                    pokemon.getUuid().toString(), // Usar UUID para identificar al Pokémon de forma única
+                    pokemon.getDisplayName().getString(), // Nombre para mostrar
+                    pokemonPos,
                     rarity.getWaypointColor(),
-                    pokemon.getLevel(),
-                    biomeId,
-                    rarity.name(),
-                    distance
+                    rarity.name(), // Nombre de la categoría de rareza
+                    "Lvl " + pokemon.getLevel(), // Nivel
+                    distance, // Distancia
+                    biomeId // ID del bioma
             );
             ServerPlayNetworking.send(player, payload);
-            LOGGER.info("[PokeNotifier-Debug] Waypoint packet sent successfully to {}!", player.getName().getString());
-        } catch (Exception e) {
-            LOGGER.error("[PokeNotifier] Error sending waypoint packet: {}", e.getMessage(), e);
-        }
-    }
 
-    private static void handleStatusUpdate(Entity pokemonEntity, UUID notifiedPlayerUUID, StatusUpdatePayload.UpdateType updateType) {
-        try {
-            if (pokemonEntity == null) return;
-
-            ServerPlayerEntity serverPlayer = pokemonEntity.getServer().getPlayerManager().getPlayer(notifiedPlayerUUID);
-
-            if (serverPlayer != null) {
-                Pokemon pokemon = ((PokemonEntity) pokemonEntity).getPokemon();
-                RarityUtil.RarityCategory rarity = RarityUtil.getRarity(pokemon);
-
-                var payload = new StatusUpdatePayload(
-                        pokemon.getDisplayName().getString(),
-                        pokemon.getLevel(),
-                        rarity.name(),
-                        updateType
-                );
-
-                ServerPlayNetworking.send(serverPlayer, payload);
-                LOGGER.info("[PokeNotifier-Debug] Status update packet ({}) sent successfully to {}!", updateType.name(), serverPlayer.getName().getString());
-            }
-        } catch (Exception e) {
-            LOGGER.error("[PokeNotifier] Error in handleStatusUpdate: {}", e.getMessage(), e);
+            PokeNotifier.LOGGER.info("Notified " + player.getName().getString() + " about a " + rarity.name() + " " + pokemon.getSpecies().getName() + " at " + pokemonPos);
         }
     }
 }

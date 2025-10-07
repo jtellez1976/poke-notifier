@@ -1,52 +1,48 @@
 package com.zehro_mc.pokenotifier.client;
 
-import com.zehro_mc.pokenotifier.StatusUpdatePayload;
+import com.zehro_mc.pokenotifier.networking.StatusUpdatePayload;
+import com.zehro_mc.pokenotifier.networking.WaypointPayload;
 import com.zehro_mc.pokenotifier.util.RarityUtil;
-import com.zehro_mc.pokenotifier.WaypointPayload;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.kyori.adventure.platform.fabric.FabricClientAudiences;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.Style;
 import net.kyori.adventure.text.format.TextDecoration;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.sound.SoundEvents;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class PokeNotifierClient implements ClientModInitializer {
     public static final Logger LOGGER = LoggerFactory.getLogger("PokeNotifierClient");
     private FabricClientAudiences adventure;
-
-    private static final SoundEvent SHINY_SOUND = SoundEvent.of(Identifier.of("cobblemon", "shiny.glint"));
+    public static final Map<String, Waypoint> activeWaypoints = new HashMap<>();
 
     @Override
     public void onInitializeClient() {
-        // El registro de los tipos de payload ya se hace en la clase principal del mod (PokeNotifier.java).
-        // El cliente solo necesita registrar los "handlers" para cuando reciba esos paquetes.
-
         this.adventure = FabricClientAudiences.of();
 
-        // Receptor para el SPAWN de un Pokémon
+        // Receptor para el Waypoint y el mensaje de aparición
         ClientPlayNetworking.registerGlobalReceiver(WaypointPayload.ID, (payload, context) -> {
             context.client().execute(() -> {
-                var player = context.player();
-                if (player == null) return;
+                // Lógica del Waypoint (si la tienes)
+                Waypoint waypoint = new Waypoint(
+                        payload.uuid(),
+                        payload.name(),
+                        payload.pos(),
+                        payload.color()
+                );
+                activeWaypoints.put(payload.uuid(), waypoint);
+                LOGGER.info("Waypoint added for: " + payload.name());
 
+                // Construir y enviar el mensaje de chat aquí en el cliente
                 try {
-                    RarityUtil.RarityCategory rarity = RarityUtil.RarityCategory.valueOf(payload.rarityCategoryName());
-
-                    if (rarity == RarityUtil.RarityCategory.SHINY) {
-                        player.getWorld().playSound(player, player.getBlockPos(), SHINY_SOUND, SoundCategory.PLAYERS, 0.7f, 1.0f);
-                    } else {
-                        player.getWorld().playSound(player, player.getBlockPos(), SoundEvents.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 1.0f, 1.0f);
-                    }
-
-                    Component message = createFormattedMessage(payload);
+                    Component message = createFormattedSpawnMessage(payload);
                     this.adventure.audience().sendMessage(message);
                 } catch (Exception e) {
                     LOGGER.error("Failed to create or send spawn notification message", e);
@@ -57,9 +53,11 @@ public class PokeNotifierClient implements ClientModInitializer {
         // Receptor para DESPAWN o CAPTURA
         ClientPlayNetworking.registerGlobalReceiver(StatusUpdatePayload.ID, (payload, context) -> {
             context.client().execute(() -> {
-                var player = context.player();
-                if (player == null) return;
+                // Eliminar el waypoint asociado
+                activeWaypoints.remove(payload.uuid());
+                LOGGER.info("Waypoint removed for: " + payload.name());
 
+                // Mostrar el mensaje de estado
                 try {
                     Component message = createStatusUpdateMessage(payload);
                     this.adventure.audience().sendMessage(message);
@@ -70,43 +68,54 @@ public class PokeNotifierClient implements ClientModInitializer {
         });
     }
 
-    private Component createFormattedMessage(WaypointPayload payload) {
-        Identifier biomeId = payload.biomeId();
+    private Component createFormattedSpawnMessage(WaypointPayload payload) {
         RarityUtil.RarityCategory rarity = RarityUtil.RarityCategory.valueOf(payload.rarityCategoryName());
+        Identifier biomeId = payload.biomeId();
 
-        Component prefix = Component.translatable("chat.poke-notifier.prefix", NamedTextColor.YELLOW);
-        Component rarityText = rarity.toComponent();
-        Component pokemonName = Component.text(payload.name(), Style.style(rarity.getTextColor(), TextDecoration.BOLD));
-        Component levelText = Component.text(payload.level());
+        // Construimos el mensaje usando las claves de traducción del archivo en_us.json
+        Component prefix = Component.translatable("chat.poke-notifier.prefix");
+        Component rarityText = rarity.getRarityName(); // Esto ya es un Component.translatable
+        Component pokemonName = Component.text(payload.name(), rarity.getChatColor(), TextDecoration.BOLD);
+        Component levelText = Component.text("(" + payload.level() + ")", NamedTextColor.YELLOW);
+        Component coordsText = Component.text(String.format("%d, %d, %d", payload.pos().getX(), payload.pos().getY(), payload.pos().getZ()), NamedTextColor.GREEN);
         String distanceString = String.format("%.1f", payload.distance());
-        Component coordinates = Component.text(String.format("%d, %d, %d (%s blocks away)", payload.pos().getX(), payload.pos().getY(), payload.pos().getZ(), distanceString), NamedTextColor.GREEN);
         Component biomeName = Component.translatable("biome." + biomeId.getNamespace() + "." + biomeId.getPath());
 
-        Component mainMessage = Component.translatable("chat.poke-notifier.spawn_message", NamedTextColor.YELLOW,
-                rarityText, pokemonName, levelText, coordinates, biomeName);
-
-        return prefix.append(mainMessage);
+        // Usamos la clave principal y le pasamos los componentes como argumentos
+        return prefix
+                .append(Component.text("A wild ", NamedTextColor.YELLOW))
+                .append(rarityText.color(rarity.getChatColor()))
+                .append(Component.text(" "))
+                .append(pokemonName)
+                .append(Component.text(" "))
+                .append(levelText)
+                .append(Component.text(" has appeared at ", NamedTextColor.YELLOW))
+                .append(coordsText)
+                .append(Component.text(" (" + distanceString + " blocks away) in a ", NamedTextColor.YELLOW))
+                .append(biomeName.color(NamedTextColor.YELLOW))
+                .append(Component.text(" biome!", NamedTextColor.YELLOW));
     }
 
     private Component createStatusUpdateMessage(StatusUpdatePayload payload) {
         RarityUtil.RarityCategory rarity = RarityUtil.RarityCategory.valueOf(payload.rarityCategoryName());
+        Component prefix = Component.translatable("chat.poke-notifier.prefix");
 
-        Component prefix = Component.translatable("chat.poke-notifier.prefix", NamedTextColor.YELLOW);
-        Component rarityText = rarity.toComponent();
-        Component pokemonName = Component.text(payload.name(), Style.style(rarity.getTextColor(), TextDecoration.BOLD));
-        Component levelText = Component.text(payload.level());
-
-        String translationKey;
-        switch (payload.updateType()) {
-            case CAPTURED:
-                translationKey = "chat.poke-notifier.capture_message";
-                break;
-            default: // DESPAWNED
-                translationKey = "chat.poke-notifier.despawn_message";
-                break;
+        if (payload.updateType() == StatusUpdatePayload.UpdateType.CAPTURED) {
+            Component pokemonName = Component.text(payload.name(), rarity.getChatColor(), TextDecoration.BOLD);
+            Component playerName = Component.text(payload.playerName(), NamedTextColor.AQUA);
+            return Component.text()
+                    .append(playerName)
+                    .append(Component.text(" has captured the ", NamedTextColor.GREEN))
+                    .append(pokemonName)
+                    .append(Component.text("!", NamedTextColor.GREEN))
+                    .build();
+        } else { // DESPAWNED
+            // Creamos el nombre sin negrita para el mensaje de despawn
+            Component pokemonName = Component.text(payload.name(), rarity.getChatColor());
+            return prefix
+                    .append(Component.text("The wild ", NamedTextColor.YELLOW))
+                    .append(pokemonName)
+                    .append(Component.text(" has despawned...", NamedTextColor.YELLOW));
         }
-
-        // SOLUCIÓN: Añadimos el nivel del Pokémon como tercer argumento.
-        return prefix.append(Component.translatable(translationKey, NamedTextColor.YELLOW, rarityText, pokemonName, levelText));
     }
 }
