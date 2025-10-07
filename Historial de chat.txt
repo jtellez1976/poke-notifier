@@ -1,0 +1,299 @@
+Historial Completo de la Conversación y Código FinalFase 1: Creación del Proyecto y Primeras NotificacionesComenzamos creando la estructura básica del mod, con un PokeNotifier.java para el servidor y un PokeNotifierClient.java para el cliente. Nuestro primer objetivo fue simple: detectar un Pokémon y enviar un mensaje básico al chat. Aquí establecimos el uso de la biblioteca Kyori Adventure para formatear los mensajes.Fase 2: Listas de Rareza y PersonalizaciónTú proporcionaste un archivo AllPokemons.json con tus listas personalizadas de Pokémon "Rares" y "Ultra-Rares". Integramos estas listas en una nueva clase, RarityUtil.java, que se convirtió en el cerebro de nuestro sistema de rareza. También establecimos un orden de prioridad para que las categorías más especiales (Shiny, Legendario, etc.) siempre tuvieran precedencia.Fase 3: Mejoras de la Notificación (Sonido, Brillo y Distancia)Para mejorar la experiencia, añadimos varias características a las notificaciones:•Sonido: Implementamos un sonido de "subir de nivel" para las notificaciones generales y un sonido especial de "estrellas" (cobblemon:shiny.glint) exclusivo para los Pokémon Shiny.•Brillo (Glow): Hicimos que el Pokémon anunciado brillara para que fuera más fácil de localizar. Esto nos dio un problema inicial (un "crash" al usar setGlowing(true)), que solucionamos aplicando el efecto de estado StatusEffects.GLOWING de una manera más segura.•Distancia: Añadimos al mensaje la distancia en bloques entre el jugador y el Pokémon, lo que requirió ampliar nuestro paquete de red (WaypointPayload) para transportar esta nueva información.Fase 4: Notificaciones de Estado (Despawn y Captura)Para que el mod se sintiera más completo, implementamos notificaciones para cuando un Pokémon desaparece o es capturado.•Creamos un nuevo paquete de red, StatusUpdatePayload, para manejar estos nuevos estados.•Nos suscribimos al evento ServerEntityEvents.ENTITY_UNLOAD para detectar de forma fiable cuándo una entidad es descargada del mundo (despawn).•Nos suscribimos al evento CobblemonEvents.POKEMON_CAPTURED para detectar la captura.•Implementamos un sistema de seguimiento para saber a qué jugador notificar cuando uno de estos eventos ocurriera.Fase 5: Depuración Intensiva y Estabilización (Estado Actual)Esta fue la fase más desafiante. Nos encontramos con "crashes" silenciosos al iniciar el juego y numerosos errores de compilación. Después de un largo proceso de depuración, en el que tu paciencia y tus reportes fueron clave, logramos:•Identificar y eliminar la lógica conflictiva relacionada con el evento de batalla (BATTLE_FAINTED).•Descartar la implementación de la comprobación del PC ([NEW] / [CAUGHT]) para priorizar la estabilidad.•Corregir la forma en que se registran los paquetes de red en el cliente, lo que finalmente solucionó los "crashes" al inicio.El resultado es la versión actual: un mod estable, funcional y pulido que cumple con todas las características principales que diseñamos.Código Final y Estable del Proyecto "Poke-Notifier"Aquí tienes el código completo de todos los archivos relevantes en su estado actual y funcional.Archivo: D:/Descargas/Datapack_Cobbleverse/Poke-Notifier/src/main/java/com/zehro_mc/pokenotifier/PokeNotifier.javaJavapackage com.zehro_mc.pokenotifier;
+
+import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.minecraft.util.Identifier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class PokeNotifier implements ModInitializer {
+	public static final String MOD_ID = "poke-notifier";
+	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+
+	// Definimos el Identifier aquí para que sea accesible desde otras clases.
+	public static final Identifier WAYPOINT_CHANNEL_ID = Identifier.of(MOD_ID, "waypoint_payload");
+
+	@Override
+	public void onInitialize() {
+		LOGGER.info("Initializing Poke Notifier...");
+
+		// Registramos los codecs de nuestros paquetes.
+		PayloadTypeRegistry.playS2C().register(WaypointPayload.ID, WaypointPayload.CODEC);
+		PayloadTypeRegistry.playS2C().register(StatusUpdatePayload.ID, StatusUpdatePayload.CODEC);
+
+		// La clase que registra los eventos ya no necesita el ID del canal.
+		RarePokemonNotifier.register();
+	}
+}Archivo: D:/Descargas/Datapack_Cobbleverse/Poke-Notifier/src/main/java/com/zehro_mc/pokenotifier/RarePokemonNotifier.javaJavapackage com.zehro_mc.pokenotifier;
+
+import com.cobblemon.mod.common.api.Priority;
+import com.zehro_mc.pokenotifier.util.RarityUtil;
+import com.cobblemon.mod.common.api.events.CobblemonEvents;
+import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
+import com.cobblemon.mod.common.pokemon.Pokemon;
+import kotlin.Unit;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+import static com.zehro_mc.pokenotifier.PokeNotifier.LOGGER;
+
+public class RarePokemonNotifier {
+
+    // Usamos un mapa para rastrear qué jugador fue notificado por cada Pokémon.
+    private static final Map<UUID, UUID> ANNOUNCED_POKEMON = new HashMap<>();
+
+    public static void register() {
+        // Evento principal - spawn de Pokémon
+        CobblemonEvents.POKEMON_ENTITY_SPAWN.subscribe(Priority.NORMAL, event -> {
+            PokemonEntity pokemonEntity = event.getEntity();
+            World world = pokemonEntity.getWorld();
+
+            if (world.isClient()) {
+                return Unit.INSTANCE;
+            }
+
+            Pokemon pokemon = pokemonEntity.getPokemon();
+            RarityUtil.RarityCategory rarity = RarityUtil.getRarity(pokemon);
+
+            if (rarity != RarityUtil.RarityCategory.NONE) {
+                LOGGER.info("[PokeNotifier-Debug] Pokémon spawned: {}", pokemon.getDisplayName().getString());
+                LOGGER.info("[PokeNotifier-Debug] Recognized as {}!", rarity.name());
+                handleRarePokemonSpawn(pokemonEntity, rarity);
+            }
+
+            return Unit.INSTANCE;
+        });
+
+        // Evento de despawn
+        ServerEntityEvents.ENTITY_UNLOAD.register((entity, world) -> {
+            if (!world.isClient() && entity instanceof PokemonEntity pokemonEntity) {
+                // Si el Pokémon que desaparece estaba en nuestra lista, obtenemos al jugador notificado.
+                UUID notifiedPlayerUUID = ANNOUNCED_POKEMON.remove(pokemonEntity.getUuid());
+                if (notifiedPlayerUUID != null) {
+                    Pokemon pokemon = pokemonEntity.getPokemon();
+                    LOGGER.info("[PokeNotifier-Debug] Announced Pokémon despawned: {}", pokemon.getDisplayName().getString());
+                    handleStatusUpdate(pokemonEntity, notifiedPlayerUUID, StatusUpdatePayload.UpdateType.DESPAWNED);
+                }
+            }
+        });
+
+        // Evento de captura
+        CobblemonEvents.POKEMON_CAPTURED.subscribe(Priority.NORMAL, event -> {
+            Pokemon pokemon = event.getPokemon();
+            // Usamos el UUID del Pokémon, que es consistente.
+            UUID notifiedPlayerUUID = ANNOUNCED_POKEMON.remove(pokemon.getUuid());
+            if (notifiedPlayerUUID != null) {
+                LOGGER.info("[PokeNotifier-Debug] Announced Pokémon captured: {}", pokemon.getDisplayName().getString());
+                handleStatusUpdate(pokemon.getEntity(), notifiedPlayerUUID, StatusUpdatePayload.UpdateType.CAPTURED);
+            }
+            return Unit.INSTANCE;
+        });
+    }
+
+    private static void handleRarePokemonSpawn(PokemonEntity pokemonEntity, RarityUtil.RarityCategory rarity) {
+        try {
+            BlockPos pos = pokemonEntity.getBlockPos();
+            Pokemon pokemon = pokemonEntity.getPokemon();
+
+            pokemonEntity.addStatusEffect(new StatusEffectInstance(StatusEffects.GLOWING, 20 * 120, 0));
+
+            PlayerEntity closestPlayer = pokemonEntity.getWorld().getClosestPlayer(pos.getX(), pos.getY(), pos.getZ(), 128.0, false);
+
+            if (closestPlayer instanceof ServerPlayerEntity serverPlayer) {
+                // Guardamos la relación entre la entidad y el jugador notificado.
+                ANNOUNCED_POKEMON.put(pokemonEntity.getUuid(), serverPlayer.getUuid());
+                // También guardamos la del Pokémon por si la entidad se pierde en la captura.
+                ANNOUNCED_POKEMON.put(pokemon.getUuid(), serverPlayer.getUuid());
+
+                LOGGER.info("[PokeNotifier-Debug] Found player '{}'. Sending waypoint packet...", serverPlayer.getName().getString());
+                sendWaypointPacket(serverPlayer, pokemonEntity, pos, rarity);
+            } else {
+                LOGGER.info("[PokeNotifier-Debug] Rare Pokémon spawned, but no player was found nearby.");
+            }
+        } catch (Exception e) {
+            LOGGER.error("[PokeNotifier] Error in handleRarePokemonSpawn: {}", e.getMessage(), e);
+        }
+    }
+
+    private static void sendWaypointPacket(ServerPlayerEntity player, PokemonEntity pokemonEntity, BlockPos pos, RarityUtil.RarityCategory rarity) {
+        try {
+            Identifier biomeId = player.getWorld().getBiome(pos).getKey().get().getValue();
+            Pokemon pokemon = pokemonEntity.getPokemon();
+            double distance = player.distanceTo(pokemonEntity);
+
+            var payload = new WaypointPayload(
+                    pokemon.getDisplayName().getString(),
+                    pokemon.getSpecies().getName().substring(0, 1).toUpperCase(),
+                    pos,
+                    rarity.getWaypointColor(),
+                    pokemon.getLevel(),
+                    biomeId,
+                    rarity.name(),
+                    distance
+            );
+            ServerPlayNetworking.send(player, payload);
+            LOGGER.info("[PokeNotifier-Debug] Waypoint packet sent successfully to {}!", player.getName().getString());
+        } catch (Exception e) {
+            LOGGER.error("[PokeNotifier] Error sending waypoint packet: {}", e.getMessage(), e);
+        }
+    }
+
+    private static void handleStatusUpdate(Entity pokemonEntity, UUID notifiedPlayerUUID, StatusUpdatePayload.UpdateType updateType) {
+        try {
+            if (pokemonEntity == null && updateType != StatusUpdatePayload.UpdateType.CAPTURED) return;
+
+            net.minecraft.server.MinecraftServer server = pokemonEntity != null ? pokemonEntity.getServer() : null;
+            if (server == null) {
+                 // Este es un caso límite si el servidor se cierra justo en el momento de la captura.
+                LOGGER.warn("[PokeNotifier] Could not get server instance to send status update.");
+                return;
+            }
+
+            ServerPlayerEntity serverPlayer = server.getPlayerManager().getPlayer(notifiedPlayerUUID);
+
+            if (serverPlayer != null) {
+                // Para la captura, la entidad es nula, por lo que no podemos obtener los datos del Pokémon de la misma manera.
+                // Aceptamos esta limitación por ahora para evitar un crash. El mensaje de captura no mostrará el nivel.
+                if (pokemonEntity instanceof PokemonEntity) {
+                    Pokemon pokemon = ((PokemonEntity) pokemonEntity).getPokemon();
+                    RarityUtil.RarityCategory rarity = RarityUtil.getRarity(pokemon);
+
+                    var payload = new StatusUpdatePayload(
+                            pokemon.getDisplayName().getString(),
+                            pokemon.getLevel(),
+                            rarity.name(),
+                            updateType
+                    );
+
+                    ServerPlayNetworking.send(serverPlayer, payload);
+                    LOGGER.info("[PokeNotifier-Debug] Status update packet ({}) sent successfully to {}!", updateType.name(), serverPlayer.getName().getString());
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.error("[PokeNotifier] Error in handleStatusUpdate: {}", e.getMessage(), e);
+        }
+    }
+}Archivo: D:/Descargas/Datapack_Cobbleverse/Poke-Notifier/src/client/java/com/zehro_mc/pokenotifier/client/PokeNotifierClient.javaJavapackage com.zehro_mc.pokenotifier.client;
+
+import com.zehro_mc.pokenotifier.StatusUpdatePayload;
+import com.zehro_mc.pokenotifier.util.RarityUtil;
+import com.zehro_mc.pokenotifier.WaypointPayload;
+import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.kyori.adventure.platform.fabric.FabricClientAudiences;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.Style;
+import net.kyori.adventure.text.format.TextDecoration;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvent;
+import net.minecraft.sound.SoundEvents;
+import net.minecraft.util.Identifier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class PokeNotifierClient implements ClientModInitializer {
+    public static final Logger LOGGER = LoggerFactory.getLogger("PokeNotifierClient");
+    private FabricClientAudiences adventure;
+
+    private static final SoundEvent SHINY_SOUND = SoundEvent.of(Identifier.of("cobblemon", "shiny.glint"));
+
+    @Override
+    public void onInitializeClient() {
+        // El registro de los tipos de payload ya se hace en la clase principal del mod (PokeNotifier.java).
+        // El cliente solo necesita registrar los "handlers" para cuando reciba esos paquetes.
+
+        this.adventure = FabricClientAudiences.of();
+
+        // Receptor para el SPAWN de un Pokémon
+        ClientPlayNetworking.registerGlobalReceiver(WaypointPayload.ID, (payload, context) -> {
+            context.client().execute(() -> {
+                var player = context.player();
+                if (player == null) return;
+
+                try {
+                    RarityUtil.RarityCategory rarity = RarityUtil.RarityCategory.valueOf(payload.rarityCategoryName());
+
+                    if (rarity == RarityUtil.RarityCategory.SHINY) {
+                        player.getWorld().playSound(player, player.getBlockPos(), SHINY_SOUND, SoundCategory.PLAYERS, 0.7f, 1.0f);
+                    } else {
+                        player.getWorld().playSound(player, player.getBlockPos(), SoundEvents.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 1.0f, 1.0f);
+                    }
+
+                    Component message = createFormattedMessage(payload);
+                    this.adventure.audience().sendMessage(message);
+                } catch (Exception e) {
+                    LOGGER.error("Failed to create or send spawn notification message", e);
+                }
+            });
+        });
+
+        // Receptor para DESPAWN o CAPTURA
+        ClientPlayNetworking.registerGlobalReceiver(StatusUpdatePayload.ID, (payload, context) -> {
+            context.client().execute(() -> {
+                var player = context.player();
+                if (player == null) return;
+
+                try {
+                    Component message = createStatusUpdateMessage(payload);
+                    this.adventure.audience().sendMessage(message);
+                } catch (Exception e) {
+                    LOGGER.error("Failed to create or send status update message", e);
+                }
+            });
+        });
+    }
+
+    private Component createFormattedMessage(WaypointPayload payload) {
+        Identifier biomeId = payload.biomeId();
+        RarityUtil.RarityCategory rarity = RarityUtil.RarityCategory.valueOf(payload.rarityCategoryName());
+
+        Component prefix = Component.translatable("chat.poke-notifier.prefix", NamedTextColor.YELLOW);
+        Component rarityText = rarity.toComponent();
+        Component pokemonName = Component.text(payload.name(), Style.style(rarity.getTextColor(), TextDecoration.BOLD));
+        Component levelText = Component.text(payload.level());
+        String distanceString = String.format("%.1f", payload.distance());
+        Component coordinates = Component.text(String.format("%d, %d, %d (%s blocks away)", payload.pos().getX(), payload.pos().getY(), payload.pos().getZ(), distanceString), NamedTextColor.GREEN);
+        Component biomeName = Component.translatable("biome." + biomeId.getNamespace() + "." + biomeId.getPath());
+
+        Component mainMessage = Component.translatable("chat.poke-notifier.spawn_message", NamedTextColor.YELLOW,
+                rarityText, pokemonName, levelText, coordinates, biomeName);
+
+        return prefix.append(mainMessage);
+    }
+
+    private Component createStatusUpdateMessage(StatusUpdatePayload payload) {
+        RarityUtil.RarityCategory rarity = RarityUtil.RarityCategory.valueOf(payload.rarityCategoryName());
+
+        Component prefix = Component.translatable("chat.poke-notifier.prefix", NamedTextColor.YELLOW);
+        Component rarityText = rarity.toComponent();
+        Component pokemonName = Component.text(payload.name(), Style.style(rarity.getTextColor(), TextDecoration.BOLD));
+        Component levelText = Component.text(payload.level());
+
+        String translationKey;
+        switch (payload.updateType()) {
+            case CAPTURED:
+                translationKey = "chat.poke-notifier.capture_message";
+                break;
+            default: // DESPAWNED
+                translationKey = "chat.poke-notifier.despawn_message";
+                break;
+        }
+
+        // Añadimos el nivel del Pokémon como tercer argumento.
+        return prefix.append(Component.translatable(translationKey, NamedTextColor.YELLOW, rarityText, pokemonName, levelText));
+    }
+}(Los demás archivos como RarityUtil.java, WaypointPayload.java, StatusUpdatePayload.java y en_us.json permanecen igual que en nuestra última versión funcional).

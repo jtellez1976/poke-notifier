@@ -1,0 +1,14 @@
+{
+  "chat.poke-notifier.prefix": "§e[§6Poke Notifier§e] ",
+  "chat.poke-notifier.spawn_message": "A wild %s %s (Lvl. %s) has appeared at %s in a %s biome! ",
+  "chat.poke-notifier.despawn_message": "The wild %s %s (Lvl. %s) has despawned...",
+  "chat.poke-notifier.rare": "Rare",
+  "chat.poke-notifier.ultra_rare": "Ultra Rare",
+  "chat.poke-notifier.shiny": "Shiny",
+  "chat.poke-notifier.legendary": "Legendary",
+  "chat.poke-notifier.mythical": "Mythical",
+  "chat.poke-notifier.ultra_beast": "Ultra Beast",
+  "chat.poke-notifier.paradox": "Paradox",
+  "chat.poke-notifier.waypoint_button": "[Add]",
+  "chat.poke-notifier.waypoint_hover": "Add a temporary waypoint"
+}
