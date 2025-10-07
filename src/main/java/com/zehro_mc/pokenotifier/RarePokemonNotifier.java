@@ -5,11 +5,6 @@ import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.zehro_mc.pokenotifier.networking.WaypointPayload;
 import com.zehro_mc.pokenotifier.util.RarityUtil;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.kyori.adventure.platform.fabric.FabricServerAudiences;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.Style;
-import net.kyori.adventure.text.format.TextDecoration;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.registry.entry.RegistryEntry;
@@ -42,8 +37,6 @@ public class RarePokemonNotifier {
 
         if (pokemonEntity.getServer() == null) return;
 
-        FabricServerAudiences adventure = FabricServerAudiences.of(pokemonEntity.getServer());
-
         for (ServerPlayerEntity player : pokemonEntity.getServer().getPlayerManager().getPlayerList()) {
             double distance = player.getPos().distanceTo(pokemonPos.toCenterPos());
 
@@ -51,37 +44,12 @@ public class RarePokemonNotifier {
                 continue;
             }
 
-            // Construir el mensaje detallado y colorido aquí en el servidor
-            Component rarityText = rarity.getRarityName().color(rarity.getChatColor());
-            Component pokemonName = Component.text(pokemon.getDisplayName().getString(), Style.style(rarity.getChatColor(), TextDecoration.BOLD));
-            Component levelText = Component.text(" (Lvl. " + pokemon.getLevel() + ")");
-            Component coordsText = Component.text(String.format("%d, %d, %d", pokemonPos.getX(), pokemonPos.getY(), pokemonPos.getZ()), NamedTextColor.GREEN);
-            String distanceString = String.format("%.1f", distance);
-            Component distanceText = Component.text(" (" + distanceString + " blocks away)");
-
-            RegistryEntry<Biome> biomeRegistryEntry = player.getWorld().getBiome(pokemonPos);
-            Identifier biomeId = biomeRegistryEntry.getKey().map(key -> key.getValue()).orElse(BiomeKeys.PLAINS.getValue());
-            Component biomeName = Component.translatable("biome." + biomeId.getNamespace() + "." + biomeId.getPath());
-
-            Component message = Component.text()
-                    .append(Component.text("A wild ", NamedTextColor.WHITE))
-                    .append(rarityText)
-                    .append(Component.text(" "))
-                    .append(pokemonName)
-                    .append(levelText)
-                    .append(Component.text(" has appeared at ", NamedTextColor.WHITE))
-                    .append(coordsText)
-                    .append(distanceText)
-                    .append(Component.text(" in a ", NamedTextColor.WHITE))
-                    .append(biomeName)
-                    .append(Component.text(" biome!", NamedTextColor.WHITE))
-                    .build();
-
-            // Enviar el mensaje de chat al jugador
-            adventure.audience(player).sendMessage(message);
-
             // Reproducir sonido para el jugador
             player.playSoundToPlayer(SoundEvents.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 0.5F, 1.0F);
+
+            // Obtenemos el ID del bioma
+            RegistryEntry<Biome> biomeRegistryEntry = player.getWorld().getBiome(pokemonPos);
+            Identifier biomeId = biomeRegistryEntry.getKey().map(key -> key.getValue()).orElse(BiomeKeys.PLAINS.getValue());
 
             // Crear y enviar el paquete para el waypoint (esto es para la parte visual del waypoint, no el chat)
             WaypointPayload payload = new WaypointPayload(

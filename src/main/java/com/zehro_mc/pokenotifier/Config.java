@@ -1,11 +1,28 @@
 package com.zehro_mc.pokenotifier;
 
+import java.util.List;
 import java.util.HashSet;
 import java.util.Set;
 
 public class Config {
 
-    // These lists are generated based on your AllPokemons.json file, including special categories.
+    public List<String> _instructions = List.of(
+            "--- Poke-Notifier Configuration Instructions ---",
+            "This file allows you to customize which Pokémon trigger a notification.",
+            " ",
+            "HOW TO EDIT:",
+            " - To add a Pokémon to a category, add its name in lowercase inside the square brackets [ ].",
+            " - Make sure to put the name in double quotes and add a comma after it if it's not the last one in the list.",
+            " - Example: To make 'badoof' rare, add \"badoof\", to the RARE list.",
+            " - Pokémon names should be all lowercase and without spaces (e.g., 'roaringmoon', 'ironvaliant', 'mr.rime').",
+            " ",
+            "IMPORTANT:",
+            " - DO NOT delete the category names like \"LEGENDARY\", \"MYTHICAL\", etc., or the file will break.",
+            " - You can safely delete any Pokémon name from a list if you don't want it in that category.",
+            " - The mod checks categories from top to bottom (MYTHICAL is checked before LEGENDARY, which is checked before RARE, etc.).",
+            " - After saving your changes, use the command '/pokenotifier reloadconfig' in-game to apply them.",
+            " "
+    );
 
     public Set<String> LEGENDARY = new HashSet<>(Set.of(
             "articuno", "zapdos", "moltres", "mewtwo", "raikou", "entei", "suicune", "lugia", "ho-oh", "regirock",
