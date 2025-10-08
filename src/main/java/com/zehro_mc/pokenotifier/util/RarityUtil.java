@@ -41,6 +41,10 @@ public class RarityUtil {
         public Component getRarityName() {
             return Component.translatable("poke-notifier.rarity." + this.key);
         }
+
+        public String getTranslationKey() {
+            return "poke-notifier.rarity." + this.key;
+        }
     }
 
     public static RarityCategory getRarity(Pokemon pokemon) {

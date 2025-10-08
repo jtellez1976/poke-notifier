@@ -1,10 +1,11 @@
 {
   "chat.poke-notifier.prefix": "§e[§6Poke Notifier§e] ",
   "chat.poke-notifier.spawn_message": "A wild %s %s%s %s has appeared at %s (%s blocks away) in a %s biome. Hurry up!!",
-  "chat.poke-notifier.despawn_message": "The wild %s has fled...",
+ "chat.poke-notifier.despawn_message": "The wild %s has fled...",
 
   "poke-notifier.toast.title": "Rare Spawn!",
   "poke-notifier.toast.description": "A %s %s has appeared!",
+
   "poke-notifier.rarity.LEGENDARY": "Legendary",
   "poke-notifier.rarity.MYTHICAL": "Mythical",
   "poke-notifier.rarity.ULTRA_BEAST": "Ultra Beast",

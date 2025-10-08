@@ -17,7 +17,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.biome.BiomeKeys;
-import java.util.stream.StreamSupport;
+import java.util.Iterator;
 
 
 public class RarePokemonNotifier {
@@ -52,12 +52,10 @@ public class RarePokemonNotifier {
             String status = hasCaughtSpecies(player, pokemon) ? "CAUGHT" : "NEW";
 
             // Obtenemos el ID del bioma
-            RegistryEntry<Biome> biomeRegistryEntry = player.getWorld().getBiome(pokemonPos);
-            Identifier biomeId = biomeRegistryEntry.getKey().map(key -> key.getValue()).orElse(BiomeKeys.PLAINS.getValue());
-
+            RegistryEntry<Biome> biomeRegistryEntry = player.getWorld().getBiome(pokemonPos);            Identifier biomeId = biomeRegistryEntry.getKey().map(key -> key.getValue()).orElse(BiomeKeys.PLAINS.getValue());
             // Reproducir sonido solo si el Pokémon es nuevo para el jugador
             if (status.equals("NEW")) {
-                player.playSoundToPlayer(SoundEvents.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 0.4F, 1.0F);
+                player.playSoundToPlayer(SoundEvents.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 0.5F, 1.0F);
             }
 
             // Crear y enviar el paquete con toda la información al cliente
@@ -85,16 +83,24 @@ public class RarePokemonNotifier {
      * @return true si el jugador posee la especie, false en caso contrario.
      */
     private static boolean hasCaughtSpecies(ServerPlayerEntity player, Pokemon pokemonToFind) {
-        // Primero, revisamos el equipo (party) del jugador
+        // Primero, revisamos el equipo (party) del jugador usando un bucle for-each simple y seguro
         PokemonStore party = Cobblemon.INSTANCE.getStorage().getParty(player);
-        if (StreamSupport.stream(party.spliterator(), false).anyMatch(p -> p instanceof Pokemon && ((Pokemon) p).getSpecies() == pokemonToFind.getSpecies())) {
-            return true;
+        Iterator<Pokemon> partyIterator = party.iterator();
+        while (partyIterator.hasNext()) {
+            Pokemon p = partyIterator.next();
+            if (p != null && p.getSpecies() == pokemonToFind.getSpecies()) {
+                return true;
+            }
         }
 
         // Si no está en el equipo, revisamos el PC del jugador
         PokemonStore pc = Cobblemon.INSTANCE.getStorage().getPC(player);
-        if (StreamSupport.stream(pc.spliterator(), false).anyMatch(p -> p instanceof Pokemon && ((Pokemon) p).getSpecies() == pokemonToFind.getSpecies())) {
-            return true;
+        Iterator<Pokemon> pcIterator = pc.iterator();
+        while (pcIterator.hasNext()) {
+            Pokemon p = pcIterator.next();
+            if (p != null && p.getSpecies() == pokemonToFind.getSpecies()) {
+                return true;
+            }
         }
 
         return false; // No se encontró la especie en ninguna parte

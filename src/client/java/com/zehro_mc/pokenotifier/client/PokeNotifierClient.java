@@ -4,19 +4,21 @@ import com.zehro_mc.pokenotifier.networking.StatusUpdatePayload;
 import com.zehro_mc.pokenotifier.networking.WaypointPayload;
 import com.zehro_mc.pokenotifier.util.RarityUtil;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.kyori.adventure.platform.fabric.FabricClientAudiences;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.Style;
-import net.kyori.adventure.text.format.TextDecoration;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
+import net.kyori.adventure.text.format.TextDecoration;
 
 public class PokeNotifierClient implements ClientModInitializer {
     public static final Logger LOGGER = LoggerFactory.getLogger("PokeNotifierClient");
@@ -25,6 +27,9 @@ public class PokeNotifierClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        // Registrar el evento para dibujar nuestro HUD personalizado en la pantalla
+        HudRenderCallback.EVENT.register(NotificationHUD::render);
+
         this.adventure = FabricClientAudiences.of();
 
         // Receptor para el Waypoint y el mensaje de aparición
@@ -44,6 +49,26 @@ public class PokeNotifierClient implements ClientModInitializer {
                 try {
                     Component message = createFormattedSpawnMessage(payload);
                     this.adventure.audience().sendMessage(message);
+
+                    // Mostrar un Toast solo si el Pokémon es nuevo
+                    if (payload.status().equals("NEW")) {
+                        RarityUtil.RarityCategory rarity = RarityUtil.RarityCategory.valueOf(payload.rarityCategoryName());
+                        LOGGER.info("Building and showing a Toast for a NEW Pokémon.");
+
+                        // Construimos el texto del Toast usando la API nativa de Minecraft para máxima compatibilidad.
+                        net.minecraft.text.Style rarityStyle = net.minecraft.text.Style.EMPTY.withColor(rarity.getChatColor().value());
+
+                        Text title = Text.translatable("poke-notifier.toast.title");
+                        Text description = Text.translatable(
+                                "poke-notifier.toast.description",
+                                Text.translatable(rarity.getTranslationKey()).fillStyle(rarityStyle),
+                                Text.literal(payload.name()).fillStyle(rarityStyle)
+                        );
+
+                        // Mostramos nuestro HUD personalizado
+                        NotificationHUD.show(title, description);
+                    }
+
                 } catch (Exception e) {
                     LOGGER.error("Failed to create or send spawn notification message", e);
                 }
@@ -75,7 +100,7 @@ public class PokeNotifierClient implements ClientModInitializer {
         // Construimos el mensaje usando las claves de traducción del archivo en_us.json
         Component prefix = Component.translatable("chat.poke-notifier.prefix");
         Component rarityText = rarity.getRarityName(); // Esto ya es un Component.translatable
-        
+
         Component statusTag = payload.status().equals("CAUGHT")
                 ? Component.text(" [Caught]", NamedTextColor.GRAY)
                 : Component.text(" [New]", NamedTextColor.GREEN); // Cambiado a verde para más impacto
