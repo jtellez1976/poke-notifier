@@ -30,7 +30,7 @@ public class PokeNotifierClient implements ClientModInitializer {
         // Receptor para el Waypoint y el mensaje de aparición
         ClientPlayNetworking.registerGlobalReceiver(WaypointPayload.ID, (payload, context) -> {
             context.client().execute(() -> {
-                // Lógica del Waypoint (si la tienes)
+                // Lógica del Waypoint
                 Waypoint waypoint = new Waypoint(
                         payload.uuid(),
                         payload.name(),
@@ -75,23 +75,30 @@ public class PokeNotifierClient implements ClientModInitializer {
         // Construimos el mensaje usando las claves de traducción del archivo en_us.json
         Component prefix = Component.translatable("chat.poke-notifier.prefix");
         Component rarityText = rarity.getRarityName(); // Esto ya es un Component.translatable
-        Component pokemonName = Component.text(payload.name(), rarity.getChatColor(), TextDecoration.BOLD);
-        Component levelText = Component.text("(" + payload.level() + ")", NamedTextColor.YELLOW);
+        
+        Component statusTag = payload.status().equals("CAUGHT")
+                ? Component.text(" [Caught]", NamedTextColor.GRAY)
+                : Component.text(" [New]", NamedTextColor.GREEN); // Cambiado a verde para más impacto
+
+        Component pokemonName = Component.text(payload.name(), Style.style(rarity.getChatColor(), TextDecoration.BOLD));
+        Component levelText = Component.text(" (" + payload.level() + ")", NamedTextColor.YELLOW);
         Component coordsText = Component.text(String.format("%d, %d, %d", payload.pos().getX(), payload.pos().getY(), payload.pos().getZ()), NamedTextColor.GREEN);
         String distanceString = String.format("%.1f", payload.distance());
+        Component distanceText = Component.text(" (" + distanceString + " blocks away)", NamedTextColor.YELLOW);
         Component biomeName = Component.translatable("biome." + biomeId.getNamespace() + "." + biomeId.getPath());
 
-        // Usamos la clave principal y le pasamos los componentes como argumentos
+        // Construimos el mensaje manualmente para tener control total sobre los colores
         return prefix
                 .append(Component.text("A wild ", NamedTextColor.YELLOW))
                 .append(rarityText.color(rarity.getChatColor()))
                 .append(Component.text(" "))
                 .append(pokemonName)
-                .append(Component.text(" "))
+                .append(statusTag)
                 .append(levelText)
                 .append(Component.text(" has appeared at ", NamedTextColor.YELLOW))
                 .append(coordsText)
-                .append(Component.text(" (" + distanceString + " blocks away) in a ", NamedTextColor.YELLOW))
+                .append(distanceText)
+                .append(Component.text(" in a ", NamedTextColor.YELLOW))
                 .append(biomeName.color(NamedTextColor.YELLOW))
                 .append(Component.text(" biome!", NamedTextColor.YELLOW));
     }
@@ -101,7 +108,7 @@ public class PokeNotifierClient implements ClientModInitializer {
         Component prefix = Component.translatable("chat.poke-notifier.prefix");
 
         if (payload.updateType() == StatusUpdatePayload.UpdateType.CAPTURED) {
-            Component pokemonName = Component.text(payload.name(), rarity.getChatColor(), TextDecoration.BOLD);
+            Component pokemonName = Component.text(payload.name(), Style.style(rarity.getChatColor(), TextDecoration.BOLD));
             Component playerName = Component.text(payload.playerName(), NamedTextColor.AQUA);
             return Component.text()
                     .append(playerName)
@@ -112,10 +119,10 @@ public class PokeNotifierClient implements ClientModInitializer {
         } else { // DESPAWNED
             // Creamos el nombre sin negrita para el mensaje de despawn
             Component pokemonName = Component.text(payload.name(), rarity.getChatColor());
-            return prefix
-                    .append(Component.text("The wild ", NamedTextColor.YELLOW))
-                    .append(pokemonName)
-                    .append(Component.text(" has despawned...", NamedTextColor.YELLOW));
+            return prefix.append(Component.translatable(
+                    "chat.poke-notifier.despawn_message",
+                    pokemonName
+            ));
         }
     }
 }

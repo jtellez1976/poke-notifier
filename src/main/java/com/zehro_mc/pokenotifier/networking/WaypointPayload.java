@@ -12,6 +12,7 @@ public record WaypointPayload(
         String name,
         BlockPos pos,
         int color,
+        String status,
         String rarityCategoryName,
         String level,
         double distance,
@@ -32,6 +33,7 @@ public record WaypointPayload(
                 buf.readInt(),
                 buf.readString(),
                 buf.readString(),
+                buf.readString(),
                 buf.readDouble(),
                 buf.readIdentifier()
         );
@@ -42,6 +44,7 @@ public record WaypointPayload(
         buf.writeString(name);
         buf.writeBlockPos(pos);
         buf.writeInt(color);
+        buf.writeString(status);
         buf.writeString(rarityCategoryName);
         buf.writeString(level);
         buf.writeDouble(distance);

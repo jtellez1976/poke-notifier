@@ -109,11 +109,17 @@ publishing {
 
 
 
-// Tarea para copiar el JAR final (el remapeado) a tu carpeta de mods.
-task copyToMods(type: Copy) {
-	from tasks.named("remapJar")
-	into "C:/Users/JOHN/curseforge/minecraft/Instances/COBBLEVERSE - Pokemon Adventure [Cobblemon]/mods"
+// --- Tarea Personalizada para Copiar el Mod al Entorno de Pruebas ---
+// Esta tarea se ejecutará después de que 'build' termine.
+task copyModToTestEnvironment(type: Copy) {
+    // Define la ruta de la carpeta de mods de tu instancia de CurseForge.
+    def modsDir = "C:/Users/JOHN/curseforge/minecraft/Instances/COBBLEVERSE - Pokemon Adventure [Cobblemon]/mods"
+
+    // Le decimos que copie el resultado de la tarea 'remapJar'.
+    // Este es el .jar final que no tiene el sufijo '-dev'.
+    from remapJar
+    into modsDir
 }
 
 // Hacemos que la tarea 'build' ejecute nuestra tarea de copia al finalizar.
-build.finalizedBy(copyToMods)
+build.finalizedBy(copyModToTestEnvironment)
