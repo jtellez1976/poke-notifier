@@ -3,12 +3,14 @@
 	"id": "poke-notifier",
 	"version": "${version}",
 	"name": "Poke Notifier",
-	"description": "Notifies players of rare Pokémon spawns.",
+	"description": "Never miss a rare Pokémon again! Poke Notifier alerts you when Legendary, Mythical, Shiny, and other rare Pokémon spawn nearby, providing their coordinates and details directly in your chat.",
 	"authors": [
-		"ZeHrO_MC"
+		"ZeHrOx"
 	],
-	"contact": {},
-	"license": "MIT",
+	"contact": {
+		"sources": "https://github.com/jtellez1976/poke-notifier"
+	},
+	"license": "CC0-1.0",
 	"icon": "assets/poke-notifier/icon.png",
 	"environment": "*",
 	"entrypoints": {
