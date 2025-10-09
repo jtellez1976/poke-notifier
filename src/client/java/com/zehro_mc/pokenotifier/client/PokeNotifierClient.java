@@ -13,9 +13,11 @@ import net.kyori.adventure.text.format.Style;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.Formatting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -55,15 +57,17 @@ public class PokeNotifierClient implements ClientModInitializer {
                         RarityUtil.RarityCategory rarity = RarityUtil.RarityCategory.valueOf(payload.rarityCategoryName());
                         LOGGER.info("Building and showing a Toast for a NEW Pokémon.");
 
-                        // Construimos el texto del Toast usando la API nativa de Minecraft para máxima compatibilidad.
-                        net.minecraft.text.Style rarityStyle = net.minecraft.text.Style.EMPTY.withColor(rarity.getChatColor().value());
+                        // 1. Formateamos el nombre de la categoría para que se vea bien (ej: "PSEUDO_LEGENDARY" -> "Pseudo Legendary").
+                        String formattedCategory = formatCategoryName(payload.rarityCategoryName());
 
-                        Text title = Text.translatable("poke-notifier.toast.title");
-                        Text description = Text.translatable(
-                                "poke-notifier.toast.description",
-                                Text.translatable(rarity.getTranslationKey()).fillStyle(rarityStyle),
-                                Text.literal(payload.name()).fillStyle(rarityStyle)
-                        );
+                        // 2. Construimos el mensaje compuesto para el HUD.
+                        Text title = Text.literal("A ")
+                                .append(Text.literal(formattedCategory + " " + payload.name())
+                                        .styled(style -> style.withColor(payload.color())))
+                                .append(Text.literal(" has appeared"));
+
+                        // 3. La descripción ahora estará vacía.
+                        Text description = Text.empty();
 
                         // Mostramos nuestro HUD personalizado
                         NotificationHUD.show(title, description, payload.spriteIdentifier());
@@ -149,5 +153,22 @@ public class PokeNotifierClient implements ClientModInitializer {
                     pokemonName
             ));
         }
+    }
+
+    /**
+     * Formatea un nombre de categoría de rareza para que sea legible.
+     * Ejemplo: "PSEUDO_LEGENDARY" se convierte en "Pseudo Legendary".
+     * @param categoryName El nombre de la categoría en mayúsculas.
+     * @return El nombre formateado.
+     */
+    private static String formatCategoryName(String categoryName) {
+        if (categoryName == null || categoryName.isEmpty()) {
+            return "Rare"; // Fallback por si acaso
+        }
+        String[] words = categoryName.toLowerCase().split("_");
+        for (int i = 0; i < words.length; i++) {
+            words[i] = words[i].substring(0, 1).toUpperCase() + words[i].substring(1);
+        }
+        return String.join(" ", words);
     }
 }
