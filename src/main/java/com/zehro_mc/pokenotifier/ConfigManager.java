@@ -1,6 +1,7 @@
 package com.zehro_mc.pokenotifier;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.GsonBuilder;
 import net.fabricmc.loader.api.FabricLoader;
 
@@ -11,28 +12,36 @@ import java.io.IOException;
 
 public class ConfigManager {
 
-    private static final File CONFIG_FILE = new File(FabricLoader.getInstance().getConfigDir().toFile(), "poke-notifier.json");
+    private static final File CONFIG_FILE = FabricLoader.getInstance().getConfigDir().resolve("poke-notifier.json").toFile();
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static Config config;
 
-    public static void loadConfig() {
+    // Excepción personalizada para un manejo de errores claro en el comando
+    public static class ConfigReadException extends Exception {
+        public ConfigReadException(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
+
+    public static void loadConfig() throws ConfigReadException {
         if (CONFIG_FILE.exists()) {
             try (FileReader reader = new FileReader(CONFIG_FILE)) {
                 config = GSON.fromJson(reader, Config.class);
                 if (config == null) {
-                    // Handle case where file is empty or invalid
-                    config = new Config();
+                    throw new ConfigReadException("The config file is empty or invalid.", null);
                 }
                 PokeNotifier.LOGGER.info("Poke Notifier configuration loaded.");
+            } catch (JsonSyntaxException e) {
+                // Este es el error específico para un formato JSON incorrecto (ej: coma faltante)
+                throw new ConfigReadException("Failed to parse poke-notifier.json. Please check for syntax errors.", e);
             } catch (IOException e) {
-                PokeNotifier.LOGGER.error("Failed to load Poke Notifier configuration, using defaults.", e);
-                config = new Config();
+                throw new ConfigReadException("Failed to read poke-notifier.json.", e);
             }
         } else {
-            config = new Config();
+            // Si el archivo no existe, crea uno nuevo por defecto.
             PokeNotifier.LOGGER.info("No Poke Notifier configuration file found, creating a new one.");
+            resetToDefault();
         }
-        saveConfig(); // Save to create the file if it doesn't exist or to add new fields
     }
 
     public static void saveConfig() {
@@ -43,9 +52,20 @@ public class ConfigManager {
         }
     }
 
+    public static void resetToDefault() {
+        config = new Config();
+        PokeNotifier.LOGGER.info("Generated new default Poke Notifier configuration.");
+        saveConfig();
+    }
+
     public static Config getConfig() {
         if (config == null) {
-            loadConfig();
+            try {
+                loadConfig();
+            } catch (ConfigReadException e) {
+                PokeNotifier.LOGGER.error("Initial config load failed. Using temporary default config. Please fix poke-notifier.json or reset it.", e);
+                config = new Config(); // Usa una configuración por defecto temporal si el archivo está roto en la carga inicial
+            }
         }
         return config;
     }

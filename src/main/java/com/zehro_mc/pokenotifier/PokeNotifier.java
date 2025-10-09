@@ -42,8 +42,12 @@ public class PokeNotifier implements ModInitializer {
         ServerLifecycleEvents.SERVER_STARTED.register(startedServer -> server = startedServer);
         ServerLifecycleEvents.SERVER_STOPPING.register(stoppingServer -> server = null);
 
-        ConfigManager.loadConfig();
-        CommandRegistrationCallback.EVENT.register(ReloadConfigCommand::register);
+        try {
+            ConfigManager.loadConfig();
+        } catch (ConfigManager.ConfigReadException e) {
+            LOGGER.error("Failed to load Poke Notifier configuration on startup. Using default values.", e);
+        }
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> ReloadConfigCommand.register(dispatcher, environment));
 
         PokeNotifierPackets.registerS2CPackets();
 
