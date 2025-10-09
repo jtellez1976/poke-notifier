@@ -4,7 +4,6 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.text.StringVisitable;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
@@ -22,7 +21,7 @@ public class NotificationHUD {
         NotificationHUD.title = title;
         NotificationHUD.description = description;
         NotificationHUD.icon = icon;
-        NotificationHUD.displayUntil = System.currentTimeMillis() + 10000L; // Mostrar por 5 segundos
+        NotificationHUD.displayUntil = System.currentTimeMillis() + 5000L; // Mostrar por 5 segundos
     }
 
     public static void render(DrawContext context, RenderTickCounter tickCounter) {
@@ -32,37 +31,45 @@ public class NotificationHUD {
 
         MinecraftClient client = MinecraftClient.getInstance();
         int screenWidth = client.getWindow().getScaledWidth();
-
-        // Usamos un ancho máximo generoso, ya que no hay fondo.
-        int maxTextWidth = 220;
-
-        StringVisitable truncatedDescription = client.textRenderer.trimToWidth(description, maxTextWidth);
-        Text drawableDescription = Text.literal(truncatedDescription.getString());
-
-        // Calculamos el ancho total para centrar el conjunto (icono + texto)
-        int iconSize = 64; // Un tamaño grande y prominente para el icono
-        int padding = 0; // Eliminamos el espaciado para que el texto esté pegado al icono
-        int textWidth = Math.max(client.textRenderer.getWidth(title), client.textRenderer.getWidth(drawableDescription));
-        int totalWidth = iconSize + padding + textWidth;
-
-        int x = (screenWidth - totalWidth) / 2;
-        int y = 10; // Cerca de la parte superior
+        int y = 10; // Posición vertical fija cerca de la parte superior
 
         // Habilitamos el blending para que la transparencia del PNG funcione correctamente
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
 
-        // Lógica de Fallback
-        Identifier iconToDraw = FALLBACK_ICON;
-        if (client.getResourceManager().getResource(icon).isPresent()) {
-            iconToDraw = icon;
-        }
-        context.drawTexture(iconToDraw, x, y, 0, 0, iconSize, iconSize, iconSize, iconSize);
+        // Comprobamos si el sprite personalizado del Pokémon existe.
+        boolean useCustomSprite = client.getResourceManager().getResource(icon).isPresent();
 
-        // Ajustamos la posición vertical del texto para que quede centrado con el nuevo tamaño del icono
-        // Calculamos la posición 'y' para centrar una sola línea de texto con el icono.
-        int textY = y + (iconSize / 2) - (client.textRenderer.fontHeight / 2);
-        context.drawTextWithShadow(client.textRenderer, title, x + iconSize + padding, textY, 0xFFFFFF); // Usamos el 'title' original que tiene los colores
+        if (useCustomSprite) {
+            // --- CASO 1: El sprite del Pokémon SÍ existe ---
+            int iconSize = 64; // Usamos el tamaño grande
+            int padding = 0;
+            int textWidth = client.textRenderer.getWidth(title);
+            int totalWidth = iconSize + padding + textWidth;
+            int x = (screenWidth - totalWidth) / 2;
+
+            // Dibuja el sprite del Pokémon
+            context.drawTexture(icon, x, y, 0, 0, iconSize, iconSize, iconSize, iconSize);
+
+            // Dibuja el texto centrado verticalmente con el icono grande
+            int textY = y + (iconSize / 2) - (client.textRenderer.fontHeight / 2);
+            context.drawTextWithShadow(client.textRenderer, title, x + iconSize + padding, textY, 0xFFFFFF);
+
+        } else {
+            // --- CASO 2: El sprite del Pokémon NO existe (usamos el fallback) ---
+            int iconSize = 32; // Usamos un tamaño más pequeño y apropiado para la Poké Ball
+            int padding = 4;
+            int textWidth = client.textRenderer.getWidth(title);
+            int totalWidth = iconSize + padding + textWidth;
+            int x = (screenWidth - totalWidth) / 2;
+
+            // Dibuja la Poké Ball de fallback
+            context.drawTexture(FALLBACK_ICON, x, y, 0, 0, iconSize, iconSize, iconSize, iconSize);
+
+            // Dibuja el texto centrado verticalmente con el icono pequeño
+            int textY = y + (iconSize / 2) - (client.textRenderer.fontHeight / 2);
+            context.drawTextWithShadow(client.textRenderer, title, x + iconSize + padding, textY, 0xFFFFFF);
+        }
 
         RenderSystem.disableBlend();
     }
