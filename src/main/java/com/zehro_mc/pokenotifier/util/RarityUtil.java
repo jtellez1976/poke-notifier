@@ -3,6 +3,7 @@ package com.zehro_mc.pokenotifier.util;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.zehro_mc.pokenotifier.Config;
 import com.zehro_mc.pokenotifier.ConfigManager;
+import net.minecraft.util.Formatting;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;

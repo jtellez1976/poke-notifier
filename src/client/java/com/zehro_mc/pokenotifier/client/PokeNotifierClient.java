@@ -66,7 +66,7 @@ public class PokeNotifierClient implements ClientModInitializer {
                         );
 
                         // Mostramos nuestro HUD personalizado
-                        NotificationHUD.show(title, description);
+                        NotificationHUD.show(title, description, payload.spriteIdentifier());
                     }
 
                 } catch (Exception e) {
@@ -125,7 +125,7 @@ public class PokeNotifierClient implements ClientModInitializer {
                 .append(distanceText)
                 .append(Component.text(" in a ", NamedTextColor.YELLOW))
                 .append(biomeName.color(NamedTextColor.YELLOW))
-                .append(Component.text(" biome!", NamedTextColor.YELLOW));
+                .append(Component.text(" biome. Hurry up!!", NamedTextColor.YELLOW));
     }
 
     private Component createStatusUpdateMessage(StatusUpdatePayload payload) {

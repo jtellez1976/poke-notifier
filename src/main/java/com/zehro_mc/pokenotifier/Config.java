@@ -24,6 +24,18 @@ public class Config {
             " "
     );
 
+    // --- Test Mode ---
+    // If true, the notifier will also trigger for Pokémon spawned with commands (e.g., /pokespawn).
+    // Useful for testing notifications without waiting for natural spawns.
+    public boolean enable_test_mode = false;
+
+    // --- General Settings ---
+    // The maximum distance in blocks a player can be from a Pokémon to receive a notification.
+    public int notification_distance = 200;
+    // The duration in seconds that a rare Pokémon will glow after spawning.
+    public int glowing_duration_seconds = 120; // 2 minutes
+
+
     public Set<String> LEGENDARY = new HashSet<>(Set.of(
             "articuno", "zapdos", "moltres", "mewtwo", "raikou", "entei", "suicune", "lugia", "ho-oh", "regirock",
             "regice", "registeel", "latias", "latios", "kyogre", "groudon", "rayquaza", "uxie", "mesprit", "azelf",

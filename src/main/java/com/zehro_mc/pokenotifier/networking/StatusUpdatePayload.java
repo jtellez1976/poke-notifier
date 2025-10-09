@@ -1,6 +1,7 @@
 package com.zehro_mc.pokenotifier.networking;
 
 import com.zehro_mc.pokenotifier.PokeNotifier;
+import net.minecraft.util.Identifier;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.packet.CustomPayload;
@@ -21,7 +22,8 @@ public record StatusUpdatePayload(
         DESPAWNED
     }
 
-    public static final CustomPayload.Id<StatusUpdatePayload> ID = new CustomPayload.Id<>(PokeNotifier.STATUS_UPDATE_CHANNEL_ID);
+    public static final CustomPayload.Id<StatusUpdatePayload> ID = new CustomPayload.Id<>(
+            Identifier.of(PokeNotifier.MOD_ID, "status_update_payload"));
 
     public static final PacketCodec<PacketByteBuf, StatusUpdatePayload> CODEC = PacketCodec.of(
             StatusUpdatePayload::write,

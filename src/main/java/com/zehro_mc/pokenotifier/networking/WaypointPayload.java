@@ -16,9 +16,11 @@ public record WaypointPayload(
         String rarityCategoryName,
         String level,
         double distance,
-        Identifier biomeId
+        Identifier biomeId,
+        Identifier spriteIdentifier
 ) implements CustomPayload {
-    public static final CustomPayload.Id<WaypointPayload> ID = new CustomPayload.Id<>(PokeNotifier.WAYPOINT_CHANNEL_ID);
+    public static final CustomPayload.Id<WaypointPayload> ID = new CustomPayload.Id<>(
+            Identifier.of(PokeNotifier.MOD_ID, "waypoint_payload"));
 
     public static final PacketCodec<PacketByteBuf, WaypointPayload> CODEC = PacketCodec.of(
             WaypointPayload::write,
@@ -35,6 +37,7 @@ public record WaypointPayload(
                 buf.readString(),
                 buf.readString(),
                 buf.readDouble(),
+                buf.readIdentifier(),
                 buf.readIdentifier()
         );
     }
@@ -49,6 +52,7 @@ public record WaypointPayload(
         buf.writeString(level);
         buf.writeDouble(distance);
         buf.writeIdentifier(biomeId);
+        buf.writeIdentifier(spriteIdentifier);
     }
 
     @Override

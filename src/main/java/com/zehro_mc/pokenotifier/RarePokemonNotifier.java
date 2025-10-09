@@ -1,9 +1,9 @@
 package com.zehro_mc.pokenotifier;
 
 import com.cobblemon.mod.common.Cobblemon;
-import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.cobblemon.mod.common.api.storage.PokemonStore;
+import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
 import com.zehro_mc.pokenotifier.networking.WaypointPayload;
 import com.zehro_mc.pokenotifier.util.RarityUtil;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -17,8 +17,8 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.biome.BiomeKeys;
-import java.util.Iterator;
 
+import java.util.Iterator;
 
 public class RarePokemonNotifier {
 
@@ -26,7 +26,7 @@ public class RarePokemonNotifier {
         Pokemon pokemon = pokemonEntity.getPokemon();
         RarityUtil.RarityCategory rarity = RarityUtil.getRarity(pokemon);
 
-        // No notificar si la rareza es NONE o UNCOMMON por defecto
+        // No notificar si la rareza es NONE o UNCOMMON
         if (rarity == RarityUtil.RarityCategory.NONE || rarity == RarityUtil.RarityCategory.UNCOMMON) {
             return;
         }
@@ -34,8 +34,9 @@ public class RarePokemonNotifier {
         PokeNotifier.TRACKED_POKEMON.put(pokemonEntity, rarity);
         PokeNotifier.LOGGER.info("Started tracking Pokémon: " + pokemon.getSpecies().getName());
 
-        // Aplicar el efecto de brillo al Pokémon
-        pokemonEntity.addStatusEffect(new StatusEffectInstance(StatusEffects.GLOWING, 2400, 0, false, false)); // 2 minutos de brillo
+        // Aplicar el efecto de brillo usando la duración de la configuración
+        int glowingTicks = ConfigManager.getConfig().glowing_duration_seconds * 20;
+        pokemonEntity.addStatusEffect(new StatusEffectInstance(StatusEffects.GLOWING, glowingTicks, 0, false, false));
 
         BlockPos pokemonPos = pokemonEntity.getBlockPos();
 
@@ -44,7 +45,7 @@ public class RarePokemonNotifier {
         for (ServerPlayerEntity player : pokemonEntity.getServer().getPlayerManager().getPlayerList()) {
             double distance = player.getPos().distanceTo(pokemonPos.toCenterPos());
 
-            if (distance > 200) {
+            if (distance > ConfigManager.getConfig().notification_distance) {
                 continue;
             }
 
@@ -52,23 +53,30 @@ public class RarePokemonNotifier {
             String status = hasCaughtSpecies(player, pokemon) ? "CAUGHT" : "NEW";
 
             // Obtenemos el ID del bioma
-            RegistryEntry<Biome> biomeRegistryEntry = player.getWorld().getBiome(pokemonPos);            Identifier biomeId = biomeRegistryEntry.getKey().map(key -> key.getValue()).orElse(BiomeKeys.PLAINS.getValue());
+            RegistryEntry<Biome> biomeRegistryEntry = player.getWorld().getBiome(pokemonPos);
+            Identifier biomeId = biomeRegistryEntry.getKey().map(key -> key.getValue()).orElse(BiomeKeys.PLAINS.getValue());
+
             // Reproducir sonido solo si el Pokémon es nuevo para el jugador
             if (status.equals("NEW")) {
                 player.playSoundToPlayer(SoundEvents.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 0.5F, 1.0F);
             }
 
+            // Construimos el Identifier para nuestro sprite personalizado.
+            String pokemonName = pokemon.getSpecies().getName().toLowerCase();
+            Identifier spriteIdentifier = Identifier.of(PokeNotifier.MOD_ID, "textures/pokemon/" + pokemonName + ".png");
+
             // Crear y enviar el paquete con toda la información al cliente
             WaypointPayload payload = new WaypointPayload(
-                    pokemon.getUuid().toString(), // Usar UUID para identificar al Pokémon de forma única
-                    pokemon.getDisplayName().getString(), // Nombre para mostrar
+                    pokemon.getUuid().toString(),
+                    pokemon.getDisplayName().getString(),
                     pokemonPos,
                     rarity.getWaypointColor(),
-                    status, // "NEW" o "CAUGHT"
-                    rarity.name(), // Nombre de la categoría de rareza
-                    "Lvl " + pokemon.getLevel(), // Nivel
-                    distance, // Distancia
-                    biomeId // ID del bioma
+                    status,
+                    rarity.name(),
+                    "Lvl " + pokemon.getLevel(),
+                    distance,
+                    biomeId,
+                    spriteIdentifier
             );
             ServerPlayNetworking.send(player, payload);
 
@@ -76,14 +84,8 @@ public class RarePokemonNotifier {
         }
     }
 
-    /**
-     * Verifica si un jugador ya posee un Pokémon de una especie específica en su equipo o en su PC.
-     * @param player El jugador a verificar.
-     * @param pokemonToFind El Pokémon cuya especie se busca.
-     * @return true si el jugador posee la especie, false en caso contrario.
-     */
     private static boolean hasCaughtSpecies(ServerPlayerEntity player, Pokemon pokemonToFind) {
-        // Primero, revisamos el equipo (party) del jugador usando un bucle for-each simple y seguro
+        // Primero, revisamos el equipo (party) del jugador
         PokemonStore party = Cobblemon.INSTANCE.getStorage().getParty(player);
         Iterator<Pokemon> partyIterator = party.iterator();
         while (partyIterator.hasNext()) {
@@ -103,6 +105,6 @@ public class RarePokemonNotifier {
             }
         }
 
-        return false; // No se encontró la especie en ninguna parte
+        return false;
     }
 }
