@@ -30,8 +30,8 @@ public class RarePokemonNotifier {
 
         RarityUtil.RarityCategory rarity = RarityUtil.getRarity(pokemon);
 
-        // MANTENEMOS ESTE FILTRO: No notificar si la rareza es COMMON o UNCOMMON.
-        if (rarity == RarityUtil.RarityCategory.COMMON || rarity == RarityUtil.RarityCategory.UNCOMMON) {
+        // MANTENEMOS ESTE FILTRO: No notificar si la rareza es COMMON.
+        if (rarity == RarityUtil.RarityCategory.COMMON) {
             return;
         }
 

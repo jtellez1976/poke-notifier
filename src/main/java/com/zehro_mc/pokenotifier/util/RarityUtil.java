@@ -10,11 +10,10 @@ public class RarityUtil {
     public enum RarityCategory {
         LEGENDARY(Formatting.GOLD),
         MYTHICAL(Formatting.AQUA),
-        ULTRA_BEAST(Formatting.LIGHT_PURPLE),
+        ULTRA_BEAST(Formatting.BLUE),
         PARADOX(Formatting.LIGHT_PURPLE),
-        PSEUDO_LEGENDARY(Formatting.RED),
+        ULTRA_RARE(Formatting.RED),
         RARE(Formatting.YELLOW),
-        UNCOMMON(Formatting.GRAY),
         COMMON(Formatting.WHITE);
 
         private final Formatting chatColor;
@@ -51,14 +50,11 @@ public class RarityUtil {
         if (configPokemon.PARADOX.contains(name)) {
             return RarityCategory.PARADOX;
         }
-        if (configPokemon.PSEUDO_LEGENDARY.contains(name)) {
-            return RarityCategory.PSEUDO_LEGENDARY;
+        if (configPokemon.ULTRA_RARE.contains(name)) {
+            return RarityCategory.ULTRA_RARE;
         }
         if (configPokemon.RARE.contains(name)) {
             return RarityCategory.RARE;
-        }
-        if (configPokemon.UNCOMMON.contains(name)) {
-            return RarityCategory.UNCOMMON;
         }
 
         return RarityCategory.COMMON;
