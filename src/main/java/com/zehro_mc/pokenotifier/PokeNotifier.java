@@ -49,7 +49,7 @@ public class PokeNotifier implements ModInitializer {
         }
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> ReloadConfigCommand.register(dispatcher, environment));
 
-        PokeNotifierPackets.registerS2CPackets();
+
 
         CobblemonEvents.POKEMON_ENTITY_SPAWN.subscribe(Priority.NORMAL, event -> {
             RarePokemonNotifier.onPokemonSpawn(event.getEntity()); // Volvemos a pasar solo la entidad

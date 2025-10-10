@@ -15,7 +15,7 @@ public class CaptureListener {
         RarityUtil.RarityCategory rarity = RarityUtil.getRarity(pokemon);
 
         // No notificar si la rareza es NONE o UNCOMMON por defecto
-        if (rarity == RarityUtil.RarityCategory.NONE || rarity == RarityUtil.RarityCategory.UNCOMMON) {
+        if (rarity == RarityUtil.RarityCategory.COMMON || rarity == RarityUtil.RarityCategory.UNCOMMON) {
             return;
         }
 

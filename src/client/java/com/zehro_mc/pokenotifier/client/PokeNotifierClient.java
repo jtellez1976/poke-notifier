@@ -1,169 +1,130 @@
 package com.zehro_mc.pokenotifier.client;
 
+import com.zehro_mc.pokenotifier.ConfigManager;
+import com.zehro_mc.pokenotifier.PokeNotifier;
+import com.zehro_mc.pokenotifier.networking.PokeNotifierPackets;
 import com.zehro_mc.pokenotifier.networking.StatusUpdatePayload;
 import com.zehro_mc.pokenotifier.networking.WaypointPayload;
-import com.zehro_mc.pokenotifier.util.RarityUtil;
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.kyori.adventure.platform.fabric.FabricClientAudiences;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.Style;
+import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.sound.PositionedSoundInstance;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
+import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.math.BlockPos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
-import net.kyori.adventure.text.format.TextDecoration;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class PokeNotifierClient implements ClientModInitializer {
-    public static final Logger LOGGER = LoggerFactory.getLogger("PokeNotifierClient");
-    private FabricClientAudiences adventure;
-    public static final Map<String, Waypoint> activeWaypoints = new HashMap<>();
+
+    public static final Map<String, BlockPos> ACTIVE_WAYPOINTS = new ConcurrentHashMap<>();
+    public static final Logger LOGGER = LoggerFactory.getLogger(PokeNotifier.MOD_ID + "-Client");
 
     @Override
     public void onInitializeClient() {
-        // Registrar el evento para dibujar nuestro HUD personalizado en la pantalla
+        PokeNotifierPackets.registerS2CPackets();
         HudRenderCallback.EVENT.register(NotificationHUD::render);
+        // La siguiente línea está comentada para evitar errores de compilación mientras nos enfocamos en los bugs.
+        // ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> ClientCommands.register(dispatcher));
 
-        this.adventure = FabricClientAudiences.of();
-
-        // Receptor para el Waypoint y el mensaje de aparición
         ClientPlayNetworking.registerGlobalReceiver(WaypointPayload.ID, (payload, context) -> {
-            context.client().execute(() -> {
-                // Lógica del Waypoint
-                Waypoint waypoint = new Waypoint(
-                        payload.uuid(),
-                        payload.name(),
-                        payload.pos(),
-                        payload.color()
-                );
-                activeWaypoints.put(payload.uuid(), waypoint);
-                LOGGER.info("Waypoint added for: " + payload.name());
+            MinecraftClient client = context.client();
+            client.execute(() -> {
+                String formattedCategory = formatCategoryName(payload.rarityCategoryName());
 
-                // Construir y enviar el mensaje de chat aquí en el cliente
-                try {
-                    Component message = createFormattedSpawnMessage(payload);
-                    this.adventure.audience().sendMessage(message);
+                // Lógica para mostrar el HUD
+                if (ConfigManager.getClientConfig().alert_toast_enabled) {
+                    Text title = Text.literal("A ")
+                            .append(Text.literal(formattedCategory + " " + payload.name())
+                                    .styled(style -> style.withColor(payload.color())))
+                            .append(Text.literal(" has appeared"));
+                    Text description = Text.empty();
+                    NotificationHUD.show(title, description, payload.spriteIdentifier());
+                }
 
-                    // Mostrar un Toast solo si el Pokémon es nuevo
-                    if (payload.status().equals("NEW")) {
-                        RarityUtil.RarityCategory rarity = RarityUtil.RarityCategory.valueOf(payload.rarityCategoryName());
-                        LOGGER.info("Building and showing a Toast for a NEW Pokémon.");
+                // Lógica para enviar el mensaje al chat (CORREGIDA)
+                if (ConfigManager.getClientConfig().alert_chat_enabled) {
+                    // 1. Construimos el prefijo
+                    MutableText prefix = Text.literal("[").formatted(Formatting.GREEN)
+                            .append(Text.literal("Poke Notifier").formatted(Formatting.GOLD))
+                            .append(Text.literal("] ").formatted(Formatting.GREEN));
 
-                        // 1. Formateamos el nombre de la categoría para que se vea bien (ej: "PSEUDO_LEGENDARY" -> "Pseudo Legendary").
-                        String formattedCategory = formatCategoryName(payload.rarityCategoryName());
+                    // 2. Construimos el mensaje pieza por pieza
+                    MutableText chatMessage = prefix
+                            .append(Text.literal("A wild ").formatted(Formatting.YELLOW));
 
-                        // 2. Construimos el mensaje compuesto para el HUD.
-                        Text title = Text.literal("A ")
-                                .append(Text.literal(formattedCategory + " " + payload.name())
-                                        .styled(style -> style.withColor(payload.color())))
-                                .append(Text.literal(" has appeared"));
+                    // 3. Añadimos el nombre del Pokémon con su color de rareza
+                    chatMessage.append(Text.literal(formattedCategory + " " + payload.name())
+                            .styled(style -> style.withColor(payload.color())));
 
-                        // 3. La descripción ahora estará vacía.
-                        Text description = Text.empty();
-
-                        // Mostramos nuestro HUD personalizado
-                        NotificationHUD.show(title, description, payload.spriteIdentifier());
+                    // 4. Añadimos el estado [NEW] o [CAUGHT] con su propio color
+                    chatMessage.append(Text.literal(" ["));
+                    if ("NEW".equals(payload.status())) {
+                        chatMessage.append(Text.literal(payload.status()).formatted(Formatting.GREEN));
+                    } else {
+                        chatMessage.append(Text.literal(payload.status()).formatted(Formatting.GRAY));
                     }
+                    chatMessage.append(Text.literal("]"));
 
-                } catch (Exception e) {
-                    LOGGER.error("Failed to create or send spawn notification message", e);
+                    // 5. Añadimos el resto del texto, coloreando las coordenadas y la distancia
+                    chatMessage.append(Text.literal(" (" + payload.level() + ") has appeared at ").formatted(Formatting.YELLOW));
+                    chatMessage.append(Text.literal(payload.pos().getX() + ", " + payload.pos().getY() + ", " + payload.pos().getZ()).formatted(Formatting.GREEN));
+                    chatMessage.append(Text.literal(" (").formatted(Formatting.YELLOW));
+                    chatMessage.append(Text.literal(String.format("%.1f", payload.distance()) + " blocks away").formatted(Formatting.GREEN));
+                    chatMessage.append(Text.literal("). Hurry up!!").formatted(Formatting.YELLOW));
+
+                    if (client.player != null) {
+                        client.player.sendMessage(chatMessage, false);
+                    }
                 }
+
+                // Lógica para reproducir el sonido
+                if (ConfigManager.getClientConfig().alert_sounds_enabled && "NEW".equals(payload.status())) {
+                    if (client.player != null) {
+                        client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.ENTITY_PLAYER_LEVELUP, 1.0F, 0.5F));
+                    }
+                }
+
+                ACTIVE_WAYPOINTS.put(payload.uuid(), payload.pos());
             });
         });
 
-        // Receptor para DESPAWN o CAPTURA
         ClientPlayNetworking.registerGlobalReceiver(StatusUpdatePayload.ID, (payload, context) -> {
-            context.client().execute(() -> {
-                // Eliminar el waypoint asociado
-                activeWaypoints.remove(payload.uuid());
-                LOGGER.info("Waypoint removed for: " + payload.name());
+            MinecraftClient client = context.client();
+            client.execute(() -> {
+                if (ACTIVE_WAYPOINTS.remove(payload.uuid()) != null) {
+                    LOGGER.info("Waypoint removed for: " + payload.name());
 
-                // Mostrar el mensaje de estado
-                try {
-                    Component message = createStatusUpdateMessage(payload);
-                    this.adventure.audience().sendMessage(message);
-                } catch (Exception e) {
-                    LOGGER.error("Failed to create or send status update message", e);
+                    if (payload.updateType() == StatusUpdatePayload.UpdateType.DESPAWNED) {
+                        if (ConfigManager.getClientConfig().alert_chat_enabled && client.player != null) {
+                            MutableText prefix = Text.literal("[").formatted(Formatting.YELLOW)
+                                    .append(Text.literal("Poke Notifier").formatted(Formatting.GOLD))
+                                    .append(Text.literal("] ").formatted(Formatting.YELLOW));
+
+                            MutableText despawnMessage = prefix
+                                    .append(Text.literal("The wild " + payload.name() + " has fled...").formatted(Formatting.YELLOW));
+
+                            client.player.sendMessage(despawnMessage, false);
+                        }
+                    }
                 }
             });
         });
     }
 
-    private Component createFormattedSpawnMessage(WaypointPayload payload) {
-        RarityUtil.RarityCategory rarity = RarityUtil.RarityCategory.valueOf(payload.rarityCategoryName());
-        Identifier biomeId = payload.biomeId();
-
-        // Construimos el mensaje usando las claves de traducción del archivo en_us.json
-        Component prefix = Component.translatable("chat.poke-notifier.prefix");
-        Component rarityText = rarity.getRarityName(); // Esto ya es un Component.translatable
-
-        Component statusTag = payload.status().equals("CAUGHT")
-                ? Component.text(" [Caught]", NamedTextColor.GRAY)
-                : Component.text(" [New]", NamedTextColor.GREEN); // Cambiado a verde para más impacto
-
-        Component pokemonName = Component.text(payload.name(), Style.style(rarity.getChatColor(), TextDecoration.BOLD));
-        Component levelText = Component.text(" (" + payload.level() + ")", NamedTextColor.YELLOW);
-        Component coordsText = Component.text(String.format("%d, %d, %d", payload.pos().getX(), payload.pos().getY(), payload.pos().getZ()), NamedTextColor.GREEN);
-        String distanceString = String.format("%.1f", payload.distance());
-        Component distanceText = Component.text(" (" + distanceString + " blocks away)", NamedTextColor.YELLOW);
-        Component biomeName = Component.translatable("biome." + biomeId.getNamespace() + "." + biomeId.getPath());
-
-        // Construimos el mensaje manualmente para tener control total sobre los colores
-        return prefix
-                .append(Component.text("A wild ", NamedTextColor.YELLOW))
-                .append(rarityText.color(rarity.getChatColor()))
-                .append(Component.text(" "))
-                .append(pokemonName)
-                .append(statusTag)
-                .append(levelText)
-                .append(Component.text(" has appeared at ", NamedTextColor.YELLOW))
-                .append(coordsText)
-                .append(distanceText)
-                .append(Component.text(" in a ", NamedTextColor.YELLOW))
-                .append(biomeName.color(NamedTextColor.YELLOW))
-                .append(Component.text(" biome. Hurry up!!", NamedTextColor.YELLOW));
-    }
-
-    private Component createStatusUpdateMessage(StatusUpdatePayload payload) {
-        RarityUtil.RarityCategory rarity = RarityUtil.RarityCategory.valueOf(payload.rarityCategoryName());
-        Component prefix = Component.translatable("chat.poke-notifier.prefix");
-
-        if (payload.updateType() == StatusUpdatePayload.UpdateType.CAPTURED) {
-            Component pokemonName = Component.text(payload.name(), Style.style(rarity.getChatColor(), TextDecoration.BOLD));
-            Component playerName = Component.text(payload.playerName(), NamedTextColor.AQUA);
-            return Component.text()
-                    .append(playerName)
-                    .append(Component.text(" has captured the ", NamedTextColor.GREEN))
-                    .append(pokemonName)
-                    .append(Component.text("!", NamedTextColor.GREEN))
-                    .build();
-        } else { // DESPAWNED
-            // Creamos el nombre sin negrita para el mensaje de despawn
-            Component pokemonName = Component.text(payload.name(), rarity.getChatColor());
-            return prefix.append(Component.translatable(
-                    "chat.poke-notifier.despawn_message",
-                    pokemonName
-            ));
-        }
-    }
-
-    /**
-     * Formatea un nombre de categoría de rareza para que sea legible.
-     * Ejemplo: "PSEUDO_LEGENDARY" se convierte en "Pseudo Legendary".
-     * @param categoryName El nombre de la categoría en mayúsculas.
-     * @return El nombre formateado.
-     */
     private static String formatCategoryName(String categoryName) {
         if (categoryName == null || categoryName.isEmpty()) {
-            return "Rare"; // Fallback por si acaso
+            return "Rare";
         }
         String[] words = categoryName.toLowerCase().split("_");
         for (int i = 0; i < words.length; i++) {

@@ -13,33 +13,31 @@ public class ReloadConfigCommand {
 
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher, CommandManager.RegistrationEnvironment environment) {
         LiteralArgumentBuilder<ServerCommandSource> pokenotifierCommand = CommandManager.literal("pokenotifier")
-                .requires(source -> source.hasPermissionLevel(2)); // Permiso base para el comando principal
+                .requires(source -> source.hasPermissionLevel(2));
 
-        // Subcomando: /pokenotifier reloadconfig
         pokenotifierCommand.then(CommandManager.literal("reloadconfig")
                 .executes(context -> {
                     try {
                         ConfigManager.loadConfig();
-                        context.getSource().sendFeedback(() -> Text.literal("Poke Notifier configuration reloaded successfully.").formatted(Formatting.GREEN), true);
-                        return 1; // Éxito
+                        context.getSource().sendFeedback(() -> Text.literal("Poke Notifier configurations reloaded successfully.").formatted(Formatting.GREEN), true);
+                        return 1;
                     } catch (ConfigManager.ConfigReadException e) {
                         PokeNotifier.LOGGER.error("Failed to reload Poke Notifier configuration: {}", e.getMessage());
-                        context.getSource().sendError(Text.literal("Error reloading config: " + e.getMessage()).formatted(Formatting.RED));
-                        context.getSource().sendError(Text.literal("To generate a new default config, use: /pokenotifier reloadconfig new").formatted(Formatting.YELLOW));
-                        return 0; // Fallo
+                        context.getSource().sendError(Text.literal("Error reloading configs: " + e.getMessage()).formatted(Formatting.RED));
+                        context.getSource().sendError(Text.literal("To generate new default configs, use: /pokenotifier reloadconfig new").formatted(Formatting.YELLOW));
+                        return 0;
                     }
                 })
-                // Subcomando anidado: /pokenotifier reloadconfig new
                 .then(CommandManager.literal("new")
                         .executes(context -> {
                             try {
                                 ConfigManager.resetToDefault();
-                                context.getSource().sendFeedback(() -> Text.literal("A new default poke-notifier.json has been generated.").formatted(Formatting.GREEN), true);
-                                return 1; // Éxito
+                                context.getSource().sendFeedback(() -> Text.literal("New default poke-notifier configs have been generated.").formatted(Formatting.GREEN), true);
+                                return 1;
                             } catch (Exception e) {
-                                PokeNotifier.LOGGER.error("Failed to generate new default configuration.", e);
-                                context.getSource().sendError(Text.literal("Failed to generate new config. Check server logs.").formatted(Formatting.RED));
-                                return 0; // Fallo
+                                PokeNotifier.LOGGER.error("Failed to generate new default configurations.", e);
+                                context.getSource().sendError(Text.literal("Failed to generate new configs. Check server logs.").formatted(Formatting.RED));
+                                return 0;
                             }
                         })
                 )
