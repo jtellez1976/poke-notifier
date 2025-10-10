@@ -4,6 +4,7 @@ import com.zehro_mc.pokenotifier.ConfigClient;
 import com.zehro_mc.pokenotifier.ConfigManager;
 import com.zehro_mc.pokenotifier.PokeNotifier;
 import com.zehro_mc.pokenotifier.networking.PokeNotifierPackets;
+import com.zehro_mc.pokenotifier.networking.ServerDebugStatusPayload;
 import com.zehro_mc.pokenotifier.networking.StatusUpdatePayload;
 import com.zehro_mc.pokenotifier.networking.WaypointPayload;
 import net.fabricmc.api.ClientModInitializer;
@@ -45,6 +46,15 @@ public class PokeNotifierClient implements ClientModInitializer {
                 if (client.player != null) {
                     client.player.sendMessage(Text.literal("Poke Notifier is in Silent Mode. Use '/pnc silent OFF' to re-enable notifications.").formatted(Formatting.YELLOW), false);
                 }
+            }
+        });
+
+        // Recibir el estado del debug mode desde el servidor
+        ClientPlayNetworking.registerGlobalReceiver(ServerDebugStatusPayload.ID, (payload, context) -> {
+            if (payload.debugModeEnabled()) {
+                context.client().execute(() -> {
+                    context.client().player.sendMessage(Text.literal("Poke Notifier Debug Mode is active on the server.").formatted(Formatting.AQUA), false);
+                });
             }
         });
 

@@ -31,6 +31,7 @@ public class ReloadConfigCommand {
                 .then(CommandManager.literal("new")
                         .executes(context -> {
                             try {
+                                // Al resetear, también guardamos para asegurar la persistencia.
                                 ConfigManager.resetToDefault();
                                 context.getSource().sendFeedback(() -> Text.literal("New default poke-notifier configs have been generated.").formatted(Formatting.GREEN), true);
                                 return 1;

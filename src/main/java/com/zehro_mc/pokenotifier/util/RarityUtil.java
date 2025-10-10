@@ -3,11 +3,14 @@ package com.zehro_mc.pokenotifier.util;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.zehro_mc.pokenotifier.ConfigManager;
 import com.zehro_mc.pokenotifier.ConfigPokemon;
+import com.zehro_mc.pokenotifier.model.CustomListConfig;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Formatting;
 
 public class RarityUtil {
 
     public enum RarityCategory {
+        CUSTOM(Formatting.LIGHT_PURPLE),
         LEGENDARY(Formatting.GOLD),
         MYTHICAL(Formatting.AQUA),
         ULTRA_BEAST(Formatting.BLUE),
@@ -31,11 +34,18 @@ public class RarityUtil {
         }
     }
 
-    public static RarityCategory getRarity(Pokemon pokemon) {
+    public static RarityCategory getRarity(Pokemon pokemon, ServerPlayerEntity player) {
         String name = pokemon.getSpecies().getName().toLowerCase();
-        // --- LA CORRECCIÓN CLAVE ---
-        // Siempre obtenemos la configuración más reciente del ConfigManager.
-        // NO creamos una nueva instancia.
+
+        // Prioridad 1: Lista personalizada del jugador
+        if (player != null) {
+            CustomListConfig playerConfig = ConfigManager.getPlayerConfig(player.getUuid());
+            if (playerConfig.tracked_pokemon.contains(name)) {
+                return RarityCategory.CUSTOM;
+            }
+        }
+
+        // Prioridad 2: Listas globales del servidor
         ConfigPokemon configPokemon = ConfigManager.getPokemonConfig();
 
         if (configPokemon.LEGENDARY.contains(name)) {

@@ -1,6 +1,8 @@
 package com.zehro_mc.pokenotifier;
 
 import com.cobblemon.mod.common.Cobblemon;
+import com.cobblemon.mod.common.api.events.entity.SpawnEvent;
+import com.cobblemon.mod.common.api.spawning.SpawnCause;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.cobblemon.mod.common.api.storage.PokemonStore;
 import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
@@ -22,34 +24,34 @@ import java.util.Iterator;
 
 public class RarePokemonNotifier {
 
-    public static void onPokemonSpawn(PokemonEntity pokemonEntity) {
+    public static void onPokemonSpawn(SpawnEvent<PokemonEntity> event) {
+        PokemonEntity pokemonEntity = event.getEntity();
         Pokemon pokemon = pokemonEntity.getPokemon();
-
-        // La lógica ahora se ejecuta para todos los spawns, ideal para pruebas.
-        // La comprobación de 'isNaturalSpawn' y 'testModeEnabled' ha sido eliminada.
-
-        RarityUtil.RarityCategory rarity = RarityUtil.getRarity(pokemon);
-
-        // MANTENEMOS ESTE FILTRO: No notificar si la rareza es COMMON.
-        if (rarity == RarityUtil.RarityCategory.COMMON) {
-            return;
-        }
-
-        PokeNotifier.TRACKED_POKEMON.put(pokemonEntity, rarity);
-        PokeNotifier.LOGGER.info("Started tracking Pokémon: " + pokemon.getSpecies().getName());
-
-        int glowingTicks = ConfigManager.getClientConfig().glowing_duration_seconds * 20;
-        pokemonEntity.addStatusEffect(new StatusEffectInstance(StatusEffects.GLOWING, glowingTicks, 0, false, false));
 
         BlockPos pokemonPos = pokemonEntity.getBlockPos();
 
         if (pokemonEntity.getServer() == null) return;
 
         for (ServerPlayerEntity player : pokemonEntity.getServer().getPlayerManager().getPlayerList()) {
-            double distance = player.getPos().distanceTo(pokemonPos.toCenterPos());
+            RarityUtil.RarityCategory rarity = RarityUtil.getRarity(pokemon, player);
 
+            if (rarity == RarityUtil.RarityCategory.COMMON) {
+                continue;
+            }
+            
+            double distance = player.getPos().distanceTo(pokemonPos.toCenterPos());
             if (distance > ConfigManager.getClientConfig().notification_distance) {
                 continue;
+            }
+
+            if (!PokeNotifier.TRACKED_POKEMON.containsKey(pokemonEntity)) {
+                PokeNotifier.TRACKED_POKEMON.put(pokemonEntity, rarity);
+                if (ConfigManager.getServerConfig().debug_mode_enabled) {
+                    PokeNotifier.LOGGER.info("Started tracking Pokémon: " + pokemon.getSpecies().getName());
+                }
+
+                int glowingTicks = ConfigManager.getClientConfig().glowing_duration_seconds * 20;
+                pokemonEntity.addStatusEffect(new StatusEffectInstance(StatusEffects.GLOWING, glowingTicks, 0, false, false));
             }
 
             String status = hasCaughtSpecies(player, pokemon) ? "CAUGHT" : "NEW";
@@ -78,7 +80,9 @@ public class RarePokemonNotifier {
             );
             ServerPlayNetworking.send(player, payload);
 
-            PokeNotifier.LOGGER.info("Notified " + player.getName().getString() + " about a " + rarity.name() + " " + pokemon.getSpecies().getName() + " at " + pokemonPos);
+            if (ConfigManager.getServerConfig().debug_mode_enabled) {
+                PokeNotifier.LOGGER.info("Notified " + player.getName().getString() + " about a " + rarity.name() + " " + pokemon.getSpecies().getName() + " at " + pokemonPos);
+            }
         }
     }
 

@@ -12,7 +12,7 @@ public class CaptureListener {
 
     public static void onPokemonCaptured(PokemonCapturedEvent event) {
         Pokemon pokemon = event.getPokemon();
-        RarityUtil.RarityCategory rarity = RarityUtil.getRarity(pokemon);
+        RarityUtil.RarityCategory rarity = RarityUtil.getRarity(pokemon, event.getPlayer());
 
         // No notificar si la rareza es COMMON por defecto
         if (rarity == RarityUtil.RarityCategory.COMMON) {

@@ -1,28 +1,39 @@
 package com.zehro_mc.pokenotifier;
 
 import com.google.gson.Gson;
+import com.zehro_mc.pokenotifier.model.CustomListConfig;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
+import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.api.FabricLoader;
 
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ConfigManager {
 
     private static final File CONFIG_DIR = FabricLoader.getInstance().getConfigDir().resolve(PokeNotifier.MOD_ID).toFile();
+    private static final File PLAYER_DATA_DIR = new File(CONFIG_DIR, "player_data");
 
     private static final File CONFIG_POKEMON_FILE = new File(CONFIG_DIR, "config-pokemon.json");
     private static final File CONFIG_CLIENT_FILE = new File(CONFIG_DIR, "config-client.json");
+    private static final File CONFIG_SERVER_FILE = new File(CONFIG_DIR, "config-server.json"); // NUEVO
     private static final File CATCHEMALL_MODE_FILE = new File(CONFIG_DIR, "catchemall-mode.json");
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     private static ConfigPokemon configPokemon;
     private static ConfigClient configClient;
+    private static ConfigServer configServer; // NUEVO
     private static CatchemallModeConfig catchemallModeConfig;
+
+    // Cache para las listas personalizadas de los jugadores para evitar leer el archivo constantemente
+    private static final Map<UUID, CustomListConfig> playerConfigs = new ConcurrentHashMap<>();
 
     public static class ConfigReadException extends Exception {
         public ConfigReadException(String message, Throwable cause) {
@@ -37,21 +48,45 @@ public class ConfigManager {
         if (!CONFIG_DIR.exists()) {
             CONFIG_DIR.mkdirs();
         }
+        if (!PLAYER_DATA_DIR.exists()) {
+            PLAYER_DATA_DIR.mkdirs();
+        }
+
+        // Obtenemos el tipo de entorno (CLIENT o SERVER)
+        EnvType env = FabricLoader.getInstance().getEnvironmentType();
+
+        // Configuraciones comunes que se cargan en ambos lados
         loadConfigPokemon();
-        loadConfigClient();
         loadCatchemallModeConfig();
+
+        // Cargamos los archivos específicos del entorno
+        if (env == EnvType.CLIENT) {
+            loadConfigClient();
+        }
+        // En single-player, el entorno es CLIENT, pero el servidor lógico necesita acceso a la config del servidor.
+        // En un servidor dedicado, el entorno es SERVER.
+        loadConfigServer();
     }
 
     public static void saveConfig() {
         saveConfigPokemon();
         saveClientConfigToFile();
+        saveServerConfigToFile();
         saveCatchemallModeConfig();
     }
 
     public static void resetToDefault() {
+        EnvType env = FabricLoader.getInstance().getEnvironmentType();
+
         configPokemon = new ConfigPokemon();
-        configClient = new ConfigClient();
         catchemallModeConfig = new CatchemallModeConfig();
+
+        if (env == EnvType.CLIENT) {
+            configClient = new ConfigClient();
+        }
+        // Siempre creamos una instancia de la config del servidor para que esté disponible
+        configServer = new ConfigServer();
+
         PokeNotifier.LOGGER.info("Generated new default Poke Notifier configurations.");
         saveConfig();
     }
@@ -103,7 +138,21 @@ public class ConfigManager {
     }
 
     public static void saveClientConfigToFile() {
-        if (configClient != null) saveConfigFile(CONFIG_CLIENT_FILE, configClient, "config-client.json");
+        // Solo guardar si estamos en un entorno de cliente
+        if (FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT && configClient != null) {
+            saveConfigFile(CONFIG_CLIENT_FILE, configClient, "config-client.json");
+        }
+    }
+
+    private static void loadConfigServer() throws ConfigReadException {
+        configServer = loadConfigFile(CONFIG_SERVER_FILE, ConfigServer.class, "config-server.json");
+    }
+
+    public static void saveServerConfigToFile() {
+        // Solo guardar si estamos en un entorno de servidor (dedicado) o si la instancia no es nula (single-player)
+        if (FabricLoader.getInstance().getEnvironmentType() == EnvType.SERVER || configServer != null) {
+            saveConfigFile(CONFIG_SERVER_FILE, configServer, "config-server.json");
+        }
     }
 
     private static void loadCatchemallModeConfig() throws ConfigReadException {
@@ -127,6 +176,10 @@ public class ConfigManager {
     }
 
     public static ConfigClient getClientConfig() {
+        // Si estamos en un servidor dedicado, no debería haber una config de cliente.
+        if (FabricLoader.getInstance().getEnvironmentType() == EnvType.SERVER) {
+            return new ConfigClient(); // Devolvemos una instancia vacía para evitar crashes.
+        }
         if (configClient == null) {
             try {
                 loadConfigClient();
@@ -136,6 +189,19 @@ public class ConfigManager {
             }
         }
         return configClient;
+    }
+
+    public static ConfigServer getServerConfig() {
+        if (configServer == null) {
+            try {
+                // Siempre intenta cargar, incluso en un cliente, para evitar null pointers en single-player.
+                loadConfigServer();
+            } catch (ConfigReadException e) {
+                PokeNotifier.LOGGER.error("Initial config-server.json load failed. Using temporary default config.", e);
+                configServer = new ConfigServer();
+            }
+        }
+        return configServer;
     }
 
     public static CatchemallModeConfig getCatchemallModeConfig() {
@@ -148,5 +214,24 @@ public class ConfigManager {
             }
         }
         return catchemallModeConfig;
+    }
+
+    public static CustomListConfig getPlayerConfig(UUID playerUuid) {
+        // Devuelve desde el caché si está disponible
+        return playerConfigs.computeIfAbsent(playerUuid, uuid -> {
+            File playerFile = new File(PLAYER_DATA_DIR, uuid.toString() + ".json");
+            try {
+                return loadConfigFile(playerFile, CustomListConfig.class, uuid.toString() + ".json");
+            } catch (ConfigReadException e) {
+                PokeNotifier.LOGGER.error("Could not load custom list for player " + uuid + ". Creating a new one.", e);
+                return new CustomListConfig();
+            }
+        });
+    }
+
+    public static void savePlayerConfig(UUID playerUuid, CustomListConfig config) {
+        File playerFile = new File(PLAYER_DATA_DIR, playerUuid.toString() + ".json");
+        saveConfigFile(playerFile, config, playerUuid.toString() + ".json");
+        playerConfigs.put(playerUuid, config); // Actualiza el caché
     }
 }
