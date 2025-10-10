@@ -2,11 +2,14 @@ package com.zehro_mc.pokenotifier;
 
 import com.cobblemon.mod.common.api.Priority;
 import com.cobblemon.mod.common.api.events.entity.SpawnEvent;
+import com.cobblemon.mod.common.api.pokemon.PokemonSpecies;
 import com.cobblemon.mod.common.api.events.CobblemonEvents;
 import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.zehro_mc.pokenotifier.command.DebugModeCommand;
+import com.zehro_mc.pokenotifier.model.CustomListConfig;
 import com.zehro_mc.pokenotifier.event.CaptureListener;
+import com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload;
 import com.zehro_mc.pokenotifier.networking.PokeNotifierPackets;
 import com.zehro_mc.pokenotifier.networking.ServerDebugStatusPayload;
 import com.zehro_mc.pokenotifier.networking.StatusUpdatePayload;
@@ -50,6 +53,8 @@ public class PokeNotifier implements ModInitializer {
         // --- LA CORRECCIÓN CLAVE ---
         // Registramos los paquetes aquí para que tanto el servidor como el cliente los conozcan.
         PokeNotifierPackets.registerS2CPackets();
+        // Registramos los paquetes que van del cliente al servidor
+        PokeNotifierPackets.registerC2SPackets();
 
         ServerLifecycleEvents.SERVER_STARTED.register(startedServer -> server = startedServer);
         ServerLifecycleEvents.SERVER_STOPPING.register(stoppingServer -> server = null);
@@ -96,6 +101,59 @@ public class PokeNotifier implements ModInitializer {
                 ServerDebugStatusPayload payload = new ServerDebugStatusPayload(debugEnabled);
                 ServerPlayNetworking.send(player, payload);
             }
+        });
+
+        // Recibir y procesar las actualizaciones de la lista personalizada
+        ServerPlayNetworking.registerGlobalReceiver(CustomListUpdatePayload.ID, (payload, context) -> {
+            ServerPlayerEntity player = context.player();
+            String pokemonName = payload.pokemonName().toLowerCase().trim();
+
+            context.server().execute(() -> {
+                CustomListConfig playerConfig = ConfigManager.getPlayerConfig(player.getUuid());
+
+                switch (payload.action()) {
+                    case ADD:
+                        if (PokemonSpecies.INSTANCE.getByName(pokemonName) == null) {
+                            player.sendMessage(Text.literal("Error: '").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append("' is not a valid Pokémon name.").formatted(Formatting.RED), false);
+                            return;
+                        }
+                        if (playerConfig.tracked_pokemon.add(pokemonName)) {
+                            ConfigManager.savePlayerConfig(player.getUuid(), playerConfig);
+                            player.sendMessage(Text.literal("Added '").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append("' to your custom tracking list.").formatted(Formatting.GREEN), false);
+                        } else {
+                            player.sendMessage(Text.literal("Pokémon '").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append("' is already on your list.").formatted(Formatting.YELLOW), false);
+                        }
+                        break;
+
+                    case REMOVE:
+                        if (playerConfig.tracked_pokemon.remove(pokemonName)) {
+                            ConfigManager.savePlayerConfig(player.getUuid(), playerConfig);
+                            player.sendMessage(Text.literal("Removed '").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append("' from your custom tracking list.").formatted(Formatting.GREEN), false);
+                        } else {
+                            player.sendMessage(Text.literal("Pokémon '").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append("' was not on your list.").formatted(Formatting.YELLOW), false);
+                        }
+                        break;
+
+                    case LIST:
+                        if (playerConfig.tracked_pokemon.isEmpty()) {
+                            player.sendMessage(Text.literal("Your custom tracking list is empty.").formatted(Formatting.YELLOW), false);
+                        } else {
+                            player.sendMessage(Text.literal("Your custom tracking list:").formatted(Formatting.YELLOW), false);
+                            playerConfig.tracked_pokemon.forEach(name -> player.sendMessage(Text.literal("- " + name).formatted(Formatting.GOLD), false));
+                        }
+                        break;
+
+                    case CLEAR:
+                        if (!playerConfig.tracked_pokemon.isEmpty()) {
+                            playerConfig.tracked_pokemon.clear();
+                            ConfigManager.savePlayerConfig(player.getUuid(), playerConfig);
+                            player.sendMessage(Text.literal("Your custom tracking list has been cleared.").formatted(Formatting.GREEN), false);
+                        } else {
+                            player.sendMessage(Text.literal("Your custom tracking list was already empty.").formatted(Formatting.YELLOW), false);
+                        }
+                        break;
+                }
+            });
         });
 
         CobblemonEvents.POKEMON_ENTITY_SPAWN.subscribe(Priority.NORMAL, event -> {

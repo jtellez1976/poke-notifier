@@ -1,12 +1,15 @@
 package com.zehro_mc.pokenotifier.client;
 
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.zehro_mc.pokenotifier.ConfigClient;
 import com.zehro_mc.pokenotifier.ConfigManager;
 import com.zehro_mc.pokenotifier.PokeNotifier;
+import com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.loader.api.ModContainer;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.text.MutableText;
@@ -49,6 +52,39 @@ public class ClientCommands {
                     context.getSource().sendFeedback(Text.literal("Silent mode is now OFF. Notifications are enabled.").formatted(Formatting.GREEN));
                     return 1;
                 })));
+
+        // --- Comando Custom List ---
+        var customListCommand = ClientCommandManager.literal("customlist")
+                .then(ClientCommandManager.literal("add")
+                        .then(ClientCommandManager.argument("pokemon", StringArgumentType.greedyString())
+                                .executes(context -> {
+                                    String pokemonName = StringArgumentType.getString(context, "pokemon");
+                                    ClientPlayNetworking.send(new CustomListUpdatePayload(CustomListUpdatePayload.Action.ADD, pokemonName));
+                                    context.getSource().sendFeedback(Text.literal("Request sent to add ").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append(" to your custom list.").formatted(Formatting.YELLOW));
+                                    return 1;
+                                })))
+                .then(ClientCommandManager.literal("remove")
+                        .then(ClientCommandManager.argument("pokemon", StringArgumentType.greedyString())
+                                .executes(context -> {
+                                    String pokemonName = StringArgumentType.getString(context, "pokemon");
+                                    ClientPlayNetworking.send(new CustomListUpdatePayload(CustomListUpdatePayload.Action.REMOVE, pokemonName));
+                                    context.getSource().sendFeedback(Text.literal("Request sent to remove ").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append(" from your custom list.").formatted(Formatting.YELLOW));
+                                    return 1;
+                                })))
+                .then(ClientCommandManager.literal("list")
+                        .executes(context -> {
+                            ClientPlayNetworking.send(new CustomListUpdatePayload(CustomListUpdatePayload.Action.LIST, ""));
+                            context.getSource().sendFeedback(Text.literal("Requesting your custom list from the server...").formatted(Formatting.YELLOW));
+                            return 1;
+                        }))
+                .then(ClientCommandManager.literal("clear")
+                        .executes(context -> {
+                            ClientPlayNetworking.send(new CustomListUpdatePayload(CustomListUpdatePayload.Action.CLEAR, ""));
+                            context.getSource().sendFeedback(Text.literal("Request sent to clear your custom list.").formatted(Formatting.YELLOW));
+                            return 1;
+                        }));
+
+        pncCommand.then(customListCommand);
 
         // --- Comando de Versión (Cliente) ---
         pncCommand.then(ClientCommandManager.literal("version")
