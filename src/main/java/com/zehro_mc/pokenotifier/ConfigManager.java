@@ -55,17 +55,18 @@ public class ConfigManager {
         // Obtenemos el tipo de entorno (CLIENT o SERVER)
         EnvType env = FabricLoader.getInstance().getEnvironmentType();
 
-        // Configuraciones comunes que se cargan en ambos lados
-        loadConfigPokemon();
+        // Configuraciones que podrían ser necesarias en ambos lados (aunque su uso principal sea del servidor)
         loadCatchemallModeConfig();
 
-        // Cargamos los archivos específicos del entorno
+        // Cargamos los archivos de configuración basados en el entorno
         if (env == EnvType.CLIENT) {
+            // Un cliente solo necesita su propia configuración.
             loadConfigClient();
+        } else { // EnvType.SERVER
+            // Un servidor dedicado necesita las listas de Pokémon y su propia configuración.
+            loadConfigPokemon();
+            loadConfigServer();
         }
-        // En single-player, el entorno es CLIENT, pero el servidor lógico necesita acceso a la config del servidor.
-        // En un servidor dedicado, el entorno es SERVER.
-        loadConfigServer();
     }
 
     public static void saveConfig() {
@@ -130,7 +131,10 @@ public class ConfigManager {
     }
 
     private static void saveConfigPokemon() {
-        if (configPokemon != null) saveConfigFile(CONFIG_POKEMON_FILE, configPokemon, "config-pokemon.json");
+        // Solo guardar si no estamos en un cliente puro.
+        if (FabricLoader.getInstance().getEnvironmentType() != EnvType.CLIENT) {
+            saveConfigFile(CONFIG_POKEMON_FILE, configPokemon, "config-pokemon.json");
+        }
     }
 
     private static void loadConfigClient() throws ConfigReadException {
@@ -149,8 +153,8 @@ public class ConfigManager {
     }
 
     public static void saveServerConfigToFile() {
-        // Solo guardar si estamos en un entorno de servidor (dedicado) o si la instancia no es nula (single-player)
-        if (FabricLoader.getInstance().getEnvironmentType() == EnvType.SERVER || configServer != null) {
+        // Solo guardar si no estamos en un cliente puro.
+        if (FabricLoader.getInstance().getEnvironmentType() != EnvType.CLIENT) {
             saveConfigFile(CONFIG_SERVER_FILE, configServer, "config-server.json");
         }
     }
@@ -164,6 +168,7 @@ public class ConfigManager {
     }
 
     public static ConfigPokemon getPokemonConfig() {
+        // El get ahora es más simple, ya que la carga inicial se encarga de la lógica.
         if (configPokemon == null) {
             try {
                 loadConfigPokemon();
@@ -176,10 +181,6 @@ public class ConfigManager {
     }
 
     public static ConfigClient getClientConfig() {
-        // Si estamos en un servidor dedicado, no debería haber una config de cliente.
-        if (FabricLoader.getInstance().getEnvironmentType() == EnvType.SERVER) {
-            return new ConfigClient(); // Devolvemos una instancia vacía para evitar crashes.
-        }
         if (configClient == null) {
             try {
                 loadConfigClient();
@@ -193,8 +194,7 @@ public class ConfigManager {
 
     public static ConfigServer getServerConfig() {
         if (configServer == null) {
-            try {
-                // Siempre intenta cargar, incluso en un cliente, para evitar null pointers en single-player.
+            try {                
                 loadConfigServer();
             } catch (ConfigReadException e) {
                 PokeNotifier.LOGGER.error("Initial config-server.json load failed. Using temporary default config.", e);
