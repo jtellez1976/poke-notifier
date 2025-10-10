@@ -1,5 +1,6 @@
 package com.zehro_mc.pokenotifier.client;
 
+import com.zehro_mc.pokenotifier.ConfigClient;
 import com.zehro_mc.pokenotifier.ConfigManager;
 import com.zehro_mc.pokenotifier.PokeNotifier;
 import com.zehro_mc.pokenotifier.networking.PokeNotifierPackets;
@@ -7,6 +8,7 @@ import com.zehro_mc.pokenotifier.networking.StatusUpdatePayload;
 import com.zehro_mc.pokenotifier.networking.WaypointPayload;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
@@ -36,7 +38,20 @@ public class PokeNotifierClient implements ClientModInitializer {
         HudRenderCallback.EVENT.register(NotificationHUD::render);
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> ClientCommands.register(dispatcher));
 
+        // --- NUEVO: Mensaje al iniciar sesión ---
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
+            ConfigClient config = ConfigManager.getClientConfig();
+            if (config.silent_mode_enabled) {
+                if (client.player != null) {
+                    client.player.sendMessage(Text.literal("Poke Notifier is in Silent Mode. Use '/pnc silent OFF' to re-enable notifications.").formatted(Formatting.YELLOW), false);
+                }
+            }
+        });
+
         ClientPlayNetworking.registerGlobalReceiver(WaypointPayload.ID, (payload, context) -> {
+            // --- NUEVO: Comprobación del interruptor principal ---
+            if (!ConfigManager.getClientConfig().searching_enabled) return;
+
             MinecraftClient client = context.client();
             client.execute(() -> {
                 String formattedCategory = formatCategoryName(payload.rarityCategoryName());
@@ -100,6 +115,9 @@ public class PokeNotifierClient implements ClientModInitializer {
         });
 
         ClientPlayNetworking.registerGlobalReceiver(StatusUpdatePayload.ID, (payload, context) -> {
+            // --- NUEVO: Comprobación del interruptor principal ---
+            if (!ConfigManager.getClientConfig().searching_enabled) return;
+
             MinecraftClient client = context.client();
             client.execute(() -> {
                 if (ACTIVE_WAYPOINTS.remove(payload.uuid()) != null) {

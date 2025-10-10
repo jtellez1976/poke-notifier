@@ -22,4 +22,6 @@ public class ConfigClient {
     public boolean alert_sounds_enabled = true; // Step 5
     public boolean alert_toast_enabled = true; // Step 6
     public boolean alert_chat_enabled = true; // Nueva opción para el chat
+    public boolean silent_mode_enabled = false;
+    public boolean searching_enabled = true;
 }

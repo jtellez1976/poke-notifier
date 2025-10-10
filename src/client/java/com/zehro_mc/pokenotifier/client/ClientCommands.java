@@ -25,6 +25,31 @@ public class ClientCommands {
                 .then(buildCommandToggle("alert_toast", "HUD (Toast) alerts", (config, enabled) -> config.alert_toast_enabled = enabled))
                 .then(buildCommandToggle("alert_chat", "Chat alerts", (config, enabled) -> config.alert_chat_enabled = enabled));
 
+        // --- NUEVO: Comando Silent ---
+        pncCommand.then(ClientCommandManager.literal("silent")
+                .then(ClientCommandManager.literal("ON").executes(context -> {
+                    ConfigClient config = ConfigManager.getClientConfig();
+                    config.alert_sounds_enabled = false;
+                    config.alert_toast_enabled = false;
+                    config.alert_chat_enabled = false;
+                    config.silent_mode_enabled = true;
+                    config.searching_enabled = false; // Detiene la búsqueda
+                    ConfigManager.saveClientConfigToFile();
+                    context.getSource().sendFeedback(Text.literal("Silent mode is now ON. All notifications are disabled.").formatted(Formatting.RED));
+                    return 1;
+                }))
+                .then(ClientCommandManager.literal("OFF").executes(context -> {
+                    ConfigClient config = ConfigManager.getClientConfig();
+                    config.alert_sounds_enabled = true;
+                    config.alert_toast_enabled = true;
+                    config.alert_chat_enabled = true;
+                    config.silent_mode_enabled = false;
+                    config.searching_enabled = true; // Reanuda la búsqueda
+                    ConfigManager.saveClientConfigToFile();
+                    context.getSource().sendFeedback(Text.literal("Silent mode is now OFF. Notifications are enabled.").formatted(Formatting.GREEN));
+                    return 1;
+                })));
+
         // --- Comando de Versión (Cliente) ---
         pncCommand.then(ClientCommandManager.literal("version")
                 .executes(context -> {
@@ -54,9 +79,12 @@ public class ClientCommands {
                 .executes(context -> {
                     ConfigClient config = ConfigManager.getClientConfig();
                     context.getSource().sendFeedback(Text.literal("--- Poke Notifier Status ---").formatted(Formatting.GOLD));
-                    sendStatusLine(context.getSource(), "Alert Sounds", config.alert_sounds_enabled);
-                    sendStatusLine(context.getSource(), "Chat Alerts", config.alert_chat_enabled);
-                    sendStatusLine(context.getSource(), "Toast Alerts (HUD)", config.alert_toast_enabled);
+                    sendStatusLine(context.getSource(), "Searching", config.searching_enabled);
+                    sendStatusLine(context.getSource(), "Silent Mode", config.silent_mode_enabled);
+                    context.getSource().sendFeedback(Text.literal("----------------------------").formatted(Formatting.GOLD));
+                    sendStatusLine(context.getSource(), "  Alert Sounds", config.alert_sounds_enabled);
+                    sendStatusLine(context.getSource(), "  Chat Alerts", config.alert_chat_enabled);
+                    sendStatusLine(context.getSource(), "  Toast Alerts (HUD)", config.alert_toast_enabled);
                     //sendStatusLine(context.getSource(), "Test Mode", config.enable_test_mode); // Descomentar cuando se implemente
                     return 1;
                 }));
