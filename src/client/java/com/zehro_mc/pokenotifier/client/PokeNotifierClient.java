@@ -34,8 +34,7 @@ public class PokeNotifierClient implements ClientModInitializer {
     public void onInitializeClient() {
         PokeNotifierPackets.registerS2CPackets();
         HudRenderCallback.EVENT.register(NotificationHUD::render);
-        // La siguiente línea está comentada para evitar errores de compilación mientras nos enfocamos en los bugs.
-        // ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> ClientCommands.register(dispatcher));
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> ClientCommands.register(dispatcher));
 
         ClientPlayNetworking.registerGlobalReceiver(WaypointPayload.ID, (payload, context) -> {
             MinecraftClient client = context.client();
