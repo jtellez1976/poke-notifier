@@ -16,7 +16,7 @@ public class ConfigManager {
 
     private static final File CONFIG_POKEMON_FILE = new File(CONFIG_DIR, "config-pokemon.json");
     private static final File CONFIG_CLIENT_FILE = new File(CONFIG_DIR, "config-client.json");
-    private static final File CATCHEMALL_MODE_FILE = new File(CONFIG_DIR, "Catchemall-mode.json");
+    private static final File CATCHEMALL_MODE_FILE = new File(CONFIG_DIR, "catchemall-mode.json");
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
@@ -107,11 +107,11 @@ public class ConfigManager {
     }
 
     private static void loadCatchemallModeConfig() throws ConfigReadException {
-        catchemallModeConfig = loadConfigFile(CATCHEMALL_MODE_FILE, CatchemallModeConfig.class, "Catchemall-mode.json");
+        catchemallModeConfig = loadConfigFile(CATCHEMALL_MODE_FILE, CatchemallModeConfig.class, "catchemall-mode.json");
     }
 
     private static void saveCatchemallModeConfig() {
-        if (catchemallModeConfig != null) saveConfigFile(CATCHEMALL_MODE_FILE, catchemallModeConfig, "Catchemall-mode.json");
+        if (catchemallModeConfig != null) saveConfigFile(CATCHEMALL_MODE_FILE, catchemallModeConfig, "catchemall-mode.json");
     }
 
     public static ConfigPokemon getPokemonConfig() {
@@ -143,7 +143,7 @@ public class ConfigManager {
             try {
                 loadCatchemallModeConfig();
             } catch (ConfigReadException e) {
-                PokeNotifier.LOGGER.error("Initial Catchemall-mode.json load failed. Using temporary default config.", e);
+                PokeNotifier.LOGGER.error("Initial catchemall-mode.json load failed. Using temporary default config.", e);
                 catchemallModeConfig = new CatchemallModeConfig();
             }
         }

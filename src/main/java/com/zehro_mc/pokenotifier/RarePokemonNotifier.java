@@ -57,9 +57,7 @@ public class RarePokemonNotifier {
             RegistryEntry<Biome> biomeRegistryEntry = player.getWorld().getBiome(pokemonPos);
             Identifier biomeId = biomeRegistryEntry.getKey().map(key -> key.getValue()).orElse(BiomeKeys.PLAINS.getValue());
 
-            if (status.equals("NEW")) {
-                player.playSoundToPlayer(SoundEvents.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 0.5F, 1.0F);
-            }
+
 
             // Sanitizamos el nombre: lo pasamos a minúsculas y reemplazamos los espacios por guiones.
             String pokemonName = pokemon.getSpecies().getName().toLowerCase().replace(' ', '-');

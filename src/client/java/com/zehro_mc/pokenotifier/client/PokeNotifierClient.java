@@ -89,6 +89,7 @@ public class PokeNotifierClient implements ClientModInitializer {
                 }
 
                 // Lógica para reproducir el sonido
+                // Comprobamos la configuración ANTES de intentar reproducir el sonido.
                 if (ConfigManager.getClientConfig().alert_sounds_enabled && "NEW".equals(payload.status())) {
                     if (client.player != null) {
                         client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.ENTITY_PLAYER_LEVELUP, 1.0F, 0.5F));
