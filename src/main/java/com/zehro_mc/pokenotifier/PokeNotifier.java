@@ -39,6 +39,10 @@ public class PokeNotifier implements ModInitializer {
     public void onInitialize() {
         LOGGER.info("Initializing Poke Notifier...");
 
+        // --- LA CORRECCIÓN CLAVE ---
+        // Registramos los paquetes aquí para que tanto el servidor como el cliente los conozcan.
+        PokeNotifierPackets.registerS2CPackets();
+
         ServerLifecycleEvents.SERVER_STARTED.register(startedServer -> server = startedServer);
         ServerLifecycleEvents.SERVER_STOPPING.register(stoppingServer -> server = null);
 

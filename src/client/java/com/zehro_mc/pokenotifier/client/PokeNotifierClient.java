@@ -34,7 +34,7 @@ public class PokeNotifierClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        PokeNotifierPackets.registerS2CPackets();
+        // La registración de paquetes ahora se maneja en la clase principal (PokeNotifier.java).
         HudRenderCallback.EVENT.register(NotificationHUD::render);
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> ClientCommands.register(dispatcher));
 
