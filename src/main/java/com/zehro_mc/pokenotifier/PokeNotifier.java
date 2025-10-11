@@ -202,19 +202,28 @@ public class PokeNotifier implements ModInitializer {
                             player.sendMessage(Text.literal("Error: Generation '" + genName + "' not found.").formatted(Formatting.RED), false);
                             return;
                         }
-                        if (progress.active_generations.add(genName)) {
+                        // Lógica para permitir solo una generación activa a la vez
+                        if (!progress.active_generations.contains(genName)) {
+                            // Si ya estaba siguiendo otra, se la notificamos.
+                            if (!progress.active_generations.isEmpty()) {
+                                String oldGen = progress.active_generations.iterator().next();
+                                player.sendMessage(Text.literal("Stopped tracking " + formatGenName(oldGen) + ".").formatted(Formatting.YELLOW), false);
+                            }
+                            progress.active_generations.clear(); // Limpiamos la lista
+                            progress.active_generations.add(genName); // Añadimos la nueva
                             ConfigManager.savePlayerCatchProgress(player.getUuid(), progress);
-                            String regionName = genData.region.substring(0, 1).toUpperCase() + genData.region.substring(1);
-                            player.sendMessage(Text.literal("Catch 'em All mode enabled for the ").append(Text.literal(regionName).formatted(Formatting.GOLD)).append(" region! Good luck!").formatted(Formatting.GREEN), false);
+                            String regionName = formatRegionName(genData.region);
+                            player.sendMessage(Text.literal("Now tracking Pokémon from the ").append(Text.literal(regionName).formatted(Formatting.GOLD)).append(" region! Good luck!").formatted(Formatting.GREEN), false);
                         } else {
-                            player.sendMessage(Text.literal("You are already tracking this generation.").formatted(Formatting.YELLOW), false);
+                            String regionName = formatRegionName(genData.region);
+                            player.sendMessage(Text.literal("You are already tracking the " + regionName + " region.").formatted(Formatting.YELLOW), false);
                         }
                         break;
 
                     case DISABLE:
                         if (progress.active_generations.remove(genName)) {
                             ConfigManager.savePlayerCatchProgress(player.getUuid(), progress);
-                            player.sendMessage(Text.literal("Catch 'em All mode disabled for " + genName + ".").formatted(Formatting.GREEN), false);
+                            player.sendMessage(Text.literal("Stopped tracking " + formatGenName(genName) + ".").formatted(Formatting.GREEN), false);
                         } else {
                             player.sendMessage(Text.literal("You were not tracking this generation.").formatted(Formatting.YELLOW), false);
                         }
@@ -227,8 +236,8 @@ public class PokeNotifier implements ModInitializer {
                             player.sendMessage(Text.literal("You are currently tracking the following generations:").formatted(Formatting.YELLOW), false);
                             progress.active_generations.forEach(gen -> {
                                 GenerationData data = ConfigManager.getGenerationData(gen);
-                                String regionName = data != null ? data.region.substring(0, 1).toUpperCase() + data.region.substring(1) : "Unknown";
-                                player.sendMessage(Text.literal("- " + gen + " (" + regionName + ")").formatted(Formatting.GOLD), false);
+                                String regionName = data != null ? formatRegionName(data.region) : "Unknown";
+                                player.sendMessage(Text.literal("- " + formatGenName(gen) + " (" + regionName + ")").formatted(Formatting.GOLD), false);
                             });
                         }
                         break;
@@ -313,5 +322,15 @@ public class PokeNotifier implements ModInitializer {
             player.sendMessage(Text.literal("Error: Pokémon '" + pokemonName + "' not found.").formatted(Formatting.RED), false);
             return 0;
         }
+    }
+
+    private static String formatGenName(String genName) {
+        if (genName == null || !genName.toLowerCase().startsWith("gen")) return genName;
+        return "Gen" + genName.substring(3);
+    }
+
+    private static String formatRegionName(String regionName) {
+        if (regionName == null || regionName.isEmpty()) return "Unknown";
+        return regionName.substring(0, 1).toUpperCase() + regionName.substring(1);
     }
 }

@@ -1,6 +1,8 @@
 package com.zehro_mc.pokenotifier.client;
 
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.suggestion.SuggestionProvider;
+import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.zehro_mc.pokenotifier.ConfigClient;
@@ -16,6 +18,9 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Stream;
 
 public class ClientCommands {
 
@@ -88,17 +93,26 @@ public class ClientCommands {
         pncCommand.then(customListCommand);
 
         // --- NUEVO: Comando Catch 'em All ---
+        SuggestionProvider<FabricClientCommandSource> generationSuggestionProvider = (context, builder) ->
+                CompletableFuture.supplyAsync(() -> {
+                    Stream.of("gen1", "gen2", "gen3", "gen4", "gen5", "gen6", "gen7", "gen8", "gen9")
+                            .forEach(builder::suggest);
+                    return builder.build();
+                });
+
         var catchemallCommand = ClientCommandManager.literal("catchemall")
                 .then(ClientCommandManager.literal("enable")
                         .then(ClientCommandManager.argument("generation", StringArgumentType.string())
+                                .suggests(generationSuggestionProvider)
                                 .executes(context -> {
                                     String genName = StringArgumentType.getString(context, "generation");
                                     ClientPlayNetworking.send(new CatchemallUpdatePayload(CatchemallUpdatePayload.Action.ENABLE, genName));
-                                    context.getSource().sendFeedback(Text.literal("Requesting to enable Catch 'em All mode for " + genName + "...").formatted(Formatting.YELLOW));
+                                    context.getSource().sendFeedback(Text.literal("Requesting to track " + formatGenName(genName) + "...").formatted(Formatting.YELLOW));
                                     return 1;
                                 })))
                 .then(ClientCommandManager.literal("disable")
                         .then(ClientCommandManager.argument("generation", StringArgumentType.string())
+                                .suggests(generationSuggestionProvider)
                                 .executes(context -> {
                                     String genName = StringArgumentType.getString(context, "generation");
                                     ClientPlayNetworking.send(new CatchemallUpdatePayload(CatchemallUpdatePayload.Action.DISABLE, genName));
@@ -199,5 +213,10 @@ public class ClientCommands {
     @FunctionalInterface
     private interface ToggleAction {
         void apply(ConfigClient config, boolean enabled);
+    }
+
+    private static String formatGenName(String genName) {
+        if (genName == null || !genName.toLowerCase().startsWith("gen")) return genName;
+        return "Gen" + genName.substring(3);
     }
 }
