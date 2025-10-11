@@ -38,13 +38,15 @@ public class RarePokemonNotifier {
         });
     }
 
-    private static void onPokemonSpawn(PokemonEntity pokemonEntity) {
+    public static void onPokemonSpawn(PokemonEntity pokemonEntity) {
         if (pokemonEntity == null) return;
 
         Pokemon pokemon = pokemonEntity.getPokemon();
 
         // En Cobblemon 1.6+, la forma de detectar un spawn natural es comprobar que no tenga propietario.
-        boolean isNaturalSpawn = pokemonEntity.getOwnerUuid() == null && !pokemonEntity.isRemoved();
+        // Y ahora, también comprobamos que no tenga nuestra etiqueta de prueba.
+        boolean isFromTestSpawn = pokemon.getPersistentData().getBoolean("pokenotifier_test_spawn");
+        boolean isNaturalSpawn = pokemonEntity.getOwnerUuid() == null && !pokemonEntity.isRemoved() && !isFromTestSpawn;
 
         if (!isNaturalSpawn && !ConfigManager.getServerConfig().enable_test_mode) {
             return; // Ignora si no es natural y el test_mode está apagado.

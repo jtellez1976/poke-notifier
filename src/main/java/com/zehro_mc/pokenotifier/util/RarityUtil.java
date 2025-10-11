@@ -11,6 +11,7 @@ public class RarityUtil {
 
     public enum RarityCategory {
         CUSTOM(Formatting.LIGHT_PURPLE),
+        SHINY(Formatting.YELLOW), // NUEVA CATEGORÍA PARA SHINIES
         LEGENDARY(Formatting.GOLD),
         MYTHICAL(Formatting.AQUA),
         ULTRA_BEAST(Formatting.BLUE),
@@ -43,6 +44,11 @@ public class RarityUtil {
             if (playerConfig.tracked_pokemon.contains(name)) {
                 return RarityCategory.CUSTOM;
             }
+        }
+
+        // Prioridad 1.5: Pokémon Shiny
+        if (pokemon.getShiny()) {
+            return RarityCategory.SHINY;
         }
 
         // Prioridad 2: Listas globales del servidor

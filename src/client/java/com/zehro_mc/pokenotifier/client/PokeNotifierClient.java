@@ -68,10 +68,16 @@ public class PokeNotifierClient implements ClientModInitializer {
 
                 // Lógica para mostrar el HUD
                 if (ConfigManager.getClientConfig().alert_toast_enabled) {
-                    Text title = Text.literal("A ")
-                            .append(Text.literal(formattedCategory + " " + payload.name())
-                                    .styled(style -> style.withColor(payload.color())))
-                            .append(Text.literal(" has appeared"));
+                    MutableText pokemonText;
+                    // Si es SHINY, usamos el efecto arcoíris.
+                    if ("SHINY".equals(payload.rarityCategoryName())) {
+                        pokemonText = createRainbowText(formattedCategory + " " + payload.name());
+                    } else {
+                        pokemonText = Text.literal(formattedCategory + " " + payload.name())
+                                .styled(style -> style.withColor(payload.color()));
+                    }
+
+                    Text title = Text.literal("A ").append(pokemonText).append(Text.literal(" has appeared"));
                     Text description = Text.empty();
                     NotificationHUD.show(title, description, payload.spriteIdentifier());
                 }
@@ -87,9 +93,14 @@ public class PokeNotifierClient implements ClientModInitializer {
                     MutableText chatMessage = prefix
                             .append(Text.literal("A wild ").formatted(Formatting.YELLOW));
 
-                    // 3. Añadimos el nombre del Pokémon con su color de rareza
-                    chatMessage.append(Text.literal(formattedCategory + " " + payload.name())
-                            .styled(style -> style.withColor(payload.color())));
+                    // 3. Añadimos el nombre del Pokémon con su color de rareza o efecto arcoíris
+                    if ("SHINY".equals(payload.rarityCategoryName())) {
+                        // Si es SHINY, usamos el efecto arcoíris.
+                        chatMessage.append(createRainbowText(formattedCategory + " " + payload.name()));
+                    } else {
+                        chatMessage.append(Text.literal(formattedCategory + " " + payload.name())
+                                .styled(style -> style.withColor(payload.color())));
+                    }
 
                     // 4. Añadimos el estado [NEW] o [CAUGHT] con su propio color
                     chatMessage.append(Text.literal(" ["));
@@ -159,5 +170,27 @@ public class PokeNotifierClient implements ClientModInitializer {
             words[i] = words[i].substring(0, 1).toUpperCase() + words[i].substring(1);
         }
         return String.join(" ", words);
+    }
+
+    /**
+     * Crea un componente de texto con un efecto de color arcoíris.
+     * @param text El texto a colorear.
+     * @return Un MutableText con el efecto aplicado.
+     */
+    private static MutableText createRainbowText(String text) {
+        MutableText rainbowText = Text.empty();
+        Formatting[] rainbowColors = {
+                Formatting.RED,
+                Formatting.GOLD,
+                Formatting.YELLOW,
+                Formatting.GREEN,
+                Formatting.AQUA,
+                Formatting.LIGHT_PURPLE
+        };
+        for (int i = 0; i < text.length(); i++) {
+            // Asigna un color del arcoíris a cada caracter, ciclando a través de la lista de colores.
+            rainbowText.append(Text.literal(String.valueOf(text.charAt(i))).formatted(rainbowColors[i % rainbowColors.length]));
+        }
+        return rainbowText;
     }
 }
