@@ -25,13 +25,13 @@ public class ConfigPokemon {
         // Populamos las listas con los valores por defecto en el constructor.
         // Las listas por defecto ahora están vacías para que el usuario las configure.
         LEGENDARY.addAll(Arrays.asList(
-                "articuno", "zapdos", "moltres", "mewtwo", "raikou", "entei", "suicune", "lugia", "ho-oh", "regirock",
+                "articuno", "zapdos", "moltres", "mewtwo", "raikou", "entei", "suicune", "lugia", "hooh", "regirock",
                 "regice", "registeel", "latias", "latios", "kyogre", "groudon", "rayquaza", "uxie", "mesprit", "azelf",
                 "dialga", "palkia", "heatran", "regigigas", "giratina", "cresselia", "cobalion", "terrakion", "virizion",
                 "tornadus", "thundurus", "reshiram", "zekrom", "landorus", "kyurem", "xerneas", "yveltal", "zygarde",
-                "silvally", "tapu-koko", "tapu-lele", "tapu-bulu", "tapu-fini", "cosmog", "cosmoem", "solgaleo", "lunala",
+                "silvally", "tapukoko", "tapulele", "tapubulu", "tapufini", "cosmog", "cosmoem", "solgaleo", "lunala",
                 "necrozma", "zacian", "zamazenta", "eternatus", "kubfu", "urshifu", "regieleki", "regidrago", "glastrier",
-                "spectrier", "calyrex", "enamorus", "wo-chien", "chien-pao", "ting-lu", "chi-yu", "koraidon", "miraidon",
+                "spectrier", "calyrex", "enamorus", "wochien", "chienpao", "tinglu", "chiyu", "koraidon", "miraidon",
                 "okidogi", "munkidori", "fezandipiti", "ogerpon", "terapagos"
         ));
         MYTHICAL.addAll(Arrays.asList(
@@ -44,10 +44,10 @@ public class ConfigPokemon {
                 "naganadel", "stakataka", "blacephalon"
         ));
         PARADOX.addAll(Arrays.asList(
-                "great-tusk", "scream-tail", "brute-bonnet", "flutter-mane", "slither-wing", "sandy-shocks",
-                "roaring-moon", "walking-wake", "gouging-fire", "raging-bolt", "iron-treads", "iron-bundle",
-                "iron-hands", "iron-jugulis", "iron-moth", "iron-thorns", "iron-valiant", "iron-leaves",
-                "iron-boulder", "iron-crown"
+                "greattusk", "screamtail", "brutebonnet", "fluttermane", "slitherwing", "sandyshocks",
+                "roaringmoon", "walkingwake", "gougingfire", "ragingbolt", "irontreads", "ironbundle",
+                "ironhands", "ironjugulis", "ironmoth", "ironthorns", "ironvaliant", "ironleaves",
+                "ironboulder", "ironcrown"
         ));
         ULTRA_RARE.addAll(Arrays.asList(
                 "bulbasaur", "ivysaur", "venusaur", "charmander", "charmeleon", "charizard", "squirtle", "wartortle",
@@ -73,11 +73,11 @@ public class ConfigPokemon {
                 "absol", "wynaut", "clamperl", "huntail", "gorebyss", "bronzor", "bronzong", "happiny", "spiritomb",
                 "munchlax", "riolucario", "drapion", "toxicroak", "gallade", "froslass", "simisage", "simisear",
                 "simipour", "excadrill", "audino", "throh", "sawk", "garbodor", "minccino", "gothorita", "solosis",
-                "duosion", "vanillish", "axew", "fraxure", "haxorus", "mienshao", "druddigon", "deino", "zweilous",
+                "duosion", "vanillish", "axew", "fraxure", "haxorus", "mienshao", "druddigon", "deino", "zweilous", "sirfetchd",
                 "hydreigon", "larvesta", "volcarona", "meowstic", "slurpuff", "malamar", "tyrunt", "tyrantrum",
                 "amaura", "aurorus", "hawlucha", "goomy", "sliggoo", "goodra", "oranguru", "passimian", "mimikyu",
                 "drampa", "orbeetle", "drednaw", "coalossal", "applin", "flapple", "appletun", "sandaconda",
-                "toxtricity", "sirfetchd", "mr-rime", "indeedee", "frigibax", "arctibax", "gholdengo", "dipplin",
+                "toxtricity", "mrmime", "mrrime", "indeedee", "frigibax", "arctibax", "gholdengo", "dipplin",
                 "poltchageist", "sinistcha", "lokix", "pawmo", "pawmot", "charcadet", "armarouge", "ceruledge",
                 "rabsca", "cyclizar", "orthworm", "greavard", "houndstone", "dondozo", "tatsugiri"
         ));

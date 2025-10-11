@@ -68,16 +68,20 @@ public class PokeNotifierClient implements ClientModInitializer {
 
                 // Lógica para mostrar el HUD
                 if (ConfigManager.getClientConfig().alert_toast_enabled) {
-                    MutableText pokemonText;
-                    // Si es SHINY, usamos el efecto arcoíris.
-                    if ("SHINY".equals(payload.rarityCategoryName())) {
-                        pokemonText = createRainbowText(formattedCategory + " " + payload.name());
+                    MutableText title;
+                    if ("HUNT".equals(payload.rarityCategoryName())) {
+                        // Título especial para Hunting Mode
+                        title = Text.literal("Hunting Target: ").append(Text.literal(payload.name()).formatted(Formatting.GREEN));
                     } else {
-                        pokemonText = Text.literal(formattedCategory + " " + payload.name())
-                                .styled(style -> style.withColor(payload.color()));
+                        MutableText pokemonText;
+                        if ("SHINY".equals(payload.rarityCategoryName())) {
+                            pokemonText = createRainbowText(formattedCategory + " " + payload.name());
+                        } else {
+                            pokemonText = Text.literal(formattedCategory + " " + payload.name())
+                                    .styled(style -> style.withColor(payload.color()));
+                        }
+                        title = Text.literal("A ").append(pokemonText).append(Text.literal(" has appeared"));
                     }
-
-                    Text title = Text.literal("A ").append(pokemonText).append(Text.literal(" has appeared"));
                     Text description = Text.empty();
                     NotificationHUD.show(title, description, payload.spriteIdentifier());
                 }
@@ -93,16 +97,22 @@ public class PokeNotifierClient implements ClientModInitializer {
                     MutableText chatMessage = prefix
                             .append(Text.literal("A wild ").formatted(Formatting.YELLOW));
 
-                    // 3. Añadimos el nombre del Pokémon con su color de rareza o efecto arcoíris
-                    if ("SHINY".equals(payload.rarityCategoryName())) {
-                        // Si es SHINY, usamos el efecto arcoíris.
-                        chatMessage.append(createRainbowText(formattedCategory + " " + payload.name()));
+                    // 3. Lógica de texto principal
+                    if ("HUNT".equals(payload.rarityCategoryName())) {
+                        // Mensaje especial para Hunting Mode
+                        chatMessage.append(Text.literal(payload.name()).formatted(Formatting.GREEN))
+                                .append(Text.literal(" (Hunting Target)").formatted(Formatting.DARK_GREEN));
                     } else {
-                        chatMessage.append(Text.literal(formattedCategory + " " + payload.name())
-                                .styled(style -> style.withColor(payload.color())));
+                        // Lógica normal para otras rarezas
+                        if ("SHINY".equals(payload.rarityCategoryName())) {
+                            chatMessage.append(createRainbowText(formattedCategory + " " + payload.name()));
+                        } else {
+                            chatMessage.append(Text.literal(formattedCategory + " " + payload.name())
+                                    .styled(style -> style.withColor(payload.color())));
+                        }
                     }
 
-                    // 4. Añadimos el estado [NEW] o [CAUGHT] con su propio color
+                    // 4. Añadimos el estado [NEW] o [CAUGHT]
                     chatMessage.append(Text.literal(" ["));
                     if ("NEW".equals(payload.status())) {
                         chatMessage.append(Text.literal(payload.status()).formatted(Formatting.GREEN));

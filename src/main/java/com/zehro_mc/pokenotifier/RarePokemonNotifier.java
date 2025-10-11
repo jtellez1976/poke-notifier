@@ -6,6 +6,8 @@ import com.cobblemon.mod.common.api.Priority;
 import com.cobblemon.mod.common.api.events.CobblemonEvents;
 import com.cobblemon.mod.common.api.storage.PokemonStore;
 import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
+import com.zehro_mc.pokenotifier.model.GenerationData;
+import com.zehro_mc.pokenotifier.model.PlayerCatchProgress;
 import com.zehro_mc.pokenotifier.networking.WaypointPayload;
 import com.zehro_mc.pokenotifier.util.RarityUtil;
 import kotlin.Unit;
@@ -22,6 +24,7 @@ import net.minecraft.world.biome.Biome;
 import net.minecraft.world.biome.BiomeKeys;
 
 import java.util.Iterator;
+import java.util.Set;
 
 public class RarePokemonNotifier {
 
@@ -56,48 +59,83 @@ public class RarePokemonNotifier {
         if (pokemonEntity.getServer() == null) return;
 
         for (ServerPlayerEntity player : pokemonEntity.getServer().getPlayerManager().getPlayerList()) {
+            // --- LÓGICA CATCH 'EM ALL ---
+            PlayerCatchProgress progress = ConfigManager.getPlayerCatchProgress(player.getUuid());
+            if (!progress.active_generations.isEmpty()) {
+                String activeGen = progress.active_generations.iterator().next();
+                GenerationData genData = ConfigManager.getGenerationData(activeGen);
+                // Usamos el path del Identifier para tener el nombre limpio y consistente (ej: nidoran_f, mr_mime)
+                String pokemonName = pokemon.getSpecies().getResourceIdentifier().getPath();
+
+                // Si el Pokémon pertenece a la generación activa...
+                if (genData != null && genData.pokemon.contains(pokemonName)) {
+                    Set<String> caughtInGen = progress.caught_pokemon.getOrDefault(activeGen, Set.of());
+
+                    // ...y el jugador NO lo ha capturado todavía...
+                    if (!caughtInGen.contains(pokemonName)) {
+                        // ...le enviamos una notificación de tipo "CUSTOM" y pasamos al siguiente jugador.
+                        sendNotification(player, pokemonEntity, RarityUtil.RarityCategory.HUNT);
+                        continue;
+                    }
+                }
+                // Si el jugador está en modo Catch 'em All, no le interesan otras notificaciones.
+                // Así que pasamos al siguiente jugador.
+                continue;
+            }
+
+            // --- LÓGICA DE RAREZA NORMAL (si no está en modo Catch 'em All) ---
             RarityUtil.RarityCategory rarity = RarityUtil.getRarity(pokemon, player);
             if (rarity == RarityUtil.RarityCategory.COMMON) continue;
 
             double distance = player.getPos().distanceTo(pokemonPos.toCenterPos());
             if (distance > ConfigManager.getClientConfig().notification_distance) continue;
 
-            if (!PokeNotifier.TRACKED_POKEMON.containsKey(pokemonEntity)) {
-                PokeNotifier.TRACKED_POKEMON.put(pokemonEntity, rarity);
+            sendNotification(player, pokemonEntity, rarity);
+        }
+    }
 
-                if (ConfigManager.getServerConfig().debug_mode_enabled) {
-                    PokeNotifier.LOGGER.info("Started tracking Pokémon: " + pokemon.getSpecies().getName());
-                }
+    /**
+     * Método de ayuda para enviar la notificación a un jugador.
+     */
+    private static void sendNotification(ServerPlayerEntity player, PokemonEntity pokemonEntity, RarityUtil.RarityCategory rarity) {
+        Pokemon pokemon = pokemonEntity.getPokemon();
+        BlockPos pokemonPos = pokemonEntity.getBlockPos();
+        double distance = player.getPos().distanceTo(pokemonPos.toCenterPos());
 
-                int glowingTicks = ConfigManager.getClientConfig().glowing_duration_seconds * 20;
-                pokemonEntity.addStatusEffect(new StatusEffectInstance(StatusEffects.GLOWING, glowingTicks, 0, false, false));
-            }
-
-            String status = hasCaughtSpecies(player, pokemon) ? "CAUGHT" : "NEW";
-            RegistryEntry<Biome> biomeRegistryEntry = player.getWorld().getBiome(pokemonPos);
-            Identifier biomeId = biomeRegistryEntry.getKey().map(key -> key.getValue()).orElse(BiomeKeys.PLAINS.getValue());
-
-            // Nombre sanitizado (minúsculas y guiones)
-            String pokemonName = pokemon.getSpecies().getName().toLowerCase().replace(' ', '-');
-            Identifier spriteIdentifier = Identifier.of(PokeNotifier.MOD_ID, "textures/pokemon/" + pokemonName + ".png");
-
-            WaypointPayload payload = new WaypointPayload(
-                    pokemon.getUuid().toString(),
-                    pokemon.getDisplayName().getString(),
-                    pokemonPos,
-                    rarity.getWaypointColor(),
-                    status,
-                    rarity.name(),
-                    "Lvl " + pokemon.getLevel(),
-                    distance,
-                    biomeId,
-                    spriteIdentifier
-            );
-            ServerPlayNetworking.send(player, payload);
-
+        if (!PokeNotifier.TRACKED_POKEMON.containsKey(pokemonEntity)) {
+            PokeNotifier.TRACKED_POKEMON.put(pokemonEntity, rarity);
             if (ConfigManager.getServerConfig().debug_mode_enabled) {
-                PokeNotifier.LOGGER.info("Notified " + player.getName().getString() + " about a " + rarity.name() + " " + pokemon.getSpecies().getName() + " at " + pokemonPos);
+                PokeNotifier.LOGGER.info("Started tracking Pokémon: " + pokemon.getSpecies().getName());
             }
+            int glowingTicks = ConfigManager.getClientConfig().glowing_duration_seconds * 20;
+            pokemonEntity.addStatusEffect(new StatusEffectInstance(StatusEffects.GLOWING, glowingTicks, 0, false, false));
+        }
+
+        String status = hasCaughtSpecies(player, pokemon) ? "CAUGHT" : "NEW";
+        RegistryEntry<Biome> biomeRegistryEntry = player.getWorld().getBiome(pokemonPos);
+        Identifier biomeId = biomeRegistryEntry.getKey().map(key -> key.getValue()).orElse(BiomeKeys.PLAINS.getValue());
+
+        // Usamos getShowdownName() para obtener un nombre limpio y consistente para la ruta del archivo.
+        // Esto soluciona problemas con nombres como "Nidoran♀" o "Mr. Mime".
+        String spriteName = pokemon.getSpecies().getResourceIdentifier().getPath();
+        Identifier spriteIdentifier = Identifier.of(PokeNotifier.MOD_ID, "textures/pokemon/" + spriteName + ".png");
+
+        WaypointPayload payload = new WaypointPayload(
+                pokemon.getUuid().toString(),
+                pokemon.getDisplayName().getString(),
+                pokemonPos,
+                rarity.getWaypointColor(),
+                status,
+                rarity.name(),
+                "Lvl " + pokemon.getLevel(),
+                distance,
+                biomeId,
+                spriteIdentifier
+        );
+        ServerPlayNetworking.send(player, payload);
+
+        if (ConfigManager.getServerConfig().debug_mode_enabled) {
+            PokeNotifier.LOGGER.info("Notified " + player.getName().getString() + " about a " + rarity.name() + " " + pokemon.getSpecies().getName() + " at " + pokemonPos);
         }
     }
 

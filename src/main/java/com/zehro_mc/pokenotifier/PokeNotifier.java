@@ -8,6 +8,7 @@ import com.cobblemon.mod.common.api.events.CobblemonEvents;
 import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.zehro_mc.pokenotifier.command.DebugModeCommand;
+import com.zehro_mc.pokenotifier.api.PokeNotifierApi;
 import com.zehro_mc.pokenotifier.model.GenerationData;
 import com.zehro_mc.pokenotifier.model.CustomListConfig;
 import com.zehro_mc.pokenotifier.event.CaptureListener;
@@ -24,10 +25,13 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.server.command.CommandManager;
+import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
+import net.minecraft.command.CommandSource;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -104,9 +108,13 @@ public class PokeNotifier implements ModInitializer {
                     }));
 
             // NUEVO: Comando de prueba para generar Pokémon
+            SuggestionProvider<ServerCommandSource> pokemonSuggestionProvider = (context, builder) ->
+                    CommandSource.suggestMatching(PokeNotifierApi.getAllPokemonNames(), builder);
+
             var testSpawnCommand = CommandManager.literal("testspawn")
                     .requires(source -> source.hasPermissionLevel(2))
                     .then(CommandManager.argument("pokemon", StringArgumentType.string())
+                            .suggests(pokemonSuggestionProvider)
                             .executes(context -> {
                                 return executeTestSpawn(context.getSource().getPlayer(), StringArgumentType.getString(context, "pokemon"), false);
                             })
@@ -144,7 +152,11 @@ public class PokeNotifier implements ModInitializer {
 
                 switch (payload.action()) {
                     case ADD:
-                        if (PokemonSpecies.INSTANCE.getByName(pokemonName) == null) {
+                        // El parser de propiedades es más robusto y entiende tanto 'mr-mime' como 'mr_mime'.
+                        // Lo usamos aquí para una validación consistente.
+                        try {
+                            PokemonProperties.Companion.parse(pokemonName);
+                        } catch (Exception e) {
                             player.sendMessage(Text.literal("Error: '").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append("' is not a valid Pokémon name.").formatted(Formatting.RED), false);
                             return;
                         }
@@ -296,10 +308,16 @@ public class PokeNotifier implements ModInitializer {
 
     private int executeTestSpawn(ServerPlayerEntity player, String pokemonName, boolean isShiny) {
         ServerWorld world = player.getServerWorld();
-        pokemonName = pokemonName.toLowerCase().trim();
+        final String finalPokemonName = pokemonName.toLowerCase().trim();
+
+        // Validación estricta: el nombre debe existir en la lista oficial de Cobblemon.
+        if (PokeNotifierApi.getAllPokemonNames().noneMatch(name -> name.equals(finalPokemonName))) {
+            player.sendMessage(Text.literal("Error: Pokémon '").append(Text.literal(finalPokemonName).formatted(Formatting.GOLD)).append("' is not a valid Pokémon name.").formatted(Formatting.RED), false);
+            return 0;
+        }
 
         try {
-            PokemonProperties props = PokemonProperties.Companion.parse(pokemonName);
+            PokemonProperties props = PokemonProperties.Companion.parse(finalPokemonName);
             if (isShiny) {
                 props.setShiny(true);
             }
@@ -316,10 +334,10 @@ public class PokeNotifier implements ModInitializer {
             // Disparamos nuestro propio evento de notificación manualmente, ya que world.spawnEntity no lo hace.
             RarePokemonNotifier.onPokemonSpawn(pokemonEntity);
 
-            player.sendMessage(Text.literal("Spawned a " + (isShiny ? "Shiny " : "") + pokemonName + ".").formatted(Formatting.GREEN), false);
+            player.sendMessage(Text.literal("Spawned a " + (isShiny ? "Shiny " : "") + finalPokemonName + ".").formatted(Formatting.GREEN), false);
             return 1;
         } catch (Exception e) {
-            player.sendMessage(Text.literal("Error: Pokémon '" + pokemonName + "' not found.").formatted(Formatting.RED), false);
+            player.sendMessage(Text.literal("Error: Pokémon '" + finalPokemonName + "' not found.").formatted(Formatting.RED), false);
             return 0;
         }
     }

@@ -6,6 +6,7 @@ import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.zehro_mc.pokenotifier.ConfigClient;
+import com.zehro_mc.pokenotifier.api.PokeNotifierApi;
 import com.zehro_mc.pokenotifier.ConfigManager;
 import com.zehro_mc.pokenotifier.PokeNotifier;
 import com.zehro_mc.pokenotifier.networking.CatchemallUpdatePayload;
@@ -14,6 +15,7 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.loader.api.ModContainer;
+import net.minecraft.command.CommandSource;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
@@ -60,9 +62,13 @@ public class ClientCommands {
                 })));
 
         // --- Comando Custom List ---
+        SuggestionProvider<FabricClientCommandSource> pokemonSuggestionProvider = (context, builder) ->
+                CommandSource.suggestMatching(PokeNotifierApi.getAllPokemonNames(), builder);
+
         var customListCommand = ClientCommandManager.literal("customlist")
                 .then(ClientCommandManager.literal("add")
                         .then(ClientCommandManager.argument("pokemon", StringArgumentType.greedyString())
+                                .suggests(pokemonSuggestionProvider)
                                 .executes(context -> {
                                     String pokemonName = StringArgumentType.getString(context, "pokemon");
                                     ClientPlayNetworking.send(new CustomListUpdatePayload(CustomListUpdatePayload.Action.ADD, pokemonName));
@@ -71,6 +77,7 @@ public class ClientCommands {
                                 })))
                 .then(ClientCommandManager.literal("remove")
                         .then(ClientCommandManager.argument("pokemon", StringArgumentType.greedyString())
+                                .suggests(pokemonSuggestionProvider)
                                 .executes(context -> {
                                     String pokemonName = StringArgumentType.getString(context, "pokemon");
                                     ClientPlayNetworking.send(new CustomListUpdatePayload(CustomListUpdatePayload.Action.REMOVE, pokemonName));

@@ -11,6 +11,7 @@ public class RarityUtil {
 
     public enum RarityCategory {
         CUSTOM(Formatting.LIGHT_PURPLE),
+        HUNT(Formatting.GREEN), // NUEVA CATEGORÍA PARA CATCH 'EM ALL
         SHINY(Formatting.YELLOW), // NUEVA CATEGORÍA PARA SHINIES
         LEGENDARY(Formatting.GOLD),
         MYTHICAL(Formatting.AQUA),
@@ -36,7 +37,8 @@ public class RarityUtil {
     }
 
     public static RarityCategory getRarity(Pokemon pokemon, ServerPlayerEntity player) {
-        String name = pokemon.getSpecies().getName().toLowerCase();
+        // Usamos el path del Identifier para tener el nombre limpio y consistente (ej: nidoran_f, mr_mime)
+        String name = pokemon.getSpecies().getResourceIdentifier().getPath();
 
         // Prioridad 1: Lista personalizada del jugador
         if (player != null) {
