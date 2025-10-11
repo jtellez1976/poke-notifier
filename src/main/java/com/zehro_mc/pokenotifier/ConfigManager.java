@@ -1,24 +1,31 @@
 package com.zehro_mc.pokenotifier;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.zehro_mc.pokenotifier.model.CustomListConfig;
+import com.zehro_mc.pokenotifier.model.GenerationData;
+import com.zehro_mc.pokenotifier.model.PlayerCatchProgress;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.api.FabricLoader;
 
 import java.io.File;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ConfigManager {
 
     private static final File CONFIG_DIR = FabricLoader.getInstance().getConfigDir().resolve(PokeNotifier.MOD_ID).toFile();
     private static final File PLAYER_DATA_DIR = new File(CONFIG_DIR, "player_data");
+    private static final File CATCH_PROGRESS_DIR = new File(CONFIG_DIR, "catch_progress"); // NUEVO
 
     private static final File CONFIG_POKEMON_FILE = new File(CONFIG_DIR, "config-pokemon.json");
     private static final File CONFIG_CLIENT_FILE = new File(CONFIG_DIR, "config-client.json");
@@ -34,6 +41,12 @@ public class ConfigManager {
 
     // Cache para las listas personalizadas de los jugadores para evitar leer el archivo constantemente
     private static final Map<UUID, CustomListConfig> playerConfigs = new ConcurrentHashMap<>();
+    // Cache para el progreso "Catch 'em All" de los jugadores
+    private static final Map<UUID, PlayerCatchProgress> playerCatchProgress = new ConcurrentHashMap<>(); // NUEVO
+
+    // Cache para las listas de generaciones cargadas desde los recursos del mod
+    private static final Map<String, GenerationData> generationDataCache = new ConcurrentHashMap<>();
+
 
     public static class ConfigReadException extends Exception {
         public ConfigReadException(String message, Throwable cause) {
@@ -50,6 +63,9 @@ public class ConfigManager {
         }
         if (!PLAYER_DATA_DIR.exists()) {
             PLAYER_DATA_DIR.mkdirs();
+        }
+        if (!CATCH_PROGRESS_DIR.exists()) { // NUEVO
+            CATCH_PROGRESS_DIR.mkdirs();
         }
 
         // Obtenemos el tipo de entorno (CLIENT o SERVER)
@@ -234,5 +250,49 @@ public class ConfigManager {
         File playerFile = new File(PLAYER_DATA_DIR, playerUuid.toString() + ".json");
         saveConfigFile(playerFile, config, playerUuid.toString() + ".json");
         playerConfigs.put(playerUuid, config); // Actualiza el caché
+    }
+
+    // --- NUEVOS MÉTODOS PARA CATCH 'EM ALL ---
+
+    public static PlayerCatchProgress getPlayerCatchProgress(UUID playerUuid) {
+        return playerCatchProgress.computeIfAbsent(playerUuid, uuid -> {
+            File progressFile = new File(CATCH_PROGRESS_DIR, uuid.toString() + ".json");
+            try {
+                return loadConfigFile(progressFile, PlayerCatchProgress.class, "catch progress for " + uuid);
+            } catch (ConfigReadException e) {
+                PokeNotifier.LOGGER.error("Could not load catch progress for player " + uuid + ". Creating a new one.", e);
+                return new PlayerCatchProgress();
+            }
+        });
+    }
+
+    public static void savePlayerCatchProgress(UUID playerUuid, PlayerCatchProgress progress) {
+        File progressFile = new File(CATCH_PROGRESS_DIR, playerUuid.toString() + ".json");
+        saveConfigFile(progressFile, progress, "catch progress for " + playerUuid);
+        playerCatchProgress.put(playerUuid, progress); // Actualiza el caché
+    }
+
+    /**
+     * Carga los datos de una generación (región y lista de Pokémon) desde los recursos del mod.
+     * Los resultados se guardan en caché para mejorar el rendimiento.
+     * @param genName El nombre del archivo de generación (ej: "gen1")
+     * @return Un objeto GenerationData o null si no se encuentra.
+     */
+    public static GenerationData getGenerationData(String genName) {
+        return generationDataCache.computeIfAbsent(genName, name -> {
+            String path = "/data/" + PokeNotifier.MOD_ID + "/generations/" + name + ".json";
+            try (InputStream is = ConfigManager.class.getResourceAsStream(path)) {
+                if (is == null) {
+                    PokeNotifier.LOGGER.warn("Generation file not found: {}", path);
+                    return null; // Devuelve null si el archivo no existe
+                }
+                try (InputStreamReader reader = new InputStreamReader(is)) {
+                    return GSON.fromJson(reader, GenerationData.class);
+                }
+            } catch (IOException | JsonSyntaxException e) {
+                PokeNotifier.LOGGER.error("Failed to load or parse generation file: {}", path, e);
+                return null; // Devuelve null si hay un error de lectura/parseo
+            }
+        });
     }
 }

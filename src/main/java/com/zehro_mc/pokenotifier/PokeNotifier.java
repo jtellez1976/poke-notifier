@@ -8,8 +8,10 @@ import com.cobblemon.mod.common.api.events.CobblemonEvents;
 import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.zehro_mc.pokenotifier.command.DebugModeCommand;
+import com.zehro_mc.pokenotifier.model.GenerationData;
 import com.zehro_mc.pokenotifier.model.CustomListConfig;
 import com.zehro_mc.pokenotifier.event.CaptureListener;
+import com.zehro_mc.pokenotifier.networking.CatchemallUpdatePayload;
 import com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload;
 import com.zehro_mc.pokenotifier.networking.PokeNotifierPackets;
 import com.zehro_mc.pokenotifier.networking.ServerDebugStatusPayload;
@@ -179,6 +181,55 @@ public class PokeNotifier implements ModInitializer {
                             player.sendMessage(Text.literal("Your custom tracking list has been cleared.").formatted(Formatting.GREEN), false);
                         } else {
                             player.sendMessage(Text.literal("Your custom tracking list was already empty.").formatted(Formatting.YELLOW), false);
+                        }
+                        break;
+                }
+            });
+        });
+
+        // Recibir y procesar las actualizaciones del modo Catch 'em All
+        ServerPlayNetworking.registerGlobalReceiver(CatchemallUpdatePayload.ID, (payload, context) -> {
+            ServerPlayerEntity player = context.player();
+            String genName = payload.generationName().toLowerCase().trim();
+
+            context.server().execute(() -> {
+                var progress = ConfigManager.getPlayerCatchProgress(player.getUuid());
+
+                switch (payload.action()) {
+                    case ENABLE:
+                        GenerationData genData = ConfigManager.getGenerationData(genName);
+                        if (genData == null) {
+                            player.sendMessage(Text.literal("Error: Generation '" + genName + "' not found.").formatted(Formatting.RED), false);
+                            return;
+                        }
+                        if (progress.active_generations.add(genName)) {
+                            ConfigManager.savePlayerCatchProgress(player.getUuid(), progress);
+                            String regionName = genData.region.substring(0, 1).toUpperCase() + genData.region.substring(1);
+                            player.sendMessage(Text.literal("Catch 'em All mode enabled for the ").append(Text.literal(regionName).formatted(Formatting.GOLD)).append(" region! Good luck!").formatted(Formatting.GREEN), false);
+                        } else {
+                            player.sendMessage(Text.literal("You are already tracking this generation.").formatted(Formatting.YELLOW), false);
+                        }
+                        break;
+
+                    case DISABLE:
+                        if (progress.active_generations.remove(genName)) {
+                            ConfigManager.savePlayerCatchProgress(player.getUuid(), progress);
+                            player.sendMessage(Text.literal("Catch 'em All mode disabled for " + genName + ".").formatted(Formatting.GREEN), false);
+                        } else {
+                            player.sendMessage(Text.literal("You were not tracking this generation.").formatted(Formatting.YELLOW), false);
+                        }
+                        break;
+
+                    case LIST:
+                        if (progress.active_generations.isEmpty()) {
+                            player.sendMessage(Text.literal("You are not tracking any generation for Catch 'em All mode.").formatted(Formatting.YELLOW), false);
+                        } else {
+                            player.sendMessage(Text.literal("You are currently tracking the following generations:").formatted(Formatting.YELLOW), false);
+                            progress.active_generations.forEach(gen -> {
+                                GenerationData data = ConfigManager.getGenerationData(gen);
+                                String regionName = data != null ? data.region.substring(0, 1).toUpperCase() + data.region.substring(1) : "Unknown";
+                                player.sendMessage(Text.literal("- " + gen + " (" + regionName + ")").formatted(Formatting.GOLD), false);
+                            });
                         }
                         break;
                 }

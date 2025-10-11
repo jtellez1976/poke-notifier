@@ -5,6 +5,7 @@ import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 public class PokeNotifierPackets {
     public static void registerC2SPackets() {
         PayloadTypeRegistry.playC2S().register(CustomListUpdatePayload.ID, CustomListUpdatePayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(CatchemallUpdatePayload.ID, CatchemallUpdatePayload.CODEC);
     }
     public static void registerS2CPackets() {
         PayloadTypeRegistry.playS2C().register(WaypointPayload.ID, WaypointPayload.CODEC);

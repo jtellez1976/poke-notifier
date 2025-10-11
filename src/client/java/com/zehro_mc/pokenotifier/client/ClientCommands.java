@@ -6,6 +6,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.zehro_mc.pokenotifier.ConfigClient;
 import com.zehro_mc.pokenotifier.ConfigManager;
 import com.zehro_mc.pokenotifier.PokeNotifier;
+import com.zehro_mc.pokenotifier.networking.CatchemallUpdatePayload;
 import com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
@@ -85,6 +86,33 @@ public class ClientCommands {
                         }));
 
         pncCommand.then(customListCommand);
+
+        // --- NUEVO: Comando Catch 'em All ---
+        var catchemallCommand = ClientCommandManager.literal("catchemall")
+                .then(ClientCommandManager.literal("enable")
+                        .then(ClientCommandManager.argument("generation", StringArgumentType.string())
+                                .executes(context -> {
+                                    String genName = StringArgumentType.getString(context, "generation");
+                                    ClientPlayNetworking.send(new CatchemallUpdatePayload(CatchemallUpdatePayload.Action.ENABLE, genName));
+                                    context.getSource().sendFeedback(Text.literal("Requesting to enable Catch 'em All mode for " + genName + "...").formatted(Formatting.YELLOW));
+                                    return 1;
+                                })))
+                .then(ClientCommandManager.literal("disable")
+                        .then(ClientCommandManager.argument("generation", StringArgumentType.string())
+                                .executes(context -> {
+                                    String genName = StringArgumentType.getString(context, "generation");
+                                    ClientPlayNetworking.send(new CatchemallUpdatePayload(CatchemallUpdatePayload.Action.DISABLE, genName));
+                                    context.getSource().sendFeedback(Text.literal("Requesting to disable Catch 'em All mode for " + genName + "...").formatted(Formatting.YELLOW));
+                                    return 1;
+                                })))
+                .then(ClientCommandManager.literal("list")
+                        .executes(context -> {
+                            ClientPlayNetworking.send(new CatchemallUpdatePayload(CatchemallUpdatePayload.Action.LIST, ""));
+                            context.getSource().sendFeedback(Text.literal("Requesting your active Catch 'em All modes...").formatted(Formatting.YELLOW));
+                            return 1;
+                        }));
+
+        pncCommand.then(catchemallCommand);
 
         // --- Comando de Versión (Cliente) ---
         pncCommand.then(ClientCommandManager.literal("version")
