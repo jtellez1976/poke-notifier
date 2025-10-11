@@ -1,7 +1,6 @@
 package com.zehro_mc.pokenotifier;
 
 import com.cobblemon.mod.common.api.Priority;
-import com.cobblemon.mod.common.api.events.entity.SpawnEvent;
 import com.cobblemon.mod.common.api.pokemon.PokemonSpecies;
 import com.cobblemon.mod.common.api.events.CobblemonEvents;
 import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
@@ -56,14 +55,17 @@ public class PokeNotifier implements ModInitializer {
         // Registramos los paquetes que van del cliente al servidor
         PokeNotifierPackets.registerC2SPackets();
 
-        ServerLifecycleEvents.SERVER_STARTED.register(startedServer -> server = startedServer);
-        ServerLifecycleEvents.SERVER_STOPPING.register(stoppingServer -> server = null);
-
+        // Cargamos la configuración desde los archivos .json al iniciar el mod.
+        // Esta es la corrección clave.
         try {
             ConfigManager.loadConfig();
         } catch (ConfigManager.ConfigReadException e) {
             LOGGER.error("Failed to load Poke Notifier configuration on startup. Using default values.", e);
         }
+
+        ServerLifecycleEvents.SERVER_STARTED.register(startedServer -> server = startedServer);
+        ServerLifecycleEvents.SERVER_STOPPING.register(stoppingServer -> server = null);
+
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             ReloadConfigCommand.register(dispatcher, environment);
             DebugModeCommand.register(dispatcher);
@@ -80,15 +82,23 @@ public class PokeNotifier implements ModInitializer {
                     }).build();
 
             // Comando para test_mode
-            var testModeCommand = CommandManager.literal("test_mode") // Placeholder
+            var testModeCommand = CommandManager.literal("test_mode")
                     .requires(source -> source.hasPermissionLevel(2))
-                    .executes(context -> {
-                        context.getSource().sendFeedback(() -> Text.literal("Test mode command is under development.").formatted(Formatting.GRAY), false);
+                    .then(CommandManager.literal("enable").executes(context -> {
+                        ConfigManager.getServerConfig().enable_test_mode = true;
+                        ConfigManager.saveServerConfigToFile();
+                        context.getSource().sendFeedback(() -> Text.literal("Test mode enabled. Non-natural spawns will now be notified.").formatted(Formatting.GREEN), true);
                         return 1;
-                    }).build();
+                    }))
+                    .then(CommandManager.literal("disable").executes(context -> {
+                        ConfigManager.getServerConfig().enable_test_mode = false;
+                        ConfigManager.saveServerConfigToFile();
+                        context.getSource().sendFeedback(() -> Text.literal("Test mode disabled. Only natural spawns will be notified.").formatted(Formatting.RED), true);
+                        return 1;
+                    }));
 
             dispatcher.getRoot().getChild("pokenotifier").addChild(statusCommand);
-            dispatcher.getRoot().getChild("pokenotifier").addChild(testModeCommand);
+            dispatcher.getRoot().getChild("pokenotifier").addChild(testModeCommand.build());
         });
 
         ServerLifecycleEvents.SERVER_STOPPING.register(stoppingServer -> server = null);
@@ -156,10 +166,8 @@ public class PokeNotifier implements ModInitializer {
             });
         });
 
-        CobblemonEvents.POKEMON_ENTITY_SPAWN.subscribe(Priority.NORMAL, event -> {
-            RarePokemonNotifier.onPokemonSpawn(event);
-            return Unit.INSTANCE;
-        });
+        // Registramos nuestro listener de spawns. La lógica de suscripción ahora está en RarePokemonNotifier.
+        RarePokemonNotifier.register();
 
         CobblemonEvents.POKEMON_CAPTURED.subscribe(Priority.NORMAL, event -> {
             TRACKED_POKEMON.keySet().removeIf(entity -> entity.getPokemon().getUuid().equals(event.getPokemon().getUuid()));

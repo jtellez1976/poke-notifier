@@ -1,3 +1,5 @@
+import java.text.SimpleDateFormat
+
 plugins {
 	id 'fabric-loom' version "${loom_version}"
 	id 'maven-publish'
@@ -52,10 +54,22 @@ java {
 	targetCompatibility = JavaVersion.VERSION_21
 }
 
-jar {
-	inputs.property "archivesName", project.base.archivesName
-	from("LICENSE") {
-		rename { "${it}_${inputs.properties.archivesName}"}
+// --- Bloque para personalizar el nombre del JAR ---
+// Definimos una función para no repetir código.
+def customizeJar(theJar) {
+	theJar.from("LICENSE") {
+		rename { "${it}_${project.archives_base_name}" }
+	}
+	def buildTime = new SimpleDateFormat("yyyyMMdd-HHmm").format(new Date())
+	theJar.archiveFileName = "${project.archives_base_name}-${project.version}-build-${buildTime}.jar"
+}
+
+// Aplicamos la personalización tanto al JAR de desarrollo como al JAR final.
+jar { customizeJar(it) }
+remapJar {
+	customizeJar(it)
+	doLast {
+		println "--> Generated JAR: ${it.archiveFileName.get()}"
 	}
 }
 
@@ -79,9 +93,17 @@ task copyModToTestEnvironment(type: Copy) {
 	// Esta es la condición de seguridad: la tarea solo se ejecuta si la carpeta existe.
 	onlyIf { modsDir.exists() } // Ahora 'modsDir' es un objeto File y este método funcionará.
 
+	// ANTES de copiar, borramos cualquier versión anterior del mod en la carpeta de destino.
+	doFirst {
+		delete(fileTree(modsDir) {
+			include "${project.archives_base_name}-*.jar"
+		})
+		println "--> Cleaned old mod versions from target directory."
+	}
+
     // Le decimos que copie el resultado de la tarea 'remapJar'.
     // Este es el .jar final que no tiene el sufijo '-dev'.
-    from remapJar
+    from remapJar.archiveFile
     into modsDir
 }
 

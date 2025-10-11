@@ -153,8 +153,9 @@ public class ConfigManager {
     }
 
     public static void saveServerConfigToFile() {
-        // Solo guardar si no estamos en un cliente puro.
-        if (FabricLoader.getInstance().getEnvironmentType() != EnvType.CLIENT) {
+        // Solo guardar si estamos en un servidor dedicado, o si la configuración del servidor
+        // ha sido inicializada (lo que ocurre en single-player).
+        if (FabricLoader.getInstance().getEnvironmentType() == EnvType.SERVER || configServer != null) {
             saveConfigFile(CONFIG_SERVER_FILE, configServer, "config-server.json");
         }
     }
