@@ -116,8 +116,17 @@ public class RarePokemonNotifier {
 
         // Usamos getShowdownName() para obtener un nombre limpio y consistente para la ruta del archivo.
         // Esto soluciona problemas con nombres como "Nidoran♀" o "Mr. Mime".
-        String spriteName = pokemon.getSpecies().getResourceIdentifier().getPath();
-        Identifier spriteIdentifier = Identifier.of(PokeNotifier.MOD_ID, "textures/pokemon/" + spriteName + ".png");
+        String spriteName = pokemon.getForm().getSpecies().getResourceIdentifier().getPath();
+
+        // --- LÓGICA PARA SPRITES SHINY ---
+        // Si el Pokémon es shiny, cambiamos la ruta a la subcarpeta /shiny/
+        // Y añadimos el sufijo "shiny" al nombre del archivo.
+        String spritePath = "textures/pokemon/";
+        if (pokemon.getShiny()) {
+            spritePath += "shiny/";
+            spriteName += "shiny";
+        }
+        Identifier spriteIdentifier = Identifier.of(PokeNotifier.MOD_ID, spritePath + spriteName + ".png");
 
         WaypointPayload payload = new WaypointPayload(
                 pokemon.getUuid().toString(),

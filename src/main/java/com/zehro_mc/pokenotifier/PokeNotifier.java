@@ -305,6 +305,13 @@ public class PokeNotifier implements ModInitializer {
     }
 
     private int executeTestSpawn(ServerPlayerEntity player, String pokemonName, boolean isShiny) {
+        // --- RESTRICCIÓN DE TEST MODE ---
+        // El comando de spawn de prueba solo debe funcionar si el test_mode está activado.
+        if (!ConfigManager.getServerConfig().enable_test_mode) {
+            player.sendMessage(Text.literal("Test Mode is disabled. Please enable it first with '/pokenotifier test_mode enable'.").formatted(Formatting.RED), false);
+            return 0;
+        }
+
         ServerWorld world = player.getServerWorld();
         final String finalPokemonName = pokemonName.toLowerCase().trim();
 
