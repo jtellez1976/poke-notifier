@@ -43,6 +43,7 @@ public class PokeNotifierClient implements ClientModInitializer {
     public void onInitializeClient() {
         HudRenderCallback.EVENT.register(NotificationHUD::render);
         HudRenderCallback.EVENT.register(CatchEmAllHUD::render); // Registramos el nuevo HUD
+        HudRenderCallback.EVENT.register(ActivationFeedbackHUD::render); // Registramos el HUD de feedback
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> ClientCommands.register(dispatcher));
 
         // --- NUEVO: Mensaje al iniciar sesión ---
@@ -178,10 +179,27 @@ public class PokeNotifierClient implements ClientModInitializer {
 
         // Recibir la actualización de progreso de "Catch 'em All"
         ClientPlayNetworking.registerGlobalReceiver(CatchProgressPayload.ID, (payload, context) -> {
+            // Guardamos el estado anterior para detectar si es la primera actualización.
+            String previousGeneration = currentCatchEmAllGeneration;
+
             context.client().execute(() -> {
                 currentCatchEmAllGeneration = payload.generationName();
                 catchCaughtCount = payload.caughtCount();
                 catchTotalCount = payload.totalCount();
+
+                // --- LÓGICA DEL MENSAJE DE RECORDATORIO (CORREGIDA) ---
+                // Si antes no había ninguna generación activa y ahora sí, es la primera actualización.
+                if ("none".equals(previousGeneration) && !"none".equals(currentCatchEmAllGeneration)) {
+                    String genName = currentCatchEmAllGeneration.substring(0, 1).toUpperCase() + currentCatchEmAllGeneration.substring(1);
+                    context.client().player.sendMessage(Text.literal("Catch 'em All mode is active for: ").append(Text.literal(genName).formatted(Formatting.GOLD)).formatted(Formatting.YELLOW), false);
+                }
+            });
+        });
+
+        // Recibir el feedback de activación/desactivación de modo
+        ClientPlayNetworking.registerGlobalReceiver(ModeStatusPayload.ID, (payload, context) -> {
+            context.client().execute(() -> {
+                ActivationFeedbackHUD.show(Text.literal(payload.message()), payload.isActivation());
             });
         });
     }

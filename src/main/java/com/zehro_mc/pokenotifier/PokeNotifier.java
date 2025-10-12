@@ -71,6 +71,7 @@ public class PokeNotifier implements ModInitializer {
         PayloadTypeRegistry.playS2C().register(ServerDebugStatusPayload.ID, ServerDebugStatusPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(CurrentGenPayload.ID, CurrentGenPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(CatchProgressPayload.ID, CatchProgressPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(ModeStatusPayload.ID, ModeStatusPayload.CODEC);
 
         // Cargamos la configuración desde los archivos .json al iniciar el mod.
         // Esta es la corrección clave.
@@ -287,23 +288,28 @@ public class PokeNotifier implements ModInitializer {
                             progress.active_generations.add(genName); // Añadimos la nueva
                             ConfigManager.savePlayerCatchProgress(player.getUuid(), progress);
                             String regionName = formatRegionName(genData.region);
-                            PokeNotifierServerUtils.sendCatchProgressUpdate(player); // Actualizamos el HUD
-                            player.sendMessage(Text.literal("Now tracking Pokémon from the ").append(Text.literal(regionName).formatted(Formatting.GOLD)).append(" region! Good luck!").formatted(Formatting.GREEN), false);
+
+                            // Enviamos feedback visual
+                            ServerPlayNetworking.send(player, new ModeStatusPayload("Tracking: " + regionName, true));
+                            PokeNotifierServerUtils.sendCatchProgressUpdate(player);
                         } else {
                             // Si ya está siguiendo la generación, solo le enviamos la actualización de progreso.
                             String regionName = formatRegionName(genData.region);
+
+                            // Re-enviamos feedback por si acaso
+                            ServerPlayNetworking.send(player, new ModeStatusPayload("Already Tracking: " + regionName, true));
                             PokeNotifierServerUtils.sendCatchProgressUpdate(player); // Re-enviamos por si acaso
-                            player.sendMessage(Text.literal("You are already tracking the " + regionName + " region.").formatted(Formatting.YELLOW), false);
                         }
                         break;
 
                     case DISABLE:
                         if (progress.active_generations.remove(genName)) {
                             ConfigManager.savePlayerCatchProgress(player.getUuid(), progress);
-                            player.sendMessage(Text.literal("Stopped tracking " + formatGenName(genName) + ".").formatted(Formatting.GREEN), false);
+                            // Enviamos feedback visual
+                            ServerPlayNetworking.send(player, new ModeStatusPayload("Tracking Disabled", false));
                             PokeNotifierServerUtils.sendCatchProgressUpdate(player); // Actualizamos para ocultar el HUD
                         } else {
-                            player.sendMessage(Text.literal("You were not tracking this generation.").formatted(Formatting.YELLOW), false);
+                            ServerPlayNetworking.send(player, new ModeStatusPayload("Was not tracking", false));
                         }
                         break;
 
