@@ -278,37 +278,37 @@ public class PokeNotifier implements ModInitializer {
                             return;
                         }
                         // Lógica para permitir solo una generación activa a la vez
-                        if (!progress.active_generations.contains(genName)) {
-                            // Si ya estaba siguiendo otra, se la notificamos.
-                            if (!progress.active_generations.isEmpty()) {
-                                String oldGen = progress.active_generations.iterator().next();
-                                player.sendMessage(Text.literal("Stopped tracking " + formatGenName(oldGen) + ".").formatted(Formatting.YELLOW), false);
-                            }
-                            progress.active_generations.clear(); // Limpiamos la lista
-                            progress.active_generations.add(genName); // Añadimos la nueva
-                            ConfigManager.savePlayerCatchProgress(player.getUuid(), progress);
+                        if (progress.active_generations.contains(genName)) {
+                            // Si ya está siguiendo esta generación, solo se lo recordamos.
                             String regionName = formatRegionName(genData.region);
-
-                            // Enviamos feedback visual
-                            ServerPlayNetworking.send(player, new ModeStatusPayload("Tracking: " + regionName, true));
-                            PokeNotifierServerUtils.sendCatchProgressUpdate(player);
-                        } else {
-                            // Si ya está siguiendo la generación, solo le enviamos la actualización de progreso.
-                            String regionName = formatRegionName(genData.region);
-
-                            // Re-enviamos feedback por si acaso
                             ServerPlayNetworking.send(player, new ModeStatusPayload("Already Tracking: " + regionName, true));
-                            PokeNotifierServerUtils.sendCatchProgressUpdate(player); // Re-enviamos por si acaso
+                            return;
                         }
+                        
+                        // Si ya estaba siguiendo otra, se la notificamos.
+                        if (!progress.active_generations.isEmpty()) {
+                            String oldGen = progress.active_generations.iterator().next();
+                            player.sendMessage(Text.literal("Stopped tracking " + formatGenName(oldGen) + ".").formatted(Formatting.YELLOW), false);
+                        }
+                        progress.active_generations.clear(); // Limpiamos la lista
+                        progress.active_generations.add(genName); // Añadimos la nueva
+                        ConfigManager.savePlayerCatchProgress(player.getUuid(), progress);
+                        String regionName = formatRegionName(genData.region); // Re-declaramos aquí porque el scope anterior terminó.
+
+                        // Enviamos feedback visual
+                        ServerPlayNetworking.send(player, new ModeStatusPayload("Tracking: " + regionName, true));
+                        PokeNotifierServerUtils.sendCatchProgressUpdate(player);
                         break;
 
                     case DISABLE:
+                        // --- LÓGICA RESTAURADA ---
                         if (progress.active_generations.remove(genName)) {
                             ConfigManager.savePlayerCatchProgress(player.getUuid(), progress);
                             // Enviamos feedback visual
                             ServerPlayNetworking.send(player, new ModeStatusPayload("Tracking Disabled", false));
                             PokeNotifierServerUtils.sendCatchProgressUpdate(player); // Actualizamos para ocultar el HUD
                         } else {
+                            // Si no estaba siguiendo esa generación, se lo decimos.
                             ServerPlayNetworking.send(player, new ModeStatusPayload("Was not tracking", false));
                         }
                         break;
@@ -320,8 +320,8 @@ public class PokeNotifier implements ModInitializer {
                             player.sendMessage(Text.literal("You are currently tracking the following generations:").formatted(Formatting.YELLOW), false);
                             progress.active_generations.forEach(gen -> {
                                 GenerationData data = ConfigManager.getGenerationData(gen);
-                                String regionName = data != null ? formatRegionName(data.region) : "Unknown";
-                                player.sendMessage(Text.literal("- " + formatGenName(gen) + " (" + regionName + ")").formatted(Formatting.GOLD), false);
+                                String regionNameForList = data != null ? formatRegionName(data.region) : "Unknown";
+                                player.sendMessage(Text.literal("- " + formatGenName(gen) + " (" + regionNameForList + ")").formatted(Formatting.GOLD), false);
                             });
                         }
                         break;
