@@ -3,7 +3,7 @@ package com.zehro_mc.pokenotifier.client;
 import com.zehro_mc.pokenotifier.ConfigClient;
 import com.zehro_mc.pokenotifier.ConfigManager;
 import com.zehro_mc.pokenotifier.PokeNotifier;
-import com.zehro_mc.pokenotifier.networking.PokeNotifierPackets;
+import com.zehro_mc.pokenotifier.networking.*;
 import com.zehro_mc.pokenotifier.networking.ServerDebugStatusPayload;
 import com.zehro_mc.pokenotifier.networking.StatusUpdatePayload;
 import com.zehro_mc.pokenotifier.networking.WaypointPayload;
@@ -11,6 +11,7 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.sound.PositionedSoundInstance;
@@ -33,10 +34,15 @@ public class PokeNotifierClient implements ClientModInitializer {
     public static final Map<String, BlockPos> ACTIVE_WAYPOINTS = new ConcurrentHashMap<>();
     public static final Logger LOGGER = LoggerFactory.getLogger(PokeNotifier.MOD_ID + "-Client");
 
+    // --- Variables para el HUD de Progreso ---
+    public static String currentCatchEmAllGeneration = "none";
+    public static int catchCaughtCount = 0;
+    public static int catchTotalCount = 0;
+
     @Override
     public void onInitializeClient() {
-        // La registración de paquetes ahora se maneja en la clase principal (PokeNotifier.java).
         HudRenderCallback.EVENT.register(NotificationHUD::render);
+        HudRenderCallback.EVENT.register(CatchEmAllHUD::render); // Registramos el nuevo HUD
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> ClientCommands.register(dispatcher));
 
         // --- NUEVO: Mensaje al iniciar sesión ---
@@ -167,6 +173,15 @@ public class PokeNotifierClient implements ClientModInitializer {
                         }
                     }
                 }
+            });
+        });
+
+        // Recibir la actualización de progreso de "Catch 'em All"
+        ClientPlayNetworking.registerGlobalReceiver(CatchProgressPayload.ID, (payload, context) -> {
+            context.client().execute(() -> {
+                currentCatchEmAllGeneration = payload.generationName();
+                catchCaughtCount = payload.caughtCount();
+                catchTotalCount = payload.totalCount();
             });
         });
     }

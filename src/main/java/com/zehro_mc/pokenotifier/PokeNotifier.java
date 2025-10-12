@@ -10,9 +10,7 @@ import com.zehro_mc.pokenotifier.api.PokeNotifierApi;
 import com.zehro_mc.pokenotifier.model.GenerationData;
 import com.zehro_mc.pokenotifier.model.CustomListConfig;
 import com.zehro_mc.pokenotifier.event.CaptureListener;
-import com.zehro_mc.pokenotifier.networking.CatchemallUpdatePayload;
-import com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload;
-import com.zehro_mc.pokenotifier.networking.PokeNotifierPackets;
+import com.zehro_mc.pokenotifier.networking.*;
 import com.zehro_mc.pokenotifier.networking.ServerDebugStatusPayload;
 import com.zehro_mc.pokenotifier.networking.StatusUpdatePayload;
 import com.zehro_mc.pokenotifier.util.RarityUtil;
@@ -23,6 +21,7 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.server.command.CommandManager;
@@ -57,11 +56,16 @@ public class PokeNotifier implements ModInitializer {
     public void onInitialize() {
         LOGGER.info("Initializing Poke Notifier...");
 
-        // --- LA CORRECCIÓN CLAVE ---
-        // Registramos los paquetes aquí para que tanto el servidor como el cliente los conozcan.
-        PokeNotifierPackets.registerS2CPackets();
-        // Registramos los paquetes que van del cliente al servidor
-        PokeNotifierPackets.registerC2SPackets();
+        // Registramos los TIPOS de paquetes que el servidor puede recibir (C2S).
+        PayloadTypeRegistry.playC2S().register(CustomListUpdatePayload.ID, CustomListUpdatePayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(CatchemallUpdatePayload.ID, CatchemallUpdatePayload.CODEC);
+
+        // Y también los TIPOS de paquetes que el servidor puede enviar (S2C).
+        PayloadTypeRegistry.playS2C().register(WaypointPayload.ID, WaypointPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(StatusUpdatePayload.ID, StatusUpdatePayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(ServerDebugStatusPayload.ID, ServerDebugStatusPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(CurrentGenPayload.ID, CurrentGenPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(CatchProgressPayload.ID, CatchProgressPayload.CODEC);
 
         // Cargamos la configuración desde los archivos .json al iniciar el mod.
         // Esta es la corrección clave.
@@ -70,6 +74,10 @@ public class PokeNotifier implements ModInitializer {
         } catch (ConfigManager.ConfigReadException e) {
             LOGGER.error("Failed to load Poke Notifier configuration on startup. Using default values.", e);
         }
+
+        // --- REGISTRO DE RECEPTORES DE PAQUETES (LADO DEL SERVIDOR) ---
+        // Esto debe ocurrir DESPUÉS de que los tipos de paquetes hayan sido registrados.
+        registerServerPacketReceivers();
 
         ServerLifecycleEvents.SERVER_STARTED.register(startedServer -> server = startedServer);
         ServerLifecycleEvents.SERVER_STOPPING.register(stoppingServer -> server = null);
@@ -128,8 +136,6 @@ public class PokeNotifier implements ModInitializer {
             dispatcher.getRoot().getChild("pokenotifier").addChild(testSpawnCommand);
         });
 
-        ServerLifecycleEvents.SERVER_STOPPING.register(stoppingServer -> server = null);
-
         // Enviar estado del debug mode a los OPs cuando se conectan
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             ServerPlayerEntity player = handler.getPlayer();
@@ -140,6 +146,50 @@ public class PokeNotifier implements ModInitializer {
             }
         });
 
+        // La forma correcta para Cobblemon 1.6+ es usar POKEMON_ENTITY_SPAWN, que nos da un evento con la entidad.
+        CobblemonEvents.POKEMON_ENTITY_SPAWN.subscribe(Priority.NORMAL, event -> {
+            RarePokemonNotifier.onPokemonSpawn(event.getEntity());
+            return Unit.INSTANCE;
+        });
+
+        CobblemonEvents.POKEMON_CAPTURED.subscribe(Priority.NORMAL, event -> {
+            TRACKED_POKEMON.keySet().removeIf(entity -> entity.getPokemon().getUuid().equals(event.getPokemon().getUuid()));
+            CaptureListener.onPokemonCaptured(event);
+            return Unit.INSTANCE;
+        });
+
+        ServerTickEvents.END_SERVER_TICK.register(currentServer -> {
+            TRACKED_POKEMON.entrySet().removeIf(entry -> {
+                PokemonEntity pokemonEntity = entry.getKey();
+                if (!pokemonEntity.isAlive() || pokemonEntity.isRemoved()) {
+                    Pokemon pokemon = pokemonEntity.getPokemon();
+                    RarityUtil.RarityCategory rarity = entry.getValue();
+
+                    StatusUpdatePayload payload = new StatusUpdatePayload(
+                            pokemon.getUuid().toString(),
+                            pokemon.getDisplayName().getString(),
+                            rarity.name(),
+                            StatusUpdatePayload.UpdateType.DESPAWNED,
+                            null
+                    );
+
+                    if (server != null) {
+                        for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
+                            ServerPlayNetworking.send(player, payload);
+                        }
+                    }
+                    return true;
+                }
+                return false;
+            });
+        });
+    }
+
+    /**
+     * Registra los receptores para los paquetes que vienen del cliente al servidor.
+     * Se llama después de que los tipos de paquetes han sido registrados.
+     */
+    private static void registerServerPacketReceivers() {
         // Recibir y procesar las actualizaciones de la lista personalizada
         ServerPlayNetworking.registerGlobalReceiver(CustomListUpdatePayload.ID, (payload, context) -> {
             ServerPlayerEntity player = context.player();
@@ -225,6 +275,7 @@ public class PokeNotifier implements ModInitializer {
                             String regionName = formatRegionName(genData.region);
                             player.sendMessage(Text.literal("Now tracking Pokémon from the ").append(Text.literal(regionName).formatted(Formatting.GOLD)).append(" region! Good luck!").formatted(Formatting.GREEN), false);
                         } else {
+                            // Si ya está siguiendo la generación, solo le enviamos la actualización de progreso.
                             String regionName = formatRegionName(genData.region);
                             player.sendMessage(Text.literal("You are already tracking the " + regionName + " region.").formatted(Formatting.YELLOW), false);
                         }
@@ -252,44 +303,6 @@ public class PokeNotifier implements ModInitializer {
                         }
                         break;
                 }
-            });
-        });
-
-        // La forma correcta para Cobblemon 1.6+ es usar POKEMON_ENTITY_SPAWN, que nos da un evento con la entidad.
-        CobblemonEvents.POKEMON_ENTITY_SPAWN.subscribe(Priority.NORMAL, event -> {
-            RarePokemonNotifier.onPokemonSpawn(event.getEntity());
-            return Unit.INSTANCE;
-        });
-
-        CobblemonEvents.POKEMON_CAPTURED.subscribe(Priority.NORMAL, event -> {
-            TRACKED_POKEMON.keySet().removeIf(entity -> entity.getPokemon().getUuid().equals(event.getPokemon().getUuid()));
-            CaptureListener.onPokemonCaptured(event);
-            return Unit.INSTANCE;
-        });
-
-        ServerTickEvents.END_SERVER_TICK.register(currentServer -> {
-            TRACKED_POKEMON.entrySet().removeIf(entry -> {
-                PokemonEntity pokemonEntity = entry.getKey();
-                if (!pokemonEntity.isAlive() || pokemonEntity.isRemoved()) {
-                    Pokemon pokemon = pokemonEntity.getPokemon();
-                    RarityUtil.RarityCategory rarity = entry.getValue();
-
-                    StatusUpdatePayload payload = new StatusUpdatePayload(
-                            pokemon.getUuid().toString(),
-                            pokemon.getDisplayName().getString(),
-                            rarity.name(),
-                            StatusUpdatePayload.UpdateType.DESPAWNED,
-                            null
-                    );
-
-                    if (server != null) {
-                        for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
-                            ServerPlayNetworking.send(player, payload);
-                        }
-                    }
-                    return true;
-                }
-                return false;
             });
         });
     }
