@@ -51,15 +51,30 @@ public class RarePokemonNotifier {
         boolean isFromTestSpawn = pokemon.getPersistentData().getBoolean("pokenotifier_test_spawn");
         boolean isNaturalSpawn = pokemonEntity.getOwnerUuid() == null && !pokemonEntity.isRemoved() && !isFromTestSpawn;
 
+        // CORRECCIÓN: La lógica correcta es: si el spawn NO es natural, solo debemos continuar
+        // si el modo de prueba está activado. Si no, salimos.
         if (!isNaturalSpawn && !ConfigManager.getServerConfig().enable_test_mode) {
-            return; // Ignora si no es natural y el test_mode está apagado.
+            return;
         }
 
         BlockPos pokemonPos = pokemonEntity.getBlockPos();
         if (pokemonEntity.getServer() == null) return;
 
         for (ServerPlayerEntity player : pokemonEntity.getServer().getPlayerManager().getPlayerList()) {
-            // --- LÓGICA CATCH 'EM ALL ---
+            // --- LÓGICA DE RAREZA NORMAL (Ahora con mayor prioridad) ---
+            RarityUtil.RarityCategory rarity = RarityUtil.getRarity(pokemon, player);
+
+            // Si el Pokémon tiene una rareza notificable (o es shiny), lo notificamos y terminamos para este jugador.
+            if (rarity != RarityUtil.RarityCategory.COMMON) {
+                double distance = player.getPos().distanceTo(pokemonPos.toCenterPos());
+                if (distance <= ConfigManager.getClientConfig().notification_distance) {
+                    sendNotification(player, pokemonEntity, rarity);
+                }
+                // Continuamos al siguiente jugador para no enviar notificaciones duplicadas (ej. Raro y de Caza).
+                continue;
+            }
+
+            // --- LÓGICA CATCH 'EM ALL (si no se cumplió la rareza normal) ---
             PlayerCatchProgress progress = ConfigManager.getPlayerCatchProgress(player.getUuid());
             if (!progress.active_generations.isEmpty()) {
                 String activeGen = progress.active_generations.iterator().next();
@@ -67,30 +82,14 @@ public class RarePokemonNotifier {
                 // Usamos el path del Identifier para tener el nombre limpio y consistente (ej: nidoran_f, mr_mime)
                 String pokemonName = pokemon.getSpecies().getResourceIdentifier().getPath();
 
-                // Si el Pokémon pertenece a la generación activa...
                 if (genData != null && genData.pokemon.contains(pokemonName)) {
                     Set<String> caughtInGen = progress.caught_pokemon.getOrDefault(activeGen, Set.of());
 
-                    // ...y el jugador NO lo ha capturado todavía...
                     if (!caughtInGen.contains(pokemonName)) {
-                        // ...le enviamos una notificación de tipo "CUSTOM" y pasamos al siguiente jugador.
                         sendNotification(player, pokemonEntity, RarityUtil.RarityCategory.HUNT);
-                        continue;
                     }
                 }
-                // Si el jugador está en modo Catch 'em All, no le interesan otras notificaciones.
-                // Así que pasamos al siguiente jugador.
-                continue;
             }
-
-            // --- LÓGICA DE RAREZA NORMAL (si no está en modo Catch 'em All) ---
-            RarityUtil.RarityCategory rarity = RarityUtil.getRarity(pokemon, player);
-            if (rarity == RarityUtil.RarityCategory.COMMON) continue;
-
-            double distance = player.getPos().distanceTo(pokemonPos.toCenterPos());
-            if (distance > ConfigManager.getClientConfig().notification_distance) continue;
-
-            sendNotification(player, pokemonEntity, rarity);
         }
     }
 

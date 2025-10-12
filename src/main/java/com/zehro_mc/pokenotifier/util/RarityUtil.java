@@ -3,6 +3,7 @@ package com.zehro_mc.pokenotifier.util;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.zehro_mc.pokenotifier.ConfigManager;
 import com.zehro_mc.pokenotifier.ConfigPokemon;
+import com.zehro_mc.pokenotifier.PokeNotifier;
 import com.zehro_mc.pokenotifier.model.CustomListConfig;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Formatting;
@@ -38,7 +39,12 @@ public class RarityUtil {
 
     public static RarityCategory getRarity(Pokemon pokemon, ServerPlayerEntity player) {
         // Usamos el path del Identifier para tener el nombre limpio y consistente (ej: nidoran_f, mr_mime)
-        String name = pokemon.getSpecies().getResourceIdentifier().getPath();
+        String name = pokemon.getForm().getSpecies().getResourceIdentifier().getPath();
+
+        // --- HERRAMIENTA DE DIAGNÓSTICO ---
+        if (ConfigManager.getServerConfig().debug_mode_enabled) {
+            PokeNotifier.LOGGER.info("[DIAGNOSTIC] RarityUtil checking Pokémon. Name obtained: '{}'", name);
+        }
 
         // Prioridad 1: Lista personalizada del jugador
         if (player != null) {
