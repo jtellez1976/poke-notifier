@@ -13,6 +13,7 @@ import com.zehro_mc.pokenotifier.event.CaptureListener;
 import com.zehro_mc.pokenotifier.networking.*;
 import com.zehro_mc.pokenotifier.networking.ServerDebugStatusPayload;
 import com.zehro_mc.pokenotifier.networking.StatusUpdatePayload;
+import com.zehro_mc.pokenotifier.util.PokeNotifierServerUtils;
 import com.zehro_mc.pokenotifier.util.RarityUtil;
 import kotlin.Unit;
 import net.fabricmc.api.ModInitializer;
@@ -143,6 +144,9 @@ public class PokeNotifier implements ModInitializer {
                 boolean debugEnabled = ConfigManager.getServerConfig().debug_mode_enabled;
                 ServerDebugStatusPayload payload = new ServerDebugStatusPayload(debugEnabled);
                 ServerPlayNetworking.send(player, payload);
+
+                // Enviamos el estado del HUD de progreso al conectar
+                PokeNotifierServerUtils.sendCatchProgressUpdate(player);
             }
         });
 
@@ -155,6 +159,9 @@ public class PokeNotifier implements ModInitializer {
         CobblemonEvents.POKEMON_CAPTURED.subscribe(Priority.NORMAL, event -> {
             TRACKED_POKEMON.keySet().removeIf(entity -> entity.getPokemon().getUuid().equals(event.getPokemon().getUuid()));
             CaptureListener.onPokemonCaptured(event);
+
+            // Actualizamos el HUD del jugador que ha capturado
+            PokeNotifierServerUtils.sendCatchProgressUpdate(event.getPlayer());
             return Unit.INSTANCE;
         });
 
@@ -273,10 +280,12 @@ public class PokeNotifier implements ModInitializer {
                             progress.active_generations.add(genName); // Añadimos la nueva
                             ConfigManager.savePlayerCatchProgress(player.getUuid(), progress);
                             String regionName = formatRegionName(genData.region);
+                            PokeNotifierServerUtils.sendCatchProgressUpdate(player); // Actualizamos el HUD
                             player.sendMessage(Text.literal("Now tracking Pokémon from the ").append(Text.literal(regionName).formatted(Formatting.GOLD)).append(" region! Good luck!").formatted(Formatting.GREEN), false);
                         } else {
                             // Si ya está siguiendo la generación, solo le enviamos la actualización de progreso.
                             String regionName = formatRegionName(genData.region);
+                            PokeNotifierServerUtils.sendCatchProgressUpdate(player); // Re-enviamos por si acaso
                             player.sendMessage(Text.literal("You are already tracking the " + regionName + " region.").formatted(Formatting.YELLOW), false);
                         }
                         break;
@@ -285,6 +294,7 @@ public class PokeNotifier implements ModInitializer {
                         if (progress.active_generations.remove(genName)) {
                             ConfigManager.savePlayerCatchProgress(player.getUuid(), progress);
                             player.sendMessage(Text.literal("Stopped tracking " + formatGenName(genName) + ".").formatted(Formatting.GREEN), false);
+                            PokeNotifierServerUtils.sendCatchProgressUpdate(player); // Actualizamos para ocultar el HUD
                         } else {
                             player.sendMessage(Text.literal("You were not tracking this generation.").formatted(Formatting.YELLOW), false);
                         }
