@@ -12,7 +12,8 @@ import net.minecraft.util.Identifier;
 
 public class CatchEmAllHUD {
 
-    private static final Identifier ASH_TEXTURE = Identifier.of(PokeNotifier.MOD_ID, "textures/gui/ash.png");
+    // Ya no necesitamos las texturas personalizadas, las eliminamos para mantener el código limpio.
+    private static final Identifier BUTTON_TEXTURE = Identifier.of("minecraft", "widget/button");
 
     public static void render(DrawContext context, RenderTickCounter tickCounter) {
         // Si el modo no está activo o no hay información, no dibujamos nada.
@@ -26,8 +27,6 @@ public class CatchEmAllHUD {
         int screenHeight = client.getWindow().getScaledHeight();
 
         // --- CONSTANTES DE DISEÑO ---
-        int ashWidth = 64;
-        int ashHeight = 64;
         int margin = 5;
         int boxPadding = 4;
 
@@ -41,31 +40,40 @@ public class CatchEmAllHUD {
         int boxWidth = textWidth + (boxPadding * 2);
         int boxHeight = client.textRenderer.fontHeight + (boxPadding * 2);
 
-        // Posicionamiento dinámico sobre el chat
+        // --- POSICIONAMIENTO DINÁMICO DEL CONJUNTO ---
         ChatHud chatHud = client.inGameHud.getChatHud();
-        int chatHeight = chatHud.getHeight();
-        int hudHeight = ashHeight; // La altura total del HUD está determinada por el sprite de Ash
+        int chatHeight = chatHud.isChatFocused() ? chatHud.getHeight() : 0;
 
-        int anchorX = margin;
-        int anchorY = screenHeight - chatHeight - hudHeight - margin;
+        // La posición de la caja del score ahora es el ancla principal.
+        int boxX = margin;
+        int boxY = screenHeight - chatHeight - boxHeight - margin;
 
         // Habilitamos el blending para la transparencia
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
+        
+        // --- DIBUJADO DE ELEMENTOS (NUEVA LÓGICA) ---
+        // 1. Dibujar el fondo del score usando el estilo de un botón de Minecraft.
+        // El método drawGuiTexture se encarga de escalar la textura correctamente.
+        context.drawGuiTexture(BUTTON_TEXTURE, boxX, boxY, boxWidth, boxHeight);
 
-        // --- DIBUJADO DE ELEMENTOS ---
-        // 1. Dibujar el sprite de Ash
-        context.drawTexture(ASH_TEXTURE, anchorX, anchorY, 0, 0, ashWidth, ashHeight, ashWidth, ashHeight);
+        // --- DIBUJADO DE TEXTO CON ESCALADO ---
+        // 2. Dibujar el texto del score sobre el "botón", pero más pequeño.
+        float scale = 0.8f; // Reducimos el texto a un 80% de su tamaño.
+        int scaledTextWidth = (int) (textWidth * scale);
 
-        // 2. Dibujar la caja del score (efecto 3D)
-        int boxX = anchorX + ashWidth;
-        int boxY = anchorY + (hudHeight / 2) - (boxHeight / 2);
-        context.fill(boxX, boxY, boxX + boxWidth, boxY + boxHeight, 0x80000000); // Fondo semi-transparente
+        // Calculamos la nueva posición para que el texto escalado quede centrado.
+        int textX = boxX + (boxWidth - scaledTextWidth) / 2;
+        int textY = boxY + (boxHeight - (int)(client.textRenderer.fontHeight * scale)) / 2;
 
-        // 3. Dibujar el texto del score
-        int textX = boxX + boxPadding;
-        int textY = boxY + boxPadding;
-        context.drawTextWithShadow(client.textRenderer, progressText, textX, textY, 0xFFFFFF);
+        context.getMatrices().push(); // Guardamos el estado actual de la matriz
+        context.getMatrices().translate(textX, textY, 0); // Nos movemos a la posición del texto
+        context.getMatrices().scale(scale, scale, 1.0f); // Aplicamos la escala
+
+        // Dibujamos el texto en la coordenada (0,0) porque ya nos hemos trasladado a la posición correcta.
+        context.drawTextWithShadow(client.textRenderer, progressText, 0, 0, 0xFFFFFF);
+
+        context.getMatrices().pop(); // Restauramos la matriz para no afectar a otros elementos del HUD
 
         RenderSystem.disableBlend();
     }
