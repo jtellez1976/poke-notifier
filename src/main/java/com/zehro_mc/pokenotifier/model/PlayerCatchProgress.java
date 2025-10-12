@@ -7,9 +7,11 @@ import java.util.Set;
 
 public class PlayerCatchProgress {
 
-    // Generaciones que el jugador está siguiendo activamente (ej: "gen1", "gen2")
-    public Set<String> active_generations = new HashSet<>();
+    // --- NUEVA BANDERA ---
+    // Esta bandera asegura que la sincronización masiva del PC solo ocurra una vez.
+    public boolean initialPcSyncCompleted = false;
 
-    // Mapa para rastrear los Pokémon capturados por generación
+    public Set<String> active_generations = new HashSet<>();
     public Map<String, Set<String>> caught_pokemon = new HashMap<>();
+
 }

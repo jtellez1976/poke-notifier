@@ -5,6 +5,8 @@ import com.cobblemon.mod.common.api.pokemon.PokemonProperties;
 import com.cobblemon.mod.common.api.events.CobblemonEvents;
 import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
 import com.cobblemon.mod.common.pokemon.Pokemon;
+import com.cobblemon.mod.common.api.storage.PokemonStore;
+import com.cobblemon.mod.common.Cobblemon;
 import com.zehro_mc.pokenotifier.command.DebugModeCommand;
 import com.zehro_mc.pokenotifier.api.PokeNotifierApi;
 import com.zehro_mc.pokenotifier.model.GenerationData;
@@ -40,6 +42,8 @@ import org.slf4j.LoggerFactory;
 
 import com.zehro_mc.pokenotifier.command.ReloadConfigCommand;
 import java.util.Map;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class PokeNotifier implements ModInitializer {
@@ -144,6 +148,9 @@ public class PokeNotifier implements ModInitializer {
                 boolean debugEnabled = ConfigManager.getServerConfig().debug_mode_enabled;
                 ServerDebugStatusPayload payload = new ServerDebugStatusPayload(debugEnabled);
                 ServerPlayNetworking.send(player, payload);
+
+                // --- SINCRONIZACIÓN INICIAL DEL PC ---
+                performInitialPcSync(player);
 
                 // Enviamos el estado del HUD de progreso al conectar
                 PokeNotifierServerUtils.sendCatchProgressUpdate(player);
@@ -378,5 +385,47 @@ public class PokeNotifier implements ModInitializer {
     private static String formatRegionName(String regionName) {
         if (regionName == null || regionName.isEmpty()) return "Unknown";
         return regionName.substring(0, 1).toUpperCase() + regionName.substring(1);
+    }
+
+    /**
+     * Realiza la sincronización inicial del PC y la party de un jugador con su progreso de "Catch 'em All".
+     * Esta operación solo se ejecuta una vez por jugador.
+     * @param player El jugador a sincronizar.
+     */
+    private static void performInitialPcSync(ServerPlayerEntity player) {
+        var progress = ConfigManager.getPlayerCatchProgress(player.getUuid());
+
+        // Si la sincronización ya se completó, no hacemos nada.
+        if (progress.initialPcSyncCompleted) {
+            return;
+        }
+
+        LOGGER.info("Performing initial PC sync for player: " + player.getName().getString());
+
+        PokemonStore party = Cobblemon.INSTANCE.getStorage().getParty(player);
+        PokemonStore pc = Cobblemon.INSTANCE.getStorage().getPC(player);
+
+        // Combinamos la party y el PC en un solo stream de Pokémon
+        Stream<Pokemon> partyStream = StreamSupport.stream(party.spliterator(), false);
+        Stream<Pokemon> pcStream = StreamSupport.stream(pc.spliterator(), false);
+        Stream.concat(partyStream, pcStream).forEach(pokemon -> {
+            if (pokemon == null) return;
+            String pokemonName = pokemon.getSpecies().getResourceIdentifier().getPath();
+
+            // Iteramos sobre todas las generaciones conocidas para ver si el Pokémon pertenece a alguna.
+            for (int i = 1; i <= 9; i++) {
+                String genId = "gen" + i;
+                GenerationData genData = ConfigManager.getGenerationData(genId);
+                if (genData != null && genData.pokemon.contains(pokemonName)) {
+                    progress.caught_pokemon.computeIfAbsent(genId, k -> new java.util.HashSet<>()).add(pokemonName);
+                }
+            }
+        });
+
+        progress.initialPcSyncCompleted = true;
+        ConfigManager.savePlayerCatchProgress(player.getUuid(), progress);
+
+        player.sendMessage(Text.literal("[Poke Notifier] Your Pokédex has been synchronized with the 'Catch 'em All' mode!").formatted(Formatting.GREEN), false);
+        LOGGER.info("Initial PC sync completed for player: " + player.getName().getString());
     }
 }
