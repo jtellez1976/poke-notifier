@@ -7,10 +7,13 @@ import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.cobblemon.mod.common.api.storage.PokemonStore;
 import com.cobblemon.mod.common.Cobblemon;
+import com.zehro_mc.pokenotifier.component.ModDataComponents;
 import com.zehro_mc.pokenotifier.command.DebugModeCommand;
 import com.zehro_mc.pokenotifier.api.PokeNotifierApi;
 import com.zehro_mc.pokenotifier.model.GenerationData;
+import com.zehro_mc.pokenotifier.item.ModItems;
 import com.zehro_mc.pokenotifier.model.CustomListConfig;
+import com.zehro_mc.pokenotifier.model.PlayerCatchProgress;
 import com.zehro_mc.pokenotifier.event.CaptureListener;
 import com.zehro_mc.pokenotifier.networking.*;
 import com.zehro_mc.pokenotifier.networking.ServerDebugStatusPayload;
@@ -24,6 +27,7 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import com.mojang.authlib.GameProfile;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -38,10 +42,19 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
+import net.minecraft.command.argument.GameProfileArgumentType;
 import org.slf4j.LoggerFactory;
-
 import com.zehro_mc.pokenotifier.command.ReloadConfigCommand;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import java.util.concurrent.ConcurrentHashMap;
@@ -71,6 +84,7 @@ public class PokeNotifier implements ModInitializer {
         PayloadTypeRegistry.playS2C().register(ServerDebugStatusPayload.ID, ServerDebugStatusPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(CurrentGenPayload.ID, CurrentGenPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(CatchProgressPayload.ID, CatchProgressPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(GlobalAnnouncementPayload.ID, GlobalAnnouncementPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(ModeStatusPayload.ID, ModeStatusPayload.CODEC);
 
         // Cargamos la configuración desde los archivos .json al iniciar el mod.
@@ -80,6 +94,12 @@ public class PokeNotifier implements ModInitializer {
         } catch (ConfigManager.ConfigReadException e) {
             LOGGER.error("Failed to load Poke Notifier configuration on startup. Using default values.", e);
         }
+
+        // Registramos nuestros componentes de datos
+        ModDataComponents.registerModDataComponents();
+
+        // Registramos nuestros objetos personalizados
+        ModItems.registerModItems();
 
         // --- REGISTRO DE RECEPTORES DE PAQUETES (LADO DEL SERVIDOR) ---
         // Esto debe ocurrir DESPUÉS de que los tipos de paquetes hayan sido registrados.
@@ -117,7 +137,7 @@ public class PokeNotifier implements ModInitializer {
                         ConfigManager.saveServerConfigToFile();
                         context.getSource().sendFeedback(() -> Text.literal("Test mode disabled. Only natural spawns will be notified.").formatted(Formatting.RED), true);
                         return 1;
-                    }));
+                    })).build();
 
             // NUEVO: Comando de prueba para generar Pokémon
             SuggestionProvider<ServerCommandSource> pokemonSuggestionProvider = (context, builder) ->
@@ -129,17 +149,95 @@ public class PokeNotifier implements ModInitializer {
                             .suggests(pokemonSuggestionProvider)
                             .executes(context -> {
                                 return executeTestSpawn(context.getSource().getPlayer(), StringArgumentType.getString(context, "pokemon"), false);
-                            })
+                            }))
                             .then(CommandManager.literal("shiny")
                                     .executes(context -> {
                                         return executeTestSpawn(context.getSource().getPlayer(), StringArgumentType.getString(context, "pokemon"), true);
-                                    })
-                            )
+                                    })).build();
+
+            // --- NUEVO: Comando para autocompletar generaciones ---
+            SuggestionProvider<ServerCommandSource> generationSuggestionProvider = (context, builder) ->
+                    CommandSource.suggestMatching(Stream.of("gen1", "gen2", "gen3", "gen4", "gen5", "gen6", "gen7", "gen8", "gen9"), builder);
+
+            var autoCompleteGenCommand = CommandManager.literal("autocompletegen")
+                    .requires(source -> source.hasPermissionLevel(2))
+                    .then(CommandManager.argument("player", GameProfileArgumentType.gameProfile())
+                            .suggests((context, builder) -> CommandSource.suggestMatching(context.getSource().getServer().getPlayerNames(), builder))
+                            .then(CommandManager.argument("generation", StringArgumentType.string())
+                                    .suggests(generationSuggestionProvider)
+                                    .executes(context -> {
+                                        GameProfile profile = GameProfileArgumentType.getProfileArgument(context, "player").iterator().next();
+                                        String genName = StringArgumentType.getString(context, "generation");
+                                        ServerPlayerEntity targetPlayer = context.getSource().getServer().getPlayerManager().getPlayer(profile.getId());
+
+                                        if (targetPlayer == null) {
+                                            context.getSource().sendError(Text.literal("Player " + profile.getName() + " is not online."));
+                                            return 0;
+                                        }
+
+                                        GenerationData genData = ConfigManager.getGenerationData(genName);
+                                        if (genData == null) {
+                                            context.getSource().sendError(Text.literal("Generation '" + genName + "' not found."));
+                                            return 0;
+                                        }
+
+                                        // --- LÓGICA DE BACKUP ---
+                                        File progressFile = new File(ConfigManager.CATCH_PROGRESS_DIR, targetPlayer.getUuid().toString() + ".json");
+                                        File backupFile = new File(ConfigManager.CATCH_PROGRESS_DIR, targetPlayer.getUuid().toString() + ".json.bak");
+
+                                        if (backupFile.exists()) {
+                                            context.getSource().sendError(Text.literal("A backup file already exists for this player. Please use '/pokenotifier rollback " + profile.getName() + "' first.").formatted(Formatting.RED));
+                                            return 0;
+                                        }
+
+                                        try {
+                                            if (progressFile.exists()) {
+                                                Files.copy(progressFile.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                                                context.getSource().sendFeedback(() -> Text.literal("Backup of original progress created.").formatted(Formatting.YELLOW), false);
+                                            }
+                                        } catch (IOException e) {
+                                            context.getSource().sendError(Text.literal("Failed to create backup file. Aborting."));
+                                            LOGGER.error("Failed to create backup for " + profile.getName(), e);
+                                            return 0;
+                                        }
+
+                                        context.getSource().sendFeedback(() -> Text.literal("WARNING: This command modifies player data directly. Use with caution.").formatted(Formatting.RED), false);
+                                        String missingPokemon = autocompleteGenerationForPlayer(targetPlayer, genName, genData);
+                                        context.getSource().sendFeedback(() -> Text.literal("Autocompleted " + formatGenName(genName) + " for player " + targetPlayer.getName().getString()).formatted(Formatting.GREEN), true);
+                                        context.getSource().sendFeedback(() -> Text.literal("To complete the list, capture ").append(Text.literal(missingPokemon).formatted(Formatting.GOLD)).append(". Use '/pokenotifier testspawn " + missingPokemon + "' to test.").formatted(Formatting.AQUA), false);
+                                        return 1;
+                                    }))
                     ).build();
 
             dispatcher.getRoot().getChild("pokenotifier").addChild(statusCommand);
-            dispatcher.getRoot().getChild("pokenotifier").addChild(testModeCommand.build());
+            dispatcher.getRoot().getChild("pokenotifier").addChild(testModeCommand);
             dispatcher.getRoot().getChild("pokenotifier").addChild(testSpawnCommand);
+            dispatcher.getRoot().getChild("pokenotifier").addChild(autoCompleteGenCommand);
+
+            // --- NUEVO: Comando para restaurar el progreso ---
+            var rollbackCommand = CommandManager.literal("rollback")
+                    .requires(source -> source.hasPermissionLevel(2))
+                    .then(CommandManager.argument("player", GameProfileArgumentType.gameProfile())
+                            .suggests((context, builder) -> CommandSource.suggestMatching(context.getSource().getServer().getPlayerNames(), builder))
+                            .executes(context -> {
+                                GameProfile profile = GameProfileArgumentType.getProfileArgument(context, "player").iterator().next();
+                                ServerPlayerEntity targetPlayer = context.getSource().getServer().getPlayerManager().getPlayer(profile.getId());
+
+                                if (targetPlayer == null) {
+                                    context.getSource().sendError(Text.literal("Player " + profile.getName() + " is not online."));
+                                    return 0;
+                                }
+
+                                boolean success = rollbackPlayerProgress(targetPlayer);
+                                if (success) {
+                                    context.getSource().sendFeedback(() -> Text.literal("Successfully rolled back progress for " + profile.getName()).formatted(Formatting.GREEN), true);
+                                } else {
+                                    context.getSource().sendError(Text.literal("No backup file found for " + profile.getName() + "."));
+                                }
+                                return success ? 1 : 0;
+                            })).build();
+
+            dispatcher.getRoot().getChild("pokenotifier").addChild(rollbackCommand);
         });
 
         // Enviar estado del debug mode a los OPs cuando se conectan
@@ -433,5 +531,47 @@ public class PokeNotifier implements ModInitializer {
 
         player.sendMessage(Text.literal("[Poke Notifier] Your Pokédex has been synchronized with the 'Catch 'em All' mode!").formatted(Formatting.GREEN), false);
         LOGGER.info("Initial PC sync completed for player: " + player.getName().getString());
+    }
+
+    private static String autocompleteGenerationForPlayer(ServerPlayerEntity player, String genName, GenerationData genData) {
+        PlayerCatchProgress progress = ConfigManager.getPlayerCatchProgress(player.getUuid());
+
+        // Creamos una lista mutable para poder manipularla.
+        List<String> pokemonList = new ArrayList<>(genData.pokemon);
+        if (pokemonList.isEmpty()) {
+            return "none"; // No hay Pokémon en esta generación.
+        }
+
+        // Seleccionamos el último Pokémon para dejarlo sin capturar.
+        String lastPokemon = pokemonList.remove(pokemonList.size() - 1);
+
+        // Sobrescribimos la lista de capturados para esa generación.
+        progress.caught_pokemon.put(genName, new HashSet<>(pokemonList));
+        ConfigManager.savePlayerCatchProgress(player.getUuid(), progress);
+
+        player.sendMessage(Text.literal("An administrator has autocompleted your " + formatGenName(genName) + " progress for testing purposes.").formatted(Formatting.YELLOW), false);
+        PokeNotifierServerUtils.sendCatchProgressUpdate(player);
+        return lastPokemon;
+    }
+
+    private static boolean rollbackPlayerProgress(ServerPlayerEntity player) {
+        File progressFile = new File(ConfigManager.CATCH_PROGRESS_DIR, player.getUuid().toString() + ".json");
+        File backupFile = new File(ConfigManager.CATCH_PROGRESS_DIR, player.getUuid().toString() + ".json.bak");
+
+        if (!backupFile.exists()) {
+            return false;
+        }
+
+        try {
+            Files.move(backupFile.toPath(), progressFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            // Forzamos la recarga del progreso desde el archivo restaurado
+            ConfigManager.forceReloadPlayerCatchProgress(player.getUuid());
+            PokeNotifierServerUtils.sendCatchProgressUpdate(player);
+            player.sendMessage(Text.literal("Your 'Catch 'em All' progress has been restored by an administrator.").formatted(Formatting.GREEN), false);
+            return true;
+        } catch (IOException e) {
+            LOGGER.error("Failed to rollback progress for player " + player.getName().getString(), e);
+            return false;
+        }
     }
 }

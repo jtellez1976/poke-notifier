@@ -13,5 +13,6 @@ public class PlayerCatchProgress {
 
     public Set<String> active_generations = new HashSet<>();
     public Map<String, Set<String>> caught_pokemon = new HashMap<>();
-
+    // --- NUEVO: Campo para rastrear generaciones completadas ---
+    public Set<String> completed_generations = new HashSet<>();
 }

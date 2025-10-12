@@ -202,6 +202,24 @@ public class PokeNotifierClient implements ClientModInitializer {
                 ActivationFeedbackHUD.show(Text.literal(payload.message()), payload.isActivation());
             });
         });
+
+        // Recibir el anuncio global de finalización de Pokédex
+        ClientPlayNetworking.registerGlobalReceiver(GlobalAnnouncementPayload.ID, (payload, context) -> {
+            context.client().execute(() -> {
+                MinecraftClient client = context.client();
+                if (client.player == null) return;
+
+                // Construimos el mensaje de felicitación
+                Text message = Text.literal("Congratulations to ").formatted(Formatting.YELLOW)
+                        .append(Text.literal(payload.playerName()).formatted(Formatting.GOLD))
+                        .append(Text.literal(" for completing the ").formatted(Formatting.YELLOW))
+                        .append(Text.literal(payload.regionName()).formatted(Formatting.GOLD))
+                        .append(Text.literal(" Pokédex!").formatted(Formatting.YELLOW));
+
+                client.player.sendMessage(message, false);
+                client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 1.0F, 1.0F));
+            });
+        });
     }
 
     private static String formatCategoryName(String categoryName) {

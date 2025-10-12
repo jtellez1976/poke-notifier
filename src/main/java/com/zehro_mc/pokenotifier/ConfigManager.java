@@ -25,7 +25,7 @@ public class ConfigManager {
 
     private static final File CONFIG_DIR = FabricLoader.getInstance().getConfigDir().resolve(PokeNotifier.MOD_ID).toFile();
     private static final File PLAYER_DATA_DIR = new File(CONFIG_DIR, "player_data");
-    private static final File CATCH_PROGRESS_DIR = new File(CONFIG_DIR, "catch_progress"); // NUEVO
+    public static final File CATCH_PROGRESS_DIR = new File(CONFIG_DIR, "catch_progress"); // NUEVO Y PÚBLICO
 
     private static final File CONFIG_POKEMON_FILE = new File(CONFIG_DIR, "config-pokemon.json");
     private static final File CONFIG_CLIENT_FILE = new File(CONFIG_DIR, "config-client.json");
@@ -270,6 +270,14 @@ public class ConfigManager {
         File progressFile = new File(CATCH_PROGRESS_DIR, playerUuid.toString() + ".json");
         saveConfigFile(progressFile, progress, "catch progress for " + playerUuid);
         playerCatchProgress.put(playerUuid, progress); // Actualiza el caché
+    }
+
+    /**
+     * Elimina el progreso de un jugador del caché, forzando a que se recargue desde el archivo en la próxima petición.
+     * @param playerUuid El UUID del jugador.
+     */
+    public static void forceReloadPlayerCatchProgress(UUID playerUuid) {
+        playerCatchProgress.remove(playerUuid);
     }
 
     /**
