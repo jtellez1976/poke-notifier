@@ -10,7 +10,7 @@ import com.zehro_mc.pokenotifier.networking.ServerDebugStatusPayload;
 import com.zehro_mc.pokenotifier.networking.StatusUpdatePayload;
 import com.zehro_mc.pokenotifier.networking.WaypointPayload;
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.rendering.v1.BlockEntityRendererRegistry;
+import net.minecraft.client.render.block.entity.BlockEntityRendererFactories;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -49,7 +49,7 @@ public class PokeNotifierClient implements ClientModInitializer {
         HudRenderCallback.EVENT.register(ActivationFeedbackHUD::render); // Registramos el HUD de feedback
 
         // Registramos el renderer para nuestro BlockEntity del trofeo
-        BlockEntityRendererRegistry.register(ModBlockEntities.TROPHY_DISPLAY_BLOCK_ENTITY, TrophyDisplayBlockEntityRenderer::new);
+        BlockEntityRendererFactories.register(ModBlockEntities.TROPHY_DISPLAY_BLOCK_ENTITY, TrophyDisplayBlockEntityRenderer::new);
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> ClientCommands.register(dispatcher));
 
         // --- NUEVO: Mensaje al iniciar sesión ---
@@ -225,6 +225,13 @@ public class PokeNotifierClient implements ClientModInitializer {
                 client.player.sendMessage(message, false);
                 client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 1.0F, 1.0F));
             });
+    });
+
+    // Recibir la actualización de rangos desde el servidor
+    ClientPlayNetworking.registerGlobalReceiver(RankSyncPayload.ID, (payload, context) -> {
+        context.client().execute(() -> {
+            ClientRankCache.updateRanks(payload.ranks());
+        });
         });
     }
 

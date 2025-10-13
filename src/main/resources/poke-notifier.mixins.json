@@ -1,9 +1,12 @@
 {
-	"required": true,
-	"package": "com.zehro_mc.pokenotifier.mixin",
-	"compatibilityLevel": "JAVA_21",
-	"mixins": [],
-	"injectors": {
-		"defaultRequire": 1
-	}
+  "required": true,
+  "package": "com.zehro_mc.pokenotifier.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "ServerPlayerEntityMixin"
+  ],
+  "client": [
+    "client.PlayerEntityRendererMixin",
+    "client.PlayerListHudMixin"
+  ]
 }

@@ -21,6 +21,8 @@ import com.zehro_mc.pokenotifier.networking.*;
 import com.zehro_mc.pokenotifier.networking.ServerDebugStatusPayload;
 import com.zehro_mc.pokenotifier.networking.StatusUpdatePayload;
 import com.zehro_mc.pokenotifier.util.PokeNotifierServerUtils;
+import com.zehro_mc.pokenotifier.util.PlayerRankManager;
+import com.zehro_mc.pokenotifier.util.PrestigeEffects;
 import com.zehro_mc.pokenotifier.util.RarityUtil;
 import kotlin.Unit;
 import net.fabricmc.api.ModInitializer;
@@ -88,6 +90,7 @@ public class PokeNotifier implements ModInitializer {
         PayloadTypeRegistry.playS2C().register(CatchProgressPayload.ID, CatchProgressPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(GlobalAnnouncementPayload.ID, GlobalAnnouncementPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(ModeStatusPayload.ID, ModeStatusPayload.CODEC);
+    PayloadTypeRegistry.playS2C().register(RankSyncPayload.ID, RankSyncPayload.CODEC);
 
         // Cargamos la configuración desde los archivos .json al iniciar el mod.
         // Esta es la corrección clave.
@@ -187,9 +190,16 @@ public class PokeNotifier implements ModInitializer {
                                             return 0;
                                         }
 
+                                    // --- BUG CRÍTICO FIX ---
+                                    // Comprobamos si el jugador tiene el modo catchemall activo.
+                                    PlayerCatchProgress progress = ConfigManager.getPlayerCatchProgress(targetPlayer.getUuid());
+                                    if (progress.active_generations.isEmpty()) {
+                                        context.getSource().sendError(Text.literal("Player " + profile.getName() + " does not have Catch 'em All mode active.").formatted(Formatting.RED));
+                                        return 0;
+                                    }
+
                                         // --- CORRECCIÓN: Comprobamos el estado del jugador ANTES de hacer el backup ---
-                                        PlayerCatchProgress progress = ConfigManager.getPlayerCatchProgress(targetPlayer.getUuid());
-                                        if (!progress.active_generations.isEmpty() && !progress.active_generations.contains(genName)) {
+                                        if (!progress.active_generations.isEmpty() && !progress.active_generations.contains(genName)) { // Usamos la variable 'progress' ya definida
                                             String activeGen = progress.active_generations.iterator().next();
                                             context.getSource().sendError(Text.literal("Player " + profile.getName() + " is already tracking " + formatGenName(activeGen) + ". They must disable it first.").formatted(Formatting.RED));
                                             return 0;
@@ -253,18 +263,10 @@ public class PokeNotifier implements ModInitializer {
 
         // Enviar estado del debug mode a los OPs cuando se conectan
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-            ServerPlayerEntity player = handler.getPlayer();
-            if (player.hasPermissionLevel(2)) { // Si es OP
-                boolean debugEnabled = ConfigManager.getServerConfig().debug_mode_enabled;
-                ServerDebugStatusPayload payload = new ServerDebugStatusPayload(debugEnabled);
-                ServerPlayNetworking.send(player, payload);
-
-                // --- SINCRONIZACIÓN INICIAL DEL PC ---
-                performInitialPcSync(player);
-
-                // Enviamos el estado del HUD de progreso al conectar
-                PokeNotifierServerUtils.sendCatchProgressUpdate(player);
-            }
+        ServerPlayerEntity player = handler.getPlayer();
+        performInitialPcSync(player);
+        PokeNotifierServerUtils.sendCatchProgressUpdate(player);
+        PlayerRankManager.onPlayerJoin(player); // Centralizamos la lógica de join
         });
 
         // La forma correcta para Cobblemon 1.6+ es usar POKEMON_ENTITY_SPAWN, que nos da un evento con la entidad.

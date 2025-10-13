@@ -2,7 +2,7 @@ package com.zehro_mc.pokenotifier.block.entity;
 
 import com.zehro_mc.pokenotifier.PokeNotifier;
 import com.zehro_mc.pokenotifier.block.ModBlocks;
-import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
+import com.mojang.datafixers.types.Type;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
@@ -12,7 +12,7 @@ public class ModBlockEntities {
     public static final BlockEntityType<TrophyDisplayBlockEntity> TROPHY_DISPLAY_BLOCK_ENTITY =
             Registry.register(Registries.BLOCK_ENTITY_TYPE,
                     Identifier.of(PokeNotifier.MOD_ID, "trophy_display_block_entity"),
-                    FabricBlockEntityTypeBuilder.create(TrophyDisplayBlockEntity::new, ModBlocks.TROPHY_DISPLAY_BLOCK).build());
+                    BlockEntityType.Builder.create(TrophyDisplayBlockEntity::new, ModBlocks.TROPHY_DISPLAY_BLOCK).build((Type) null));
 
     public static void registerBlockEntities() {}
 }

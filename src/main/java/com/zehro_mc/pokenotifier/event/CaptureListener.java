@@ -12,6 +12,7 @@ import com.zehro_mc.pokenotifier.model.PlayerCatchProgress;
 import com.zehro_mc.pokenotifier.networking.GlobalAnnouncementPayload;
 import com.zehro_mc.pokenotifier.networking.StatusUpdatePayload;
 import com.zehro_mc.pokenotifier.util.RarityUtil;
+import com.zehro_mc.pokenotifier.util.PlayerRankManager;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
@@ -49,10 +50,16 @@ public class CaptureListener {
                 if (caughtCount >= totalCount && !progress.completed_generations.contains(activeGen)) {
                     progress.completed_generations.add(activeGen); // Marcamos como completada
 
-                    // 1. Anuncio Global
+                // 1. Anuncio Global (Ahora también se envía si es la 9na gen)
                     String regionName = genData.region.substring(0, 1).toUpperCase() + genData.region.substring(1);
                     GlobalAnnouncementPayload announcement = new GlobalAnnouncementPayload(player.getName().getString(), regionName);
                     player.getServer().getPlayerManager().getPlayerList().forEach(p -> ServerPlayNetworking.send(p, announcement));
+
+                    // --- NUEVO: Anuncio especial al completar la 9na generación ---
+                    if (progress.completed_generations.size() >= 9) {
+                        Text masterMessage = Text.literal("").append(player.getDisplayName()).append(Text.literal(" has achieved the impossible! They have completed all Pokédex challenges and become a Pokémon Master!").formatted(Formatting.LIGHT_PURPLE));
+                        player.getServer().getPlayerManager().broadcast(masterMessage, false);
+                    }
 
                     // 2. Recompensa de Trofeo Regional
                     ItemStack trophy = getTrophyForRegion(regionName);
@@ -79,6 +86,9 @@ public class CaptureListener {
 
                 // Guardamos el progreso después de todas las modificaciones.
                 ConfigManager.savePlayerCatchProgress(player.getUuid(), progress); // Guardamos el progreso
+
+            // Actualizamos y sincronizamos el rango del jugador después de cada captura relevante.
+            PlayerRankManager.updateAndSyncRank(player);
             }
         }
 
