@@ -16,5 +16,16 @@
   "poke-notifier.rarity.SHINY": "Shiny",
 
   "chat.poke-notifier.waypoint_button": "[Add]",
-  "chat.poke-notifier.waypoint_hover": "Add a temporary waypoint"
+  "chat.poke-notifier.waypoint_hover": "Add a temporary waypoint",
+
+ "item.poke-notifier.kanto_trophy": "Kanto Pokédex Trophy",
+ "item.poke-notifier.johto_trophy": "Johto Pokédex Trophy",
+ "item.poke-notifier.hoenn_trophy": "Hoenn Pokédex Trophy",
+ "item.poke-notifier.sinnoh_trophy": "Sinnoh Pokédex Trophy",
+ "item.poke-notifier.unova_trophy": "Unova Pokédex Trophy",
+ "item.poke-notifier.kalos_trophy": "Kalos Pokédex Trophy",
+ "item.poke-notifier.alola_trophy": "Alola Pokédex Trophy",
+ "item.poke-notifier.galar_trophy": "Galar Pokédex Trophy",
+ "item.poke-notifier.paldea_trophy": "Paldea Pokédex Trophy"
+
 }

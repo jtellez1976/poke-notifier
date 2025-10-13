@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "poke-notifier:item/pokedex_trophy"
+    "layer0": "poke-notifier:item/alola_trophy"
   }
 }

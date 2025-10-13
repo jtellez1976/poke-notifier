@@ -3,6 +3,7 @@ package com.zehro_mc.pokenotifier;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.zehro_mc.pokenotifier.model.CustomListConfig;
+import com.zehro_mc.pokenotifier.model.CatchemallRewardsConfig;
 import com.zehro_mc.pokenotifier.model.GenerationData;
 import com.zehro_mc.pokenotifier.model.PlayerCatchProgress;
 import com.google.gson.GsonBuilder;
@@ -30,12 +31,14 @@ public class ConfigManager {
     private static final File CONFIG_POKEMON_FILE = new File(CONFIG_DIR, "config-pokemon.json");
     private static final File CONFIG_CLIENT_FILE = new File(CONFIG_DIR, "config-client.json");
     private static final File CONFIG_SERVER_FILE = new File(CONFIG_DIR, "config-server.json"); // NUEVO
+    private static final File CATCHEMALL_REWARDS_FILE = new File(CONFIG_DIR, "catchemall_rewards.json"); // NUEVO
     private static final File CATCHEMALL_MODE_FILE = new File(CONFIG_DIR, "catchemall-mode.json");
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     private static ConfigPokemon configPokemon;
     private static ConfigClient configClient;
+    private static CatchemallRewardsConfig catchemallRewardsConfig; // NUEVO
     private static ConfigServer configServer; // NUEVO
     private static CatchemallModeConfig catchemallModeConfig;
 
@@ -82,6 +85,7 @@ public class ConfigManager {
             // Un servidor dedicado necesita las listas de Pokémon y su propia configuración.
             loadConfigPokemon();
             loadConfigServer();
+            loadCatchemallRewardsConfig(); // NUEVO
         }
     }
 
@@ -89,6 +93,7 @@ public class ConfigManager {
         saveConfigPokemon();
         saveClientConfigToFile();
         saveServerConfigToFile();
+        saveCatchemallRewardsConfig(); // NUEVO
         saveCatchemallModeConfig();
     }
 
@@ -96,6 +101,7 @@ public class ConfigManager {
         EnvType env = FabricLoader.getInstance().getEnvironmentType();
 
         configPokemon = new ConfigPokemon();
+        catchemallRewardsConfig = new CatchemallRewardsConfig(); // NUEVO
         catchemallModeConfig = new CatchemallModeConfig();
 
         if (env == EnvType.CLIENT) {
@@ -176,6 +182,16 @@ public class ConfigManager {
         }
     }
 
+    private static void loadCatchemallRewardsConfig() throws ConfigReadException { // NUEVO
+        catchemallRewardsConfig = loadConfigFile(CATCHEMALL_REWARDS_FILE, CatchemallRewardsConfig.class, "catchemall_rewards.json");
+    }
+
+    private static void saveCatchemallRewardsConfig() { // NUEVO
+        if (FabricLoader.getInstance().getEnvironmentType() != EnvType.CLIENT) {
+            saveConfigFile(CATCHEMALL_REWARDS_FILE, catchemallRewardsConfig, "catchemall_rewards.json");
+        }
+    }
+
     private static void loadCatchemallModeConfig() throws ConfigReadException {
         catchemallModeConfig = loadConfigFile(CATCHEMALL_MODE_FILE, CatchemallModeConfig.class, "catchemall-mode.json");
     }
@@ -219,6 +235,18 @@ public class ConfigManager {
             }
         }
         return configServer;
+    }
+
+    public static CatchemallRewardsConfig getCatchemallRewardsConfig() { // NUEVO
+        if (catchemallRewardsConfig == null) {
+            try {
+                loadCatchemallRewardsConfig();
+            } catch (ConfigReadException e) {
+                PokeNotifier.LOGGER.error("Initial catchemall_rewards.json load failed. Using temporary default config.", e);
+                catchemallRewardsConfig = new CatchemallRewardsConfig();
+            }
+        }
+        return catchemallRewardsConfig;
     }
 
     public static CatchemallModeConfig getCatchemallModeConfig() {

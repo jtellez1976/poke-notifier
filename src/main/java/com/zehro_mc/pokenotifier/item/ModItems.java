@@ -10,14 +10,33 @@ import net.minecraft.util.Identifier;
 
 public class ModItems {
 
-    public static final Item POKEDEX_TROPHY = registerItem("pokedex_trophy",
-            new PokedexTrophyItem(new Item.Settings().maxCount(1)));
+    // --- TROFEOS REGIONALES ---
+    public static final Item KANTO_TROPHY = registerItem("kanto_trophy");
+    public static final Item JOHTO_TROPHY = registerItem("johto_trophy");
+    public static final Item HOENN_TROPHY = registerItem("hoenn_trophy");
+    public static final Item SINNOH_TROPHY = registerItem("sinnoh_trophy");
+    public static final Item UNOVA_TROPHY = registerItem("unova_trophy");
+    public static final Item KALOS_TROPHY = registerItem("kalos_trophy");
+    public static final Item ALOLA_TROPHY = registerItem("alola_trophy");
+    public static final Item GALAR_TROPHY = registerItem("galar_trophy");
+    public static final Item PALDEA_TROPHY = registerItem("paldea_trophy");
 
-    private static Item registerItem(String name, Item item) {
-        return Registry.register(Registries.ITEM, Identifier.of(PokeNotifier.MOD_ID, name), item);
+    private static Item registerItem(String name) {
+        return Registry.register(Registries.ITEM, Identifier.of(PokeNotifier.MOD_ID, name),
+                new PokedexTrophyItem(new Item.Settings().maxCount(1)));
     }
 
     public static void registerModItems() {
-        ItemGroupEvents.modifyEntriesEvent(ItemGroups.TOOLS).register(content -> content.add(POKEDEX_TROPHY));
+        ItemGroupEvents.modifyEntriesEvent(ItemGroups.TOOLS).register(content -> {
+            content.add(KANTO_TROPHY);
+            content.add(JOHTO_TROPHY);
+            content.add(HOENN_TROPHY);
+            content.add(SINNOH_TROPHY);
+            content.add(UNOVA_TROPHY);
+            content.add(KALOS_TROPHY);
+            content.add(ALOLA_TROPHY);
+            content.add(GALAR_TROPHY);
+            content.add(PALDEA_TROPHY);
+        });
     }
 }

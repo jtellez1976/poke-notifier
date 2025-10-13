@@ -35,7 +35,7 @@ public class ConfigPokemon {
                 "okidogi", "munkidori", "fezandipiti", "ogerpon", "terapagos"
         ));
         MYTHICAL.addAll(Arrays.asList(
-                "mew", "celebi", "jirachi", "deoxys", "phione", "manaphy", "darkrai", "shaymin", "arceus", "victini",
+                "mew", "celebi", "jirachi", "deoxys", "phione", "manaphy", "darkrai", "shaymin", "arceus", "victini", "sirfetchd",
                 "keldeo", "meloetta", "genesect", "diancie", "hoopa", "volcanion", "magearna", "marshadow", "zeraora",
                 "meltan", "melmetal", "zarude", "pecharunt"
         ));
@@ -68,18 +68,18 @@ public class ConfigPokemon {
         RARE.addAll(Arrays.asList(
                 "kadabra", "alakazam", "chansey", "kangaskhan", "scyther", "pinsir", "vaporeon", "jolteon", "flareon",
                 "porygon", "omanyte", "omastar", "kabuto", "kabutops", "aerodactyl", "snorlax", "dratini", "dragonair",
-                "dragonite", "wobbuffet", "dunsparce", "heracross", "skarmory", "smeargle", "blissey", "larvitar",
+                "dragonite", "wobbuffet", "dunsparce", "heracross", "skarmory", "smeargle", "blissey", "larvitar", "mrrime",
                 "pupitar", "tyranitar", "ralts", "kirlia", "gardevoir", "sableye", "trapinch", "vibrava", "flygon",
                 "absol", "wynaut", "clamperl", "huntail", "gorebyss", "bronzor", "bronzong", "happiny", "spiritomb",
-                "munchlax", "riolucario", "drapion", "toxicroak", "gallade", "froslass", "simisage", "simisear",
+                "munchlax", "lucario", "drapion", "toxicroak", "gallade", "froslass", "simisage", "simisear",
                 "simipour", "excadrill", "audino", "throh", "sawk", "garbodor", "minccino", "gothorita", "solosis",
-                "duosion", "vanillish", "axew", "fraxure", "haxorus", "mienshao", "druddigon", "deino", "zweilous", "sirfetchd",
-                "hydreigon", "larvesta", "volcarona", "meowstic", "slurpuff", "malamar", "tyrunt", "tyrantrum",
-                "amaura", "aurorus", "hawlucha", "goomy", "sliggoo", "goodra", "oranguru", "passimian", "mimikyu",
-                "drampa", "orbeetle", "drednaw", "coalossal", "applin", "flapple", "appletun", "sandaconda",
-                "toxtricity", "mrmime", "mrrime", "indeedee", "frigibax", "arctibax", "gholdengo", "dipplin",
-                "poltchageist", "sinistcha", "lokix", "pawmo", "pawmot", "charcadet", "armarouge", "ceruledge",
-                "rabsca", "cyclizar", "orthworm", "greavard", "houndstone", "dondozo", "tatsugiri"
+                "duosion", "vanillish", "axew", "fraxure", "haxorus", "mienshao", "druddigon", "deino", "zweilous",
+                "hydreigon", "larvesta", "volcarona", "meowstic", "slurpuff", "malamar", "tyrunt", "tyrantrum", "mrmime",
+                "amaura", "aurorus", "hawlucha", "goomy", "sliggoo", "goodra", "oranguru", "passimian", "mimikyu", "riolu",
+                "drampa", "orbeetle", "drednaw", "coalossal", "applin", "flapple", "appletun", "sandaconda", "toxtricity",
+                "indeedee", "frigibax", "arctibax", "gholdengo", "dipplin", "poltchageist", "sinistcha", "lokix", "pawmo",
+                "pawmot", "charcadet", "armarouge", "ceruledge", "rabsca", "cyclizar", "orthworm", "greavard",
+                "houndstone", "dondozo", "tatsugiri"
         ));
     }
 }

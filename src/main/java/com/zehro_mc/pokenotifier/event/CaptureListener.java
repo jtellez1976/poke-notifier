@@ -2,7 +2,9 @@ package com.zehro_mc.pokenotifier.event;
 
 import com.cobblemon.mod.common.api.events.pokemon.PokemonCapturedEvent;
 import com.cobblemon.mod.common.pokemon.Pokemon;
+import com.cobblemon.mod.common.CobblemonItems;
 import com.zehro_mc.pokenotifier.component.ModDataComponents;
+import com.zehro_mc.pokenotifier.model.CatchemallRewardsConfig;
 import com.zehro_mc.pokenotifier.ConfigManager;
 import com.zehro_mc.pokenotifier.model.GenerationData;
 import com.zehro_mc.pokenotifier.item.ModItems;
@@ -12,10 +14,14 @@ import com.zehro_mc.pokenotifier.networking.StatusUpdatePayload;
 import com.zehro_mc.pokenotifier.util.RarityUtil;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.item.ItemStack;
+import net.minecraft.registry.Registries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
+
+import java.util.List;
 
 public class CaptureListener {
 
@@ -48,13 +54,27 @@ public class CaptureListener {
                     GlobalAnnouncementPayload announcement = new GlobalAnnouncementPayload(player.getName().getString(), regionName);
                     player.getServer().getPlayerManager().getPlayerList().forEach(p -> ServerPlayNetworking.send(p, announcement));
 
-                    // 2. Recompensa de Trofeo
-                    ItemStack trophy = new ItemStack(ModItems.POKEDEX_TROPHY);
-                    trophy.set(net.minecraft.component.DataComponentTypes.CUSTOM_NAME, Text.literal(regionName + " Pokédex Trophy").formatted(Formatting.GOLD));
-                    // Usamos el nuevo sistema de Data Components para almacenar la región.
-                    trophy.set(ModDataComponents.REGION_NAME, regionName);
-                    // Damos el objeto al jugador
-                    player.getInventory().offerOrDrop(trophy);
+                    // 2. Recompensa de Trofeo Regional
+                    ItemStack trophy = getTrophyForRegion(regionName);
+                    if (!trophy.isEmpty()) {
+                        // Guardamos el nombre y UUID del propietario para verificar la autenticidad.
+                        trophy.set(ModDataComponents.OWNER_NAME, player.getName().getString());
+                        trophy.set(ModDataComponents.OWNER_UUID, player.getUuid().toString());
+                        player.getInventory().offerOrDrop(trophy);
+                    }
+
+                    // 3. Recompensas Adicionales Configurables
+                    CatchemallRewardsConfig rewardsConfig = ConfigManager.getCatchemallRewardsConfig();
+                    List<CatchemallRewardsConfig.RewardItem> rewards = rewardsConfig.rewards_by_generation.get(activeGen);
+
+                    if (rewards != null) {
+                        for (CatchemallRewardsConfig.RewardItem reward : rewards) {
+                            Registries.ITEM.getOrEmpty(Identifier.of(reward.item)).ifPresent(item -> {
+                                ItemStack rewardStack = new ItemStack(item, reward.count);
+                                player.getInventory().offerOrDrop(rewardStack);
+                            });
+                        }
+                    }
                 }
 
                 // Guardamos el progreso después de todas las modificaciones.
@@ -84,5 +104,20 @@ public class CaptureListener {
         for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) {
             ServerPlayNetworking.send(p, payload);
         }
+    }
+
+    private static ItemStack getTrophyForRegion(String regionName) {
+        return switch (regionName.toLowerCase()) {
+            case "kanto" -> new ItemStack(ModItems.KANTO_TROPHY);
+            case "johto" -> new ItemStack(ModItems.JOHTO_TROPHY);
+            case "hoenn" -> new ItemStack(ModItems.HOENN_TROPHY);
+            case "sinnoh" -> new ItemStack(ModItems.SINNOH_TROPHY);
+            case "unova" -> new ItemStack(ModItems.UNOVA_TROPHY);
+            case "kalos" -> new ItemStack(ModItems.KALOS_TROPHY);
+            case "alola" -> new ItemStack(ModItems.ALOLA_TROPHY);
+            case "galar" -> new ItemStack(ModItems.GALAR_TROPHY);
+            case "paldea" -> new ItemStack(ModItems.PALDEA_TROPHY);
+            default -> ItemStack.EMPTY;
+        };
     }
 }

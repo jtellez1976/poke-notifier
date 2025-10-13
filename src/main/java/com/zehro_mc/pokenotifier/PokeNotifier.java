@@ -181,17 +181,22 @@ public class PokeNotifier implements ModInitializer {
                                             return 0;
                                         }
 
+                                        // --- CORRECCIÓN: Comprobamos el estado del jugador ANTES de hacer el backup ---
+                                        PlayerCatchProgress progress = ConfigManager.getPlayerCatchProgress(targetPlayer.getUuid());
+                                        if (!progress.active_generations.isEmpty() && !progress.active_generations.contains(genName)) {
+                                            String activeGen = progress.active_generations.iterator().next();
+                                            context.getSource().sendError(Text.literal("Player " + profile.getName() + " is already tracking " + formatGenName(activeGen) + ". They must disable it first.").formatted(Formatting.RED));
+                                            return 0;
+                                        }
+
                                         // --- LÓGICA DE BACKUP ---
                                         File progressFile = new File(ConfigManager.CATCH_PROGRESS_DIR, targetPlayer.getUuid().toString() + ".json");
                                         File backupFile = new File(ConfigManager.CATCH_PROGRESS_DIR, targetPlayer.getUuid().toString() + ".json.bak");
 
-                                        if (backupFile.exists()) {
-                                            context.getSource().sendError(Text.literal("A backup file already exists for this player. Please use '/pokenotifier rollback " + profile.getName() + "' first.").formatted(Formatting.RED));
-                                            return 0;
-                                        }
-
+                                        // --- LÓGICA DE BACKUP MEJORADA ---
+                                        // Solo creamos el backup si no existe uno previo.
                                         try {
-                                            if (progressFile.exists()) {
+                                            if (progressFile.exists() && !backupFile.exists()) {
                                                 Files.copy(progressFile.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
                                                 context.getSource().sendFeedback(() -> Text.literal("Backup of original progress created.").formatted(Formatting.YELLOW), false);
                                             }

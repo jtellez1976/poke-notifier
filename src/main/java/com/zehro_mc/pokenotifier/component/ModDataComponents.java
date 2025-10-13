@@ -12,6 +12,8 @@ import java.util.function.UnaryOperator;
 
 public class ModDataComponents {
     public static final ComponentType<String> REGION_NAME = register("region_name", builder -> builder.codec(Codec.STRING).packetCodec(PacketCodecs.STRING));
+    public static final ComponentType<String> OWNER_NAME = register("owner_name", builder -> builder.codec(Codec.STRING).packetCodec(PacketCodecs.STRING));
+    public static final ComponentType<String> OWNER_UUID = register("owner_uuid", builder -> builder.codec(Codec.STRING).packetCodec(PacketCodecs.STRING));
 
     private static <T> ComponentType<T> register(String path, UnaryOperator<ComponentType.Builder<T>> builderOperator) {
         return Registry.register(Registries.DATA_COMPONENT_TYPE, Identifier.of(PokeNotifier.MOD_ID, path), builderOperator.apply(ComponentType.builder()).build());
