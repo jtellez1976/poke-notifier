@@ -567,6 +567,11 @@ public class PokeNotifier implements ModInitializer {
             // Forzamos la recarga del progreso desde el archivo restaurado
             ConfigManager.forceReloadPlayerCatchProgress(player.getUuid());
             PokeNotifierServerUtils.sendCatchProgressUpdate(player);
+
+            // --- CORRECCIÓN: Eliminamos cualquier trofeo del inventario ---
+            player.getInventory().remove(stack -> stack.getItem() instanceof com.zehro_mc.pokenotifier.item.PokedexTrophyItem, -1, player.getInventory());
+            player.sendMessage(Text.literal("Your Pokédex Trophies have been removed as part of the rollback.").formatted(Formatting.YELLOW), false);
+
             player.sendMessage(Text.literal("Your 'Catch 'em All' progress has been restored by an administrator.").formatted(Formatting.GREEN), false);
             return true;
         } catch (IOException e) {
