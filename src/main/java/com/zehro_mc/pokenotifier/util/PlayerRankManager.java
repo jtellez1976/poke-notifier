@@ -1,5 +1,6 @@
 package com.zehro_mc.pokenotifier.util;
 
+import com.zehro_mc.pokenotifier.PokeNotifier;
 import com.zehro_mc.pokenotifier.ConfigManager;
 import com.zehro_mc.pokenotifier.model.PlayerCatchProgress;
 import com.zehro_mc.pokenotifier.networking.RankSyncPayload;
@@ -40,14 +41,14 @@ public class PlayerRankManager {
     public static void onPlayerJoin(ServerPlayerEntity player) {
         updateAndSyncRank(player);
 
-        // Efectos de Campeón
-        if (getRank(player.getUuid()) >= 9) {
-            Text championMessage = Text.literal("A Champion has joined the server!").formatted(Formatting.GOLD);
+        // --- CORRECCIÓN: Usamos una tarea con retraso para asegurar que los efectos se ejecuten ---
+        PokeNotifier.scheduleTask(() -> {
+            Text championMessage = Text.literal("A Champion has joined the server!").formatted(Formatting.GOLD, Formatting.BOLD);
             PrestigeEffects.playChampionEffects(player);
-            // --- CORRECCIÓN: Enviamos el mensaje a todos los jugadores ---
-            player.getServer().getPlayerManager().broadcast(championMessage, false);
-        }
-    }
+            MinecraftServer server = player.getServer();
+            if (server != null) server.getPlayerManager().broadcast(championMessage, false);
+        });
+    }    
 
     public static int getRank(UUID playerUuid) {
         return PLAYER_RANKS.getOrDefault(playerUuid, 0);

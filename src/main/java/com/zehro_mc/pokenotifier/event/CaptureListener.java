@@ -20,6 +20,8 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import net.minecraft.sound.SoundEvents;
+import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.Identifier;
 
 import java.util.List;
@@ -57,8 +59,12 @@ public class CaptureListener {
 
                     // --- NUEVO: Anuncio especial al completar la 9na generación ---
                     if (progress.completed_generations.size() >= 9) {
-                        Text masterMessage = Text.literal("").append(player.getDisplayName()).append(Text.literal(" has achieved the impossible! They have completed all Pokédex challenges and become a Pokémon Master!").formatted(Formatting.LIGHT_PURPLE));
-                        player.getServer().getPlayerManager().broadcast(masterMessage, false);
+                        Text masterMessage = Text.literal(player.getName().getString()).formatted(Formatting.GOLD, Formatting.BOLD)
+                                .append(Text.literal(" has achieved the impossible! They have completed all Pokédex challenges and become a Pokémon Master!").formatted(Formatting.LIGHT_PURPLE));
+                        MinecraftServer server = player.getServer();
+                        if (server != null) {
+                            server.getPlayerManager().broadcast(masterMessage, false);
+                        }                    
                     }
 
                     // 2. Recompensa de Trofeo Regional

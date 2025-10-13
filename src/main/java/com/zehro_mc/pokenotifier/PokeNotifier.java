@@ -72,6 +72,9 @@ public class PokeNotifier implements ModInitializer {
 
     public static final Map<PokemonEntity, RarityUtil.RarityCategory> TRACKED_POKEMON = new ConcurrentHashMap<>();
 
+    // --- NUEVO: Sistema de tareas con retraso para efectos de join ---
+    private static final List<Runnable> PENDING_TASKS = new ArrayList<>();
+
     private static MinecraftServer server;
 
     @Override
@@ -308,6 +311,13 @@ public class PokeNotifier implements ModInitializer {
                 }
                 return false;
             });
+            // --- NUEVO: Procesamos las tareas pendientes ---
+            if (!PENDING_TASKS.isEmpty()) {
+                for (Runnable task : new ArrayList<>(PENDING_TASKS)) {
+                    task.run();
+                }
+                PENDING_TASKS.clear();
+            }
         });
     }
 
@@ -591,5 +601,9 @@ public class PokeNotifier implements ModInitializer {
             LOGGER.error("Failed to rollback progress for player " + player.getName().getString(), e);
             return false;
         }
+    }
+
+    public static void scheduleTask(Runnable task) {
+        PENDING_TASKS.add(task);
     }
 }
