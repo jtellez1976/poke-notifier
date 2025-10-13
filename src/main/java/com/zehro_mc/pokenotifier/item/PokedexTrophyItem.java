@@ -1,12 +1,19 @@
 package com.zehro_mc.pokenotifier.item;
 
+import com.zehro_mc.pokenotifier.block.ModBlocks;
+import com.zehro_mc.pokenotifier.block.entity.TrophyDisplayBlockEntity;
 import com.zehro_mc.pokenotifier.component.ModDataComponents;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.minecraft.block.BlockState;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemUsageContext;
 import net.minecraft.item.tooltip.TooltipType;
 import net.minecraft.item.ItemStack;
+import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
+import net.minecraft.util.ActionResult;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.Formatting;
 
 import java.util.List;
@@ -15,6 +22,30 @@ public class PokedexTrophyItem extends Item {
 
     public PokedexTrophyItem(Settings settings) {
         super(settings);
+    }
+
+    @Override
+    public ActionResult useOnBlock(ItemUsageContext context) {
+        BlockPos pos = context.getBlockPos().offset(context.getSide());
+        if (context.getWorld().getBlockState(pos).isReplaceable()) {
+            BlockState blockState = ModBlocks.TROPHY_DISPLAY_BLOCK.getDefaultState();
+            context.getWorld().setBlockState(pos, blockState, 3);
+
+            if (context.getWorld().getBlockEntity(pos) instanceof TrophyDisplayBlockEntity be) {
+                ItemStack stack = context.getStack();
+                String trophyId = Registries.ITEM.getId(stack.getItem()).toString();
+                // --- CORRECCIÓN: Aseguramos que ownerUuid nunca sea null ---
+                String ownerUuid = stack.getOrDefault(ModDataComponents.OWNER_UUID, "");
+                be.setTrophyData(trophyId, ownerUuid);
+            }
+
+            if (context.getPlayer() != null && !context.getPlayer().isCreative()) {
+                context.getStack().decrement(1);
+            }
+
+            return ActionResult.SUCCESS;
+        }
+        return super.useOnBlock(context);
     }
 
     @Environment(EnvType.CLIENT)
@@ -40,7 +71,7 @@ public class PokedexTrophyItem extends Item {
             tooltip.add(Text.literal("Owner: ").formatted(Formatting.GRAY).append(Text.literal(ownerName).formatted(Formatting.AQUA)));
         } else {
             // Si no tiene propietario, es probable que sea del creativo.
-            tooltip.add(Text.literal("Owner: ").formatted(Formatting.GRAY).append(Text.literal("Unknown").formatted(Formatting.DARK_GRAY)));
+            tooltip.add(Text.literal("Owner: ").formatted(Formatting.GRAY).append(Text.literal("Creative Mode").formatted(Formatting.YELLOW)));
         }
         // No llamamos a super para tener control total sobre el tooltip.
     }

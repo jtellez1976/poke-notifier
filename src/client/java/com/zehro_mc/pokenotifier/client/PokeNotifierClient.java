@@ -3,11 +3,14 @@ package com.zehro_mc.pokenotifier.client;
 import com.zehro_mc.pokenotifier.ConfigClient;
 import com.zehro_mc.pokenotifier.ConfigManager;
 import com.zehro_mc.pokenotifier.PokeNotifier;
+import com.zehro_mc.pokenotifier.block.entity.ModBlockEntities;
+import com.zehro_mc.pokenotifier.client.renderer.TrophyDisplayBlockEntityRenderer;
 import com.zehro_mc.pokenotifier.networking.*;
 import com.zehro_mc.pokenotifier.networking.ServerDebugStatusPayload;
 import com.zehro_mc.pokenotifier.networking.StatusUpdatePayload;
 import com.zehro_mc.pokenotifier.networking.WaypointPayload;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.rendering.v1.BlockEntityRendererRegistry;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -44,6 +47,9 @@ public class PokeNotifierClient implements ClientModInitializer {
         HudRenderCallback.EVENT.register(NotificationHUD::render);
         HudRenderCallback.EVENT.register(CatchEmAllHUD::render); // Registramos el nuevo HUD
         HudRenderCallback.EVENT.register(ActivationFeedbackHUD::render); // Registramos el HUD de feedback
+
+        // Registramos el renderer para nuestro BlockEntity del trofeo
+        BlockEntityRendererRegistry.register(ModBlockEntities.TROPHY_DISPLAY_BLOCK_ENTITY, TrophyDisplayBlockEntityRenderer::new);
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> ClientCommands.register(dispatcher));
 
         // --- NUEVO: Mensaje al iniciar sesión ---
