@@ -10,10 +10,11 @@ Poke Notifier es un mod para Cobblemon diseñado para servidores que mejora drá
 - **Múltiples Canales de Alerta:** Recibe notificaciones a través de mensajes en el chat, un HUD de notificación en pantalla (Toast) y alertas de sonido. ¡Totalmente configurable por el jugador!
 - **Modo "Catch 'em All":** ¡El desafío definitivo para los coleccionistas! Activa el seguimiento para una generación específica (ej. Kanto) y recibe notificaciones especiales de los Pokémon que aún no has capturado.
 - **HUD de Progreso:** Mientras el modo "Catch 'em All" está activo, un HUD persistente en pantalla muestra tu progreso de captura para la generación seleccionada (ej. `Gen1: 50/151`).
-- **Sincronización de Pokédex:** Al usar el modo "Catch 'em All" por primera vez, el mod escanea tu PC y tu equipo para acreditarte todos los Pokémon que ya has capturado. ¡Tu progreso se respeta!
+- **Sincronización de Pokédex:** ¡No pierdes tu progreso! Al usar el modo "Catch 'em All" por primera vez, el mod **escanea tu PC y tu equipo** para acreditarte todos los Pokémon que ya has capturado. Es seguro de instalar en servidores existentes.
+- **Sistema de Trofeos de Prestigio:** Al completar la Pokédex de una región, recibirás una **insignia de trofeo única** como recompensa. Este objeto coleccionable puede ser colocado en un marco o directamente sobre un bloque sólido, donde se mostrará como un **modelo 3D que gira lentamente** y emite luz.
+- **Recompensas Configurables:** Las recompensas por completar una generación son **totalmente personalizables** por los administradores del servidor a través del archivo `catchemall_rewards.json`. Por defecto, se entregan 10 Master Balls.
 - **Listas de Caza Personalizadas:** ¿Buscas un Pokémon específico que no es necesariamente raro? Añádelo a tu lista personalizada y recibe una notificación especial cuando aparezca.
 - **Efecto de Resplandor:** Los Pokémon notificados reciben un efecto de resplandor temporal, haciéndolos fáciles de localizar.
-- **Altamente Configurable:** Tanto los jugadores como los administradores del servidor tienen control total sobre el funcionamiento del mod a través de comandos intuitivos.
 - **Compatibilidad Opcional:** Se integra con `AdvancementPlaques` para mostrar notificaciones de activación de modo más estilizadas, con un sistema de fallback si el mod no está instalado.
 
 ---
@@ -75,6 +76,8 @@ Todos los comandos de administrador comienzan con `/pokenotifier` y requieren ni
 | `/pokenotifier debug_mode enable/disable` | Activa o desactiva los logs de depuración detallados en la consola del servidor. |
 | `/pokenotifier test_mode enable/disable` | Activa o desactiva el modo de prueba. Cuando está activo, el mod también notificará spawns no naturales (ej. de comandos). |
 | `/pokenotifier testspawn <pokemon> [shiny]` | Genera un Pokémon específico para pruebas. Solo funciona si el `test_mode` está activado. |
+| `/pokenotifier autocompletegen <jugador> <gen>` | **(Pruebas)** Completa el 99% de la Pokédex de un jugador para una generación, creando un backup de su progreso. |
+| `/pokenotifier rollback <jugador>` | **(Pruebas)** Restaura el progreso de un jugador desde el backup creado por el comando `autocompletegen`. |
 
 ---
 
