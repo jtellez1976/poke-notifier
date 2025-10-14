@@ -1,8 +1,15 @@
+/*
+ * Copyright (C) 2024 ZeHrOx
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
 package com.zehro_mc.pokenotifier.event;
 
 import com.cobblemon.mod.common.api.events.pokemon.PokemonCapturedEvent;
 import com.cobblemon.mod.common.pokemon.Pokemon;
-import com.cobblemon.mod.common.CobblemonItems;
 import com.zehro_mc.pokenotifier.component.ModDataComponents;
 import com.zehro_mc.pokenotifier.model.CatchemallRewardsConfig;
 import com.zehro_mc.pokenotifier.ConfigManager;
@@ -10,7 +17,7 @@ import com.zehro_mc.pokenotifier.model.GenerationData;
 import com.zehro_mc.pokenotifier.item.ModItems;
 import com.zehro_mc.pokenotifier.model.PlayerCatchProgress;
 import com.zehro_mc.pokenotifier.networking.GlobalAnnouncementPayload;
-import com.zehro_mc.pokenotifier.networking.StatusUpdatePayload;
+import com.zehro_mc.pokenotifier.StatusUpdatePayload;
 import com.zehro_mc.pokenotifier.util.RarityUtil;
 import com.zehro_mc.pokenotifier.util.PrestigeEffects;
 import com.zehro_mc.pokenotifier.util.PlayerRankManager;
@@ -21,12 +28,13 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.Identifier;
 
 import java.util.List;
 
+/**
+ * Listens for Pokémon capture events to update "Catch 'em All" progress and grant rewards.
+ */
 public class CaptureListener {
 
     public static void onPokemonCaptured(PokemonCapturedEvent event) {
@@ -34,31 +42,30 @@ public class CaptureListener {
         ServerPlayerEntity player = event.getPlayer();
         String pokemonName = pokemon.getSpecies().getResourceIdentifier().getPath();
 
-        // --- LÓGICA CATCH 'EM ALL ---
+        // "Catch 'em All" logic.
         PlayerCatchProgress progress = ConfigManager.getPlayerCatchProgress(player.getUuid());
         if (!progress.active_generations.isEmpty()) {
             String activeGen = progress.active_generations.iterator().next();
             GenerationData genData = ConfigManager.getGenerationData(activeGen);
 
-            // Si el Pokémon capturado pertenece a la generación activa...
+            // If the captured Pokémon belongs to the active generation...
             if (genData != null && genData.pokemon.contains(pokemonName)) {
-                // ...lo añadimos a la lista de capturados de esa generación.
+                // ...add it to the caught list for that generation.
                 progress.caught_pokemon.computeIfAbsent(activeGen, k -> new java.util.HashSet<>()).add(pokemonName);
 
-                // --- LÓGICA DE RECOMPENSA (PASOS 10 Y 11) ---
                 int caughtCount = progress.caught_pokemon.get(activeGen).size();
                 int totalCount = genData.pokemon.size();
 
-                // Comprobamos si la generación está completa y si no ha sido completada antes.
+                // Check if the generation is now complete and hasn't been rewarded before.
                 if (caughtCount >= totalCount && !progress.completed_generations.contains(activeGen)) {
-                    progress.completed_generations.add(activeGen); // Marcamos como completada
+                    progress.completed_generations.add(activeGen);
 
-                // 1. Anuncio Global (Ahora también se envía si es la 9na gen)
+                    // 1. Global Announcement
                     String regionName = genData.region.substring(0, 1).toUpperCase() + genData.region.substring(1);
                     GlobalAnnouncementPayload announcement = new GlobalAnnouncementPayload(player.getName().getString(), regionName);
                     player.getServer().getPlayerManager().getPlayerList().forEach(p -> ServerPlayNetworking.send(p, announcement));
 
-                    // --- NUEVO: Anuncio especial al completar la 9na generación ---
+                    // Special announcement for completing all 9 generations.
                     if (progress.completed_generations.size() >= 9) {
                         Text masterMessage = Text.literal(player.getName().getString()).formatted(Formatting.GOLD, Formatting.BOLD)
                                 .append(Text.literal(" has achieved the impossible! They have completed all Pokédex challenges and become a Pokémon Master!").formatted(Formatting.LIGHT_PURPLE));
@@ -66,19 +73,18 @@ public class CaptureListener {
                         if (server != null) {
                             server.getPlayerManager().broadcast(masterMessage, false);
                         }
-                        PrestigeEffects.playMasterAchievementEffects(player); // ¡NUEVO!
+                        PrestigeEffects.playMasterAchievementEffects(player);
                     }
 
-                    // 2. Recompensa de Trofeo Regional
+                    // 2. Regional Trophy Reward
                     ItemStack trophy = getTrophyForRegion(regionName);
                     if (!trophy.isEmpty()) {
-                        // Guardamos el nombre y UUID del propietario para verificar la autenticidad.
                         trophy.set(ModDataComponents.OWNER_NAME, player.getName().getString());
                         trophy.set(ModDataComponents.OWNER_UUID, player.getUuid().toString());
                         player.getInventory().offerOrDrop(trophy);
                     }
 
-                    // 3. Recompensas Adicionales Configurables
+                    // 3. Additional Configurable Rewards
                     CatchemallRewardsConfig rewardsConfig = ConfigManager.getCatchemallRewardsConfig();
                     List<CatchemallRewardsConfig.RewardItem> rewards = rewardsConfig.rewards_by_generation.get(activeGen);
 
@@ -90,22 +96,20 @@ public class CaptureListener {
                             });
                         }
                     }
-                    // 4. ¡NUEVO! Lanzar fuegos artificiales de celebración.
+                    // 4. Launch celebratory fireworks.
                     PrestigeEffects.launchCelebratoryFireworks(player);
                 }
 
-                // Guardamos el progreso después de todas las modificaciones.
-                ConfigManager.savePlayerCatchProgress(player.getUuid(), progress); // Guardamos el progreso
+                ConfigManager.savePlayerCatchProgress(player.getUuid(), progress);
 
-            // Actualizamos y sincronizamos el rango del jugador después de cada captura relevante.
-            PlayerRankManager.updateAndSyncRank(player);
+                // Update and sync the player's rank after each relevant capture.
+                PlayerRankManager.updateAndSyncRank(player);
             }
         }
 
-        // --- LÓGICA DE NOTIFICACIÓN DE CAPTURA (existente) ---
+        // Standard capture notification logic.
         RarityUtil.RarityCategory rarity = RarityUtil.getRarity(pokemon, player);
 
-        // No notificar si la rareza es COMMON por defecto
         if (rarity == RarityUtil.RarityCategory.COMMON) {
             return;
         }
@@ -113,7 +117,7 @@ public class CaptureListener {
         MinecraftServer server = event.getPlayer().getServer();
         if (server == null) return;
 
-        StatusUpdatePayload payload = new StatusUpdatePayload( // Corrected constructor call
+        StatusUpdatePayload payload = new StatusUpdatePayload(
                 pokemon.getUuid().toString(),
                 pokemon.getDisplayName().getString(),
                 rarity.name(),

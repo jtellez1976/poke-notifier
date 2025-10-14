@@ -1,19 +1,29 @@
+/*
+ * Copyright (C) 2024 ZeHrOx
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
 package com.zehro_mc.pokenotifier.util;
 
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.zehro_mc.pokenotifier.ConfigManager;
 import com.zehro_mc.pokenotifier.ConfigPokemon;
-import com.zehro_mc.pokenotifier.PokeNotifier;
 import com.zehro_mc.pokenotifier.model.CustomListConfig;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Formatting;
 
+/**
+ * Determines the rarity of a Pokémon based on a prioritized list of criteria.
+ */
 public class RarityUtil {
 
     public enum RarityCategory {
-        CUSTOM(Formatting.LIGHT_PURPLE),
-        HUNT(Formatting.GREEN), // NUEVA CATEGORÍA PARA CATCH 'EM ALL
-        SHINY(Formatting.YELLOW), // NUEVA CATEGORÍA PARA SHINIES
+        CUSTOM(Formatting.LIGHT_PURPLE), // For a player's personal hunt list.
+        HUNT(Formatting.GREEN),          // For the "Catch 'em All" mode.
+        SHINY(Formatting.YELLOW),
         LEGENDARY(Formatting.GOLD),
         MYTHICAL(Formatting.AQUA),
         ULTRA_BEAST(Formatting.BLUE),
@@ -38,15 +48,9 @@ public class RarityUtil {
     }
 
     public static RarityCategory getRarity(Pokemon pokemon, ServerPlayerEntity player) {
-        // Usamos el path del Identifier para tener el nombre limpio y consistente (ej: nidoran_f, mr_mime)
+        // Use the identifier path for a clean, consistent name (e.g., 'nidoran_f', 'mr_mime').
         String name = pokemon.getForm().getSpecies().getResourceIdentifier().getPath();
 
-        // --- HERRAMIENTA DE DIAGNÓSTICO ---
-        if (ConfigManager.getServerConfig().debug_mode_enabled) {
-            PokeNotifier.LOGGER.info("[DIAGNOSTIC] RarityUtil checking Pokémon. Name obtained: '{}'", name);
-        }
-
-        // Prioridad 1: Lista personalizada del jugador
         if (player != null) {
             CustomListConfig playerConfig = ConfigManager.getPlayerConfig(player.getUuid());
             if (playerConfig.tracked_pokemon.contains(name)) {
@@ -54,12 +58,10 @@ public class RarityUtil {
             }
         }
 
-        // Prioridad 1.5: Pokémon Shiny
         if (pokemon.getShiny()) {
             return RarityCategory.SHINY;
         }
 
-        // Prioridad 2: Listas globales del servidor
         ConfigPokemon configPokemon = ConfigManager.getPokemonConfig();
 
         if (configPokemon.LEGENDARY.contains(name)) {

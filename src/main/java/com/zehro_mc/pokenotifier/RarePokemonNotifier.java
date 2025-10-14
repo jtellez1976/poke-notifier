@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2024 ZeHrOx
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
 package com.zehro_mc.pokenotifier;
 
 import com.cobblemon.mod.common.Cobblemon;
@@ -26,15 +34,16 @@ import net.minecraft.world.biome.BiomeKeys;
 import java.util.Iterator;
 import java.util.Set;
 
+/**
+ * Handles the core logic for detecting and notifying players about rare Pokémon spawns.
+ */
 public class RarePokemonNotifier {
 
     /**
-     * Registra el listener de spawns en los eventos de Cobblemon.
-     * Este es el método correcto para suscribirse a todos los spawns, incluidos los de comandos.
+     * Registers the spawn listener to Cobblemon's events.
      */
     public static void register() {
         PokeNotifier.LOGGER.info("[Poke Notifier] Registering spawn listener...");
-        // La forma correcta es suscribirse a POKEMON_ENTITY_SPAWN, que nos da un evento con la entidad.
         CobblemonEvents.POKEMON_ENTITY_SPAWN.subscribe(Priority.NORMAL, event -> {
             onPokemonSpawn(event.getEntity());
             return Unit.INSTANCE;
@@ -46,13 +55,11 @@ public class RarePokemonNotifier {
 
         Pokemon pokemon = pokemonEntity.getPokemon();
 
-        // En Cobblemon 1.6+, la forma de detectar un spawn natural es comprobar que no tenga propietario.
-        // Y ahora, también comprobamos que no tenga nuestra etiqueta de prueba.
+        // A natural spawn is one without an owner and not from our test command.
         boolean isFromTestSpawn = pokemon.getPersistentData().getBoolean("pokenotifier_test_spawn");
         boolean isNaturalSpawn = pokemonEntity.getOwnerUuid() == null && !pokemonEntity.isRemoved() && !isFromTestSpawn;
 
-        // CORRECCIÓN: La lógica correcta es: si el spawn NO es natural, solo debemos continuar
-        // si el modo de prueba está activado. Si no, salimos.
+        // If the spawn is not natural, only proceed if test mode is enabled.
         if (!isNaturalSpawn && !ConfigManager.getServerConfig().enable_test_mode) {
             return;
         }
@@ -61,25 +68,23 @@ public class RarePokemonNotifier {
         if (pokemonEntity.getServer() == null) return;
 
         for (ServerPlayerEntity player : pokemonEntity.getServer().getPlayerManager().getPlayerList()) {
-            // --- LÓGICA DE RAREZA NORMAL (Ahora con mayor prioridad) ---
+            // Priority 1: Check against standard rarity lists and the player's custom list.
             RarityUtil.RarityCategory rarity = RarityUtil.getRarity(pokemon, player);
 
-            // Si el Pokémon tiene una rareza notificable (o es shiny), lo notificamos y terminamos para este jugador.
+            // If the Pokémon has a notifiable rarity, notify and move to the next player.
             if (rarity != RarityUtil.RarityCategory.COMMON) {
                 double distance = player.getPos().distanceTo(pokemonPos.toCenterPos());
                 if (distance <= ConfigManager.getClientConfig().notification_distance) {
                     sendNotification(player, pokemonEntity, rarity);
                 }
-                // Continuamos al siguiente jugador para no enviar notificaciones duplicadas (ej. Raro y de Caza).
-                continue;
+                continue; // Avoid duplicate notifications (e.g., Rare and Hunt).
             }
 
-            // --- LÓGICA CATCH 'EM ALL (si no se cumplió la rareza normal) ---
+            // Priority 2: Check against the player's active "Catch 'em All" mode.
             PlayerCatchProgress progress = ConfigManager.getPlayerCatchProgress(player.getUuid());
             if (!progress.active_generations.isEmpty()) {
                 String activeGen = progress.active_generations.iterator().next();
                 GenerationData genData = ConfigManager.getGenerationData(activeGen);
-                // Usamos el path del Identifier para tener el nombre limpio y consistente (ej: nidoran_f, mr_mime)
                 String pokemonName = pokemon.getSpecies().getResourceIdentifier().getPath();
 
                 if (genData != null && genData.pokemon.contains(pokemonName)) {
@@ -94,7 +99,7 @@ public class RarePokemonNotifier {
     }
 
     /**
-     * Método de ayuda para enviar la notificación a un jugador.
+     * Helper method to send a spawn notification to a specific player.
      */
     private static void sendNotification(ServerPlayerEntity player, PokemonEntity pokemonEntity, RarityUtil.RarityCategory rarity) {
         Pokemon pokemon = pokemonEntity.getPokemon();
@@ -114,13 +119,9 @@ public class RarePokemonNotifier {
         RegistryEntry<Biome> biomeRegistryEntry = player.getWorld().getBiome(pokemonPos);
         Identifier biomeId = biomeRegistryEntry.getKey().map(key -> key.getValue()).orElse(BiomeKeys.PLAINS.getValue());
 
-        // Usamos getShowdownName() para obtener un nombre limpio y consistente para la ruta del archivo.
-        // Esto soluciona problemas con nombres como "Nidoran♀" o "Mr. Mime".
         String spriteName = pokemon.getForm().getSpecies().getResourceIdentifier().getPath();
 
-        // --- LÓGICA PARA SPRITES SHINY ---
-        // Si el Pokémon es shiny, cambiamos la ruta a la subcarpeta /shiny/
-        // Y añadimos el sufijo "shiny" al nombre del archivo.
+        // If the Pokémon is shiny, adjust the sprite path to the /shiny/ subfolder.
         String spritePath = "textures/pokemon/";
         if (pokemon.getShiny()) {
             spritePath += "shiny/";

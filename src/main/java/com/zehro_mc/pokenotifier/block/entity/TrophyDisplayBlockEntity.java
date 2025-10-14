@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2024 ZeHrOx
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
 package com.zehro_mc.pokenotifier.block.entity;
 
 import com.zehro_mc.pokenotifier.PokeNotifier;
@@ -11,6 +19,10 @@ import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.util.math.BlockPos;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * The Block Entity for the Trophy Display Block. It stores the data
+ * of the trophy item being displayed, such as its ID and owner.
+ */
 public class TrophyDisplayBlockEntity extends BlockEntity {
 
     private String trophyId = "";

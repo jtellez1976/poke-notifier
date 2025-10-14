@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2024 ZeHrOx
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
 package com.zehro_mc.pokenotifier.item;
 
 import com.zehro_mc.pokenotifier.PokeNotifier;
@@ -8,9 +16,11 @@ import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.util.Identifier;
 
+/**
+ * Registers all custom items, such as the Pokédex trophies.
+ */
 public class ModItems {
 
-    // --- TROFEOS REGIONALES ---
     public static final Item KANTO_TROPHY = registerItem("kanto_trophy");
     public static final Item JOHTO_TROPHY = registerItem("johto_trophy");
     public static final Item HOENN_TROPHY = registerItem("hoenn_trophy");

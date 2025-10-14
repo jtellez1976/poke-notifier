@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2024 ZeHrOx
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
 package com.zehro_mc.pokenotifier;
 
 import com.google.gson.Gson;
@@ -22,32 +30,35 @@ import java.util.UUID;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Manages loading, saving, and caching all configuration files for the mod.
+ * This includes server settings, client preferences, player data, and Pokémon lists.
+ */
 public class ConfigManager {
 
     private static final File CONFIG_DIR = FabricLoader.getInstance().getConfigDir().resolve(PokeNotifier.MOD_ID).toFile();
     private static final File PLAYER_DATA_DIR = new File(CONFIG_DIR, "player_data");
-    public static final File CATCH_PROGRESS_DIR = new File(CONFIG_DIR, "catch_progress"); // NUEVO Y PÚBLICO
+    public static final File CATCH_PROGRESS_DIR = new File(CONFIG_DIR, "catch_progress");
 
     private static final File CONFIG_POKEMON_FILE = new File(CONFIG_DIR, "config-pokemon.json");
     private static final File CONFIG_CLIENT_FILE = new File(CONFIG_DIR, "config-client.json");
-    private static final File CONFIG_SERVER_FILE = new File(CONFIG_DIR, "config-server.json"); // NUEVO
-    private static final File CATCHEMALL_REWARDS_FILE = new File(CONFIG_DIR, "catchemall_rewards.json"); // NUEVO
+    private static final File CONFIG_SERVER_FILE = new File(CONFIG_DIR, "config-server.json");
+    private static final File CATCHEMALL_REWARDS_FILE = new File(CONFIG_DIR, "catchemall_rewards.json");
     private static final File CATCHEMALL_MODE_FILE = new File(CONFIG_DIR, "catchemall-mode.json");
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     private static ConfigPokemon configPokemon;
     private static ConfigClient configClient;
-    private static CatchemallRewardsConfig catchemallRewardsConfig; // NUEVO
-    private static ConfigServer configServer; // NUEVO
+    private static CatchemallRewardsConfig catchemallRewardsConfig;
+    private static ConfigServer configServer;
     private static CatchemallModeConfig catchemallModeConfig;
 
-    // Cache para las listas personalizadas de los jugadores para evitar leer el archivo constantemente
+    // Caches player-specific data to avoid constant file I/O.
     private static final Map<UUID, CustomListConfig> playerConfigs = new ConcurrentHashMap<>();
-    // Cache para el progreso "Catch 'em All" de los jugadores
-    private static final Map<UUID, PlayerCatchProgress> playerCatchProgress = new ConcurrentHashMap<>(); // NUEVO
+    private static final Map<UUID, PlayerCatchProgress> playerCatchProgress = new ConcurrentHashMap<>();
 
-    // Cache para las listas de generaciones cargadas desde los recursos del mod
+    // Caches generation data loaded from the mod's resources.
     private static final Map<String, GenerationData> generationDataCache = new ConcurrentHashMap<>();
 
 
@@ -67,25 +78,22 @@ public class ConfigManager {
         if (!PLAYER_DATA_DIR.exists()) {
             PLAYER_DATA_DIR.mkdirs();
         }
-        if (!CATCH_PROGRESS_DIR.exists()) { // NUEVO
+        if (!CATCH_PROGRESS_DIR.exists()) {
             CATCH_PROGRESS_DIR.mkdirs();
         }
 
-        // Obtenemos el tipo de entorno (CLIENT o SERVER)
         EnvType env = FabricLoader.getInstance().getEnvironmentType();
 
-        // Configuraciones que podrían ser necesarias en ambos lados (aunque su uso principal sea del servidor)
+        // This config is needed on both sides, though primarily used by the server.
         loadCatchemallModeConfig();
 
-        // Cargamos los archivos de configuración basados en el entorno
+        // Load environment-specific configuration files.
         if (env == EnvType.CLIENT) {
-            // Un cliente solo necesita su propia configuración.
             loadConfigClient();
-        } else { // EnvType.SERVER
-            // Un servidor dedicado necesita las listas de Pokémon y su propia configuración.
+        } else { // Server-side environment
             loadConfigPokemon();
             loadConfigServer();
-            loadCatchemallRewardsConfig(); // NUEVO
+            loadCatchemallRewardsConfig();
         }
     }
 
@@ -93,7 +101,7 @@ public class ConfigManager {
         saveConfigPokemon();
         saveClientConfigToFile();
         saveServerConfigToFile();
-        saveCatchemallRewardsConfig(); // NUEVO
+        saveCatchemallRewardsConfig();
         saveCatchemallModeConfig();
     }
 
@@ -101,7 +109,7 @@ public class ConfigManager {
         EnvType env = FabricLoader.getInstance().getEnvironmentType();
 
         configPokemon = new ConfigPokemon();
-        catchemallRewardsConfig = new CatchemallRewardsConfig(); // NUEVO
+        catchemallRewardsConfig = new CatchemallRewardsConfig();
         catchemallModeConfig = new CatchemallModeConfig();
 
         if (env == EnvType.CLIENT) {
@@ -153,7 +161,7 @@ public class ConfigManager {
     }
 
     private static void saveConfigPokemon() {
-        // Solo guardar si no estamos en un cliente puro.
+        // Only save if not on a pure client.
         if (FabricLoader.getInstance().getEnvironmentType() != EnvType.CLIENT) {
             saveConfigFile(CONFIG_POKEMON_FILE, configPokemon, "config-pokemon.json");
         }
@@ -164,7 +172,6 @@ public class ConfigManager {
     }
 
     public static void saveClientConfigToFile() {
-        // Solo guardar si estamos en un entorno de cliente
         if (FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT && configClient != null) {
             saveConfigFile(CONFIG_CLIENT_FILE, configClient, "config-client.json");
         }
@@ -175,18 +182,17 @@ public class ConfigManager {
     }
 
     public static void saveServerConfigToFile() {
-        // Solo guardar si estamos en un servidor dedicado, o si la configuración del servidor
-        // ha sido inicializada (lo que ocurre en single-player).
+        // Only save on a dedicated server or if the server config has been initialized (e.g., in single-player).
         if (FabricLoader.getInstance().getEnvironmentType() == EnvType.SERVER || configServer != null) {
             saveConfigFile(CONFIG_SERVER_FILE, configServer, "config-server.json");
         }
     }
 
-    private static void loadCatchemallRewardsConfig() throws ConfigReadException { // NUEVO
+    private static void loadCatchemallRewardsConfig() throws ConfigReadException {
         catchemallRewardsConfig = loadConfigFile(CATCHEMALL_REWARDS_FILE, CatchemallRewardsConfig.class, "catchemall_rewards.json");
     }
 
-    private static void saveCatchemallRewardsConfig() { // NUEVO
+    private static void saveCatchemallRewardsConfig() {
         if (FabricLoader.getInstance().getEnvironmentType() != EnvType.CLIENT) {
             saveConfigFile(CATCHEMALL_REWARDS_FILE, catchemallRewardsConfig, "catchemall_rewards.json");
         }
@@ -201,7 +207,6 @@ public class ConfigManager {
     }
 
     public static ConfigPokemon getPokemonConfig() {
-        // El get ahora es más simple, ya que la carga inicial se encarga de la lógica.
         if (configPokemon == null) {
             try {
                 loadConfigPokemon();
@@ -237,7 +242,7 @@ public class ConfigManager {
         return configServer;
     }
 
-    public static CatchemallRewardsConfig getCatchemallRewardsConfig() { // NUEVO
+    public static CatchemallRewardsConfig getCatchemallRewardsConfig() {
         if (catchemallRewardsConfig == null) {
             try {
                 loadCatchemallRewardsConfig();
@@ -262,7 +267,6 @@ public class ConfigManager {
     }
 
     public static CustomListConfig getPlayerConfig(UUID playerUuid) {
-        // Devuelve desde el caché si está disponible
         return playerConfigs.computeIfAbsent(playerUuid, uuid -> {
             File playerFile = new File(PLAYER_DATA_DIR, uuid.toString() + ".json");
             try {
@@ -277,10 +281,8 @@ public class ConfigManager {
     public static void savePlayerConfig(UUID playerUuid, CustomListConfig config) {
         File playerFile = new File(PLAYER_DATA_DIR, playerUuid.toString() + ".json");
         saveConfigFile(playerFile, config, playerUuid.toString() + ".json");
-        playerConfigs.put(playerUuid, config); // Actualiza el caché
+        playerConfigs.put(playerUuid, config); // Update cache
     }
-
-    // --- NUEVOS MÉTODOS PARA CATCH 'EM ALL ---
 
     public static PlayerCatchProgress getPlayerCatchProgress(UUID playerUuid) {
         return playerCatchProgress.computeIfAbsent(playerUuid, uuid -> {
@@ -297,22 +299,22 @@ public class ConfigManager {
     public static void savePlayerCatchProgress(UUID playerUuid, PlayerCatchProgress progress) {
         File progressFile = new File(CATCH_PROGRESS_DIR, playerUuid.toString() + ".json");
         saveConfigFile(progressFile, progress, "catch progress for " + playerUuid);
-        playerCatchProgress.put(playerUuid, progress); // Actualiza el caché
+        playerCatchProgress.put(playerUuid, progress); // Update cache
     }
 
     /**
-     * Elimina el progreso de un jugador del caché, forzando a que se recargue desde el archivo en la próxima petición.
-     * @param playerUuid El UUID del jugador.
+     * Removes a player's progress from the cache, forcing a reload from the file on the next request.
+     * @param playerUuid The player's UUID.
      */
     public static void forceReloadPlayerCatchProgress(UUID playerUuid) {
         playerCatchProgress.remove(playerUuid);
     }
 
     /**
-     * Carga los datos de una generación (región y lista de Pokémon) desde los recursos del mod.
-     * Los resultados se guardan en caché para mejorar el rendimiento.
-     * @param genName El nombre del archivo de generación (ej: "gen1")
-     * @return Un objeto GenerationData o null si no se encuentra.
+     * Loads generation data (region and Pokémon list) from the mod's resources.
+     * Results are cached for performance.
+     * @param genName The name of the generation file (e.g., "gen1").
+     * @return A GenerationData object, or null if not found.
      */
     public static GenerationData getGenerationData(String genName) {
         return generationDataCache.computeIfAbsent(genName, name -> {
@@ -320,14 +322,14 @@ public class ConfigManager {
             try (InputStream is = ConfigManager.class.getResourceAsStream(path)) {
                 if (is == null) {
                     PokeNotifier.LOGGER.warn("Generation file not found: {}", path);
-                    return null; // Devuelve null si el archivo no existe
+                    return null;
                 }
                 try (InputStreamReader reader = new InputStreamReader(is)) {
                     return GSON.fromJson(reader, GenerationData.class);
                 }
             } catch (IOException | JsonSyntaxException e) {
                 PokeNotifier.LOGGER.error("Failed to load or parse generation file: {}", path, e);
-                return null; // Devuelve null si hay un error de lectura/parseo
+                return null;
             }
         });
     }

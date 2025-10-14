@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2024 ZeHrOx
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
 package com.zehro_mc.pokenotifier;
 
 import com.cobblemon.mod.common.api.Priority;
@@ -19,10 +27,8 @@ import com.zehro_mc.pokenotifier.model.PlayerCatchProgress;
 import com.zehro_mc.pokenotifier.event.CaptureListener;
 import com.zehro_mc.pokenotifier.networking.*;
 import com.zehro_mc.pokenotifier.networking.ServerDebugStatusPayload;
-import com.zehro_mc.pokenotifier.networking.StatusUpdatePayload;
 import com.zehro_mc.pokenotifier.util.PokeNotifierServerUtils;
 import com.zehro_mc.pokenotifier.util.PlayerRankManager;
-import com.zehro_mc.pokenotifier.util.PrestigeEffects;
 import com.zehro_mc.pokenotifier.util.RarityUtil;
 import kotlin.Unit;
 import net.fabricmc.api.ModInitializer;
@@ -58,7 +64,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import java.util.concurrent.ConcurrentHashMap;
@@ -72,20 +77,18 @@ public class PokeNotifier implements ModInitializer {
 
     public static final Map<PokemonEntity, RarityUtil.RarityCategory> TRACKED_POKEMON = new ConcurrentHashMap<>();
 
-    // --- NUEVO: Sistema de tareas con retraso para efectos de join ---
     private static final List<Runnable> PENDING_TASKS = new ArrayList<>();
-
     private static MinecraftServer server;
 
     @Override
     public void onInitialize() {
         LOGGER.info("Initializing Poke Notifier...");
 
-        // Registramos los TIPOS de paquetes que el servidor puede recibir (C2S).
+        // Register C2S payload types.
         PayloadTypeRegistry.playC2S().register(CustomListUpdatePayload.ID, CustomListUpdatePayload.CODEC);
         PayloadTypeRegistry.playC2S().register(CatchemallUpdatePayload.ID, CatchemallUpdatePayload.CODEC);
 
-        // Y también los TIPOS de paquetes que el servidor puede enviar (S2C).
+        // Register S2C payload types.
         PayloadTypeRegistry.playS2C().register(WaypointPayload.ID, WaypointPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(StatusUpdatePayload.ID, StatusUpdatePayload.CODEC);
         PayloadTypeRegistry.playS2C().register(ServerDebugStatusPayload.ID, ServerDebugStatusPayload.CODEC);
@@ -93,28 +96,20 @@ public class PokeNotifier implements ModInitializer {
         PayloadTypeRegistry.playS2C().register(CatchProgressPayload.ID, CatchProgressPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(GlobalAnnouncementPayload.ID, GlobalAnnouncementPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(ModeStatusPayload.ID, ModeStatusPayload.CODEC);
-    PayloadTypeRegistry.playS2C().register(RankSyncPayload.ID, RankSyncPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(RankSyncPayload.ID, RankSyncPayload.CODEC);
 
-        // Cargamos la configuración desde los archivos .json al iniciar el mod.
-        // Esta es la corrección clave.
         try {
             ConfigManager.loadConfig();
         } catch (ConfigManager.ConfigReadException e) {
             LOGGER.error("Failed to load Poke Notifier configuration on startup. Using default values.", e);
         }
 
-        // Registramos nuestros componentes de datos
         ModDataComponents.registerModDataComponents();
-
-        // Registramos nuestros objetos personalizados
         ModItems.registerModItems();
-
-        // Registramos nuestros bloques y block entities
         ModBlocks.registerModBlocks();
         ModBlockEntities.registerBlockEntities();
 
-        // --- REGISTRO DE RECEPTORES DE PAQUETES (LADO DEL SERVIDOR) ---
-        // Esto debe ocurrir DESPUÉS de que los tipos de paquetes hayan sido registrados.
+        // Register server-side packet receivers.
         registerServerPacketReceivers();
 
         ServerLifecycleEvents.SERVER_STARTED.register(startedServer -> server = startedServer);
@@ -124,7 +119,7 @@ public class PokeNotifier implements ModInitializer {
             ReloadConfigCommand.register(dispatcher, environment);
             DebugModeCommand.register(dispatcher);
 
-            // Comando de estado del servidor
+            // Server status command.
             var statusCommand = CommandManager.literal("status")
                     .requires(source -> source.hasPermissionLevel(2))
                     .executes(context -> {
@@ -135,7 +130,7 @@ public class PokeNotifier implements ModInitializer {
                         return 1;
                     }).build();
 
-            // Comando para test_mode
+            // Test mode command.
             var testModeCommand = CommandManager.literal("test_mode")
                     .requires(source -> source.hasPermissionLevel(2))
                     .then(CommandManager.literal("enable").executes(context -> {
@@ -151,7 +146,7 @@ public class PokeNotifier implements ModInitializer {
                         return 1;
                     })).build();
 
-            // NUEVO: Comando de prueba para generar Pokémon
+            // Test command to spawn Pokémon.
             SuggestionProvider<ServerCommandSource> pokemonSuggestionProvider = (context, builder) ->
                     CommandSource.suggestMatching(PokeNotifierApi.getAllPokemonNames(), builder);
 
@@ -167,7 +162,7 @@ public class PokeNotifier implements ModInitializer {
                                         return executeTestSpawn(context.getSource().getPlayer(), StringArgumentType.getString(context, "pokemon"), true);
                                     })).build();
 
-            // --- NUEVO: Comando para autocompletar generaciones ---
+            // Command to autocomplete generations for testing.
             SuggestionProvider<ServerCommandSource> generationSuggestionProvider = (context, builder) ->
                     CommandSource.suggestMatching(Stream.of("gen1", "gen2", "gen3", "gen4", "gen5", "gen6", "gen7", "gen8", "gen9"), builder);
 
@@ -193,16 +188,15 @@ public class PokeNotifier implements ModInitializer {
                                             return 0;
                                         }
 
-                                    // --- BUG CRÍTICO FIX ---
-                                    // Comprobamos si el jugador tiene el modo catchemall activo.
+                                    // Check if the player has Catch 'em All mode active.
                                     PlayerCatchProgress progress = ConfigManager.getPlayerCatchProgress(targetPlayer.getUuid());
                                     if (progress.active_generations.isEmpty()) {
                                         context.getSource().sendError(Text.literal("Player " + profile.getName() + " does not have Catch 'em All mode active.").formatted(Formatting.RED));
                                         return 0;
                                     }
 
-                                        // --- CORRECCIÓN: Comprobamos el estado del jugador ANTES de hacer el backup ---
-                                        if (!progress.active_generations.isEmpty() && !progress.active_generations.contains(genName)) { // Usamos la variable 'progress' ya definida
+                                        // Check if the player is already tracking a different generation.
+                                        if (!progress.active_generations.isEmpty() && !progress.active_generations.contains(genName)) {
                                             String activeGen = progress.active_generations.iterator().next();
                                             context.getSource().sendError(Text.literal("Player " + profile.getName() + " is already tracking " + formatGenName(activeGen) + ". They must disable it first.").formatted(Formatting.RED));
                                             return 0;
@@ -212,8 +206,7 @@ public class PokeNotifier implements ModInitializer {
                                         File progressFile = new File(ConfigManager.CATCH_PROGRESS_DIR, targetPlayer.getUuid().toString() + ".json");
                                         File backupFile = new File(ConfigManager.CATCH_PROGRESS_DIR, targetPlayer.getUuid().toString() + ".json.bak");
 
-                                        // --- LÓGICA DE BACKUP MEJORADA ---
-                                        // Solo creamos el backup si no existe uno previo.
+                                        // Only create a backup if one doesn't already exist.
                                         try {
                                             if (progressFile.exists() && !backupFile.exists()) {
                                                 Files.copy(progressFile.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
@@ -238,7 +231,7 @@ public class PokeNotifier implements ModInitializer {
             dispatcher.getRoot().getChild("pokenotifier").addChild(testSpawnCommand);
             dispatcher.getRoot().getChild("pokenotifier").addChild(autoCompleteGenCommand);
 
-            // --- NUEVO: Comando para restaurar el progreso ---
+            // Command to restore player progress from a backup.
             var rollbackCommand = CommandManager.literal("rollback")
                     .requires(source -> source.hasPermissionLevel(2))
                     .then(CommandManager.argument("player", GameProfileArgumentType.gameProfile())
@@ -264,15 +257,14 @@ public class PokeNotifier implements ModInitializer {
             dispatcher.getRoot().getChild("pokenotifier").addChild(rollbackCommand);
         });
 
-        // Enviar estado del debug mode a los OPs cuando se conectan
+        // On player join, perform initial syncs and check for rank effects.
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-        ServerPlayerEntity player = handler.getPlayer();
-        performInitialPcSync(player);
-        PokeNotifierServerUtils.sendCatchProgressUpdate(player);
-        PlayerRankManager.onPlayerJoin(player); // Centralizamos la lógica de join
+            ServerPlayerEntity player = handler.getPlayer();
+            performInitialPcSync(player);
+            PokeNotifierServerUtils.sendCatchProgressUpdate(player);
+            PlayerRankManager.onPlayerJoin(player);
         });
 
-        // La forma correcta para Cobblemon 1.6+ es usar POKEMON_ENTITY_SPAWN, que nos da un evento con la entidad.
         CobblemonEvents.POKEMON_ENTITY_SPAWN.subscribe(Priority.NORMAL, event -> {
             RarePokemonNotifier.onPokemonSpawn(event.getEntity());
             return Unit.INSTANCE;
@@ -281,8 +273,6 @@ public class PokeNotifier implements ModInitializer {
         CobblemonEvents.POKEMON_CAPTURED.subscribe(Priority.NORMAL, event -> {
             TRACKED_POKEMON.keySet().removeIf(entity -> entity.getPokemon().getUuid().equals(event.getPokemon().getUuid()));
             CaptureListener.onPokemonCaptured(event);
-
-            // Actualizamos el HUD del jugador que ha capturado
             PokeNotifierServerUtils.sendCatchProgressUpdate(event.getPlayer());
             return Unit.INSTANCE;
         });
@@ -311,7 +301,7 @@ public class PokeNotifier implements ModInitializer {
                 }
                 return false;
             });
-            // --- NUEVO: Procesamos las tareas pendientes ---
+            // Process any scheduled tasks.
             if (!PENDING_TASKS.isEmpty()) {
                 for (Runnable task : new ArrayList<>(PENDING_TASKS)) {
                     task.run();
@@ -322,11 +312,9 @@ public class PokeNotifier implements ModInitializer {
     }
 
     /**
-     * Registra los receptores para los paquetes que vienen del cliente al servidor.
-     * Se llama después de que los tipos de paquetes han sido registrados.
+     * Registers receivers for packets sent from the client to the server.
      */
     private static void registerServerPacketReceivers() {
-        // Recibir y procesar las actualizaciones de la lista personalizada
         ServerPlayNetworking.registerGlobalReceiver(CustomListUpdatePayload.ID, (payload, context) -> {
             ServerPlayerEntity player = context.player();
             String pokemonName = payload.pokemonName().toLowerCase().trim();
@@ -336,8 +324,7 @@ public class PokeNotifier implements ModInitializer {
 
                 switch (payload.action()) {
                     case ADD:
-                        // El parser de propiedades es más robusto y entiende tanto 'mr-mime' como 'mr_mime'.
-                        // Lo usamos aquí para una validación consistente.
+                        // Use the property parser for robust validation (e.g., handles 'mr-mime' and 'mr_mime').
                         try {
                             PokemonProperties.Companion.parse(pokemonName);
                         } catch (Exception e) {
@@ -383,7 +370,7 @@ public class PokeNotifier implements ModInitializer {
             });
         });
 
-        // Recibir y procesar las actualizaciones del modo Catch 'em All
+        // Handle "Catch 'em All" mode updates from the client.
         ServerPlayNetworking.registerGlobalReceiver(CatchemallUpdatePayload.ID, (payload, context) -> {
             ServerPlayerEntity player = context.player();
             String genName = payload.generationName().toLowerCase().trim();
@@ -398,38 +385,32 @@ public class PokeNotifier implements ModInitializer {
                             player.sendMessage(Text.literal("Error: Generation '" + genName + "' not found.").formatted(Formatting.RED), false);
                             return;
                         }
-                        // Lógica para permitir solo una generación activa a la vez
+                        // Allow only one active generation at a time.
                         if (progress.active_generations.contains(genName)) {
-                            // Si ya está siguiendo esta generación, solo se lo recordamos.
                             String regionName = formatRegionName(genData.region);
                             ServerPlayNetworking.send(player, new ModeStatusPayload("Already Tracking: " + regionName, true));
                             return;
                         }
                         
-                        // Si ya estaba siguiendo otra, se la notificamos.
                         if (!progress.active_generations.isEmpty()) {
                             String oldGen = progress.active_generations.iterator().next();
                             player.sendMessage(Text.literal("Stopped tracking " + formatGenName(oldGen) + ".").formatted(Formatting.YELLOW), false);
                         }
-                        progress.active_generations.clear(); // Limpiamos la lista
-                        progress.active_generations.add(genName); // Añadimos la nueva
+                        progress.active_generations.clear();
+                        progress.active_generations.add(genName);
                         ConfigManager.savePlayerCatchProgress(player.getUuid(), progress);
-                        String regionName = formatRegionName(genData.region); // Re-declaramos aquí porque el scope anterior terminó.
+                        String regionName = formatRegionName(genData.region);
 
-                        // Enviamos feedback visual
                         ServerPlayNetworking.send(player, new ModeStatusPayload("Tracking: " + regionName, true));
                         PokeNotifierServerUtils.sendCatchProgressUpdate(player);
                         break;
 
                     case DISABLE:
-                        // --- LÓGICA RESTAURADA ---
                         if (progress.active_generations.remove(genName)) {
                             ConfigManager.savePlayerCatchProgress(player.getUuid(), progress);
-                            // Enviamos feedback visual
                             ServerPlayNetworking.send(player, new ModeStatusPayload("Tracking Disabled", false));
-                            PokeNotifierServerUtils.sendCatchProgressUpdate(player); // Actualizamos para ocultar el HUD
+                            PokeNotifierServerUtils.sendCatchProgressUpdate(player); // Update to hide the HUD
                         } else {
-                            // Si no estaba siguiendo esa generación, se lo decimos.
                             ServerPlayNetworking.send(player, new ModeStatusPayload("Was not tracking", false));
                         }
                         break;
@@ -462,8 +443,7 @@ public class PokeNotifier implements ModInitializer {
     }
 
     private int executeTestSpawn(ServerPlayerEntity player, String pokemonName, boolean isShiny) {
-        // --- RESTRICCIÓN DE TEST MODE ---
-        // El comando de spawn de prueba solo debe funcionar si el test_mode está activado.
+        // The test spawn command should only work if test_mode is enabled.
         if (!ConfigManager.getServerConfig().enable_test_mode) {
             player.sendMessage(Text.literal("Test Mode is disabled. Please enable it first with '/pokenotifier test_mode enable'.").formatted(Formatting.RED), false);
             return 0;
@@ -472,7 +452,7 @@ public class PokeNotifier implements ModInitializer {
         ServerWorld world = player.getServerWorld();
         final String finalPokemonName = pokemonName.toLowerCase().trim();
 
-        // Validación estricta: el nombre debe existir en la lista oficial de Cobblemon.
+        // Strict validation: the name must exist in Cobblemon's official list.
         if (PokeNotifierApi.getAllPokemonNames().noneMatch(name -> name.equals(finalPokemonName))) {
             player.sendMessage(Text.literal("Error: Pokémon '").append(Text.literal(finalPokemonName).formatted(Formatting.GOLD)).append("' is not a valid Pokémon name.").formatted(Formatting.RED), false);
             return 0;
@@ -486,14 +466,13 @@ public class PokeNotifier implements ModInitializer {
 
             PokemonEntity pokemonEntity = props.createEntity(world);
             pokemonEntity.refreshPositionAndAngles(player.getX(), player.getY(), player.getZ(), player.getYaw(), player.getPitch());
-            // ¡Importante! No le asignamos un propietario (OwnerUuid)
             
-            // Añadimos una etiqueta NBT personalizada para identificar este spawn como uno de prueba.
+            // Add a custom NBT tag to identify this as a test spawn.
             pokemonEntity.getPokemon().getPersistentData().putBoolean("pokenotifier_test_spawn", true);
 
             world.spawnEntity(pokemonEntity);
 
-            // Disparamos nuestro propio evento de notificación manualmente, ya que world.spawnEntity no lo hace.
+            // Manually trigger our own notification event, as world.spawnEntity does not.
             RarePokemonNotifier.onPokemonSpawn(pokemonEntity);
 
             player.sendMessage(Text.literal("Spawned a " + (isShiny ? "Shiny " : "") + finalPokemonName + ".").formatted(Formatting.GREEN), false);
@@ -515,14 +494,13 @@ public class PokeNotifier implements ModInitializer {
     }
 
     /**
-     * Realiza la sincronización inicial del PC y la party de un jugador con su progreso de "Catch 'em All".
-     * Esta operación solo se ejecuta una vez por jugador.
-     * @param player El jugador a sincronizar.
+     * Performs the initial sync of a player's PC and party with their "Catch 'em All" progress.
+     * This operation only runs once per player.
+     * @param player The player to sync.
      */
     private static void performInitialPcSync(ServerPlayerEntity player) {
         var progress = ConfigManager.getPlayerCatchProgress(player.getUuid());
 
-        // Si la sincronización ya se completó, no hacemos nada.
         if (progress.initialPcSyncCompleted) {
             return;
         }
@@ -532,14 +510,12 @@ public class PokeNotifier implements ModInitializer {
         PokemonStore party = Cobblemon.INSTANCE.getStorage().getParty(player);
         PokemonStore pc = Cobblemon.INSTANCE.getStorage().getPC(player);
 
-        // Combinamos la party y el PC en un solo stream de Pokémon
         Stream<Pokemon> partyStream = StreamSupport.stream(party.spliterator(), false);
         Stream<Pokemon> pcStream = StreamSupport.stream(pc.spliterator(), false);
         Stream.concat(partyStream, pcStream).forEach(pokemon -> {
             if (pokemon == null) return;
             String pokemonName = pokemon.getSpecies().getResourceIdentifier().getPath();
 
-            // Iteramos sobre todas las generaciones conocidas para ver si el Pokémon pertenece a alguna.
             for (int i = 1; i <= 9; i++) {
                 String genId = "gen" + i;
                 GenerationData genData = ConfigManager.getGenerationData(genId);
@@ -559,16 +535,13 @@ public class PokeNotifier implements ModInitializer {
     private static String autocompleteGenerationForPlayer(ServerPlayerEntity player, String genName, GenerationData genData) {
         PlayerCatchProgress progress = ConfigManager.getPlayerCatchProgress(player.getUuid());
 
-        // Creamos una lista mutable para poder manipularla.
         List<String> pokemonList = new ArrayList<>(genData.pokemon);
         if (pokemonList.isEmpty()) {
-            return "none"; // No hay Pokémon en esta generación.
+            return "none";
         }
 
-        // Seleccionamos el último Pokémon para dejarlo sin capturar.
         String lastPokemon = pokemonList.remove(pokemonList.size() - 1);
 
-        // Sobrescribimos la lista de capturados para esa generación.
         progress.caught_pokemon.put(genName, new HashSet<>(pokemonList));
         ConfigManager.savePlayerCatchProgress(player.getUuid(), progress);
 
@@ -587,11 +560,9 @@ public class PokeNotifier implements ModInitializer {
 
         try {
             Files.move(backupFile.toPath(), progressFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            // Forzamos la recarga del progreso desde el archivo restaurado
             ConfigManager.forceReloadPlayerCatchProgress(player.getUuid());
             PokeNotifierServerUtils.sendCatchProgressUpdate(player);
 
-            // --- CORRECCIÓN: Eliminamos cualquier trofeo del inventario ---
             player.getInventory().remove(stack -> stack.getItem() instanceof com.zehro_mc.pokenotifier.item.PokedexTrophyItem, -1, player.getInventory());
             player.sendMessage(Text.literal("Your Pokédex Trophies have been removed as part of the rollback.").formatted(Formatting.YELLOW), false);
 

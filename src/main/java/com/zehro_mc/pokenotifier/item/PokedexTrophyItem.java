@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2024 ZeHrOx
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
 package com.zehro_mc.pokenotifier.item;
 
 import com.zehro_mc.pokenotifier.block.ModBlocks;
@@ -18,6 +26,9 @@ import net.minecraft.util.Formatting;
 
 import java.util.List;
 
+/**
+ * Represents a Pokédex Trophy item, which can be placed in the world as a TrophyDisplayBlock.
+ */
 public class PokedexTrophyItem extends Item {
 
     public PokedexTrophyItem(Settings settings) {
@@ -34,7 +45,6 @@ public class PokedexTrophyItem extends Item {
             if (context.getWorld().getBlockEntity(pos) instanceof TrophyDisplayBlockEntity be) {
                 ItemStack stack = context.getStack();
                 String trophyId = Registries.ITEM.getId(stack.getItem()).toString();
-                // --- CORRECCIÓN: Aseguramos que ownerUuid nunca sea null ---
                 String ownerUuid = stack.getOrDefault(ModDataComponents.OWNER_UUID, "");
                 be.setTrophyData(trophyId, ownerUuid);
             }
@@ -51,29 +61,23 @@ public class PokedexTrophyItem extends Item {
     @Environment(EnvType.CLIENT)
     @Override
     public boolean hasGlint(ItemStack stack) {
-        // El trofeo siempre brillará como un objeto encantado.
         return true;
     }
 
     @Environment(EnvType.CLIENT)
     @Override
     public void appendTooltip(ItemStack stack, Item.TooltipContext context, List<Text> tooltip, TooltipType type) {
-        // --- CORRECCIÓN: Llamamos a super para que el nombre del objeto se muestre primero ---
         super.appendTooltip(stack, context, tooltip, type);
 
-        // --- DESCRIPCIONES ÚNICAS Y ÉPICAS ---
         tooltip.add(getRegionDescription(stack.getItem()));
-        tooltip.add(Text.empty()); // Línea en blanco para separar
+        tooltip.add(Text.empty()); // Blank line for spacing.
 
-        // Leemos el propietario desde nuestro componente de datos personalizado.
         String ownerName = stack.get(ModDataComponents.OWNER_NAME);
         if (ownerName != null && !ownerName.isEmpty()) {
             tooltip.add(Text.literal("Owner: ").formatted(Formatting.GRAY).append(Text.literal(ownerName).formatted(Formatting.AQUA)));
         } else {
-            // Si no tiene propietario, es probable que sea del creativo.
             tooltip.add(Text.literal("Owner: ").formatted(Formatting.GRAY).append(Text.literal("Creative Mode").formatted(Formatting.YELLOW)));
         }
-        // No llamamos a super para tener control total sobre el tooltip.
     }
 
     @Environment(EnvType.CLIENT)

@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2024 ZeHrOx
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
 package com.zehro_mc.pokenotifier.client;
 
 import com.zehro_mc.pokenotifier.util.RankInfo;
@@ -10,18 +18,22 @@ import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.util.math.MatrixStack;
 import org.joml.Matrix4f;
 
+/**
+ * A utility class for rendering rank icons and text in the game world.
+ */
 public class RankRenderer {
 
-    private static final int ICON_SIZE = 9; // Tamaño del icono en píxeles
-    private static final int ICON_SPACING = 1; // Espacio entre iconos
-    private static final int TEXT_SPACING = 2; // Espacio entre el último icono y el texto
+    private static final int ICON_SIZE = 9;
+    private static final int ICON_SPACING = 1;
+    private static final int TEXT_SPACING = 2;
 
     /**
-     * Dibuja el icono y el texto del rango y devuelve el ancho total dibujado.
+     * Draws the rank icon and text for a 2D GUI context.
+     * @return The total width drawn.
      */
     public static int drawRank(DrawContext context, int x, int y, RankInfo rankInfo) {
         if (rankInfo == null) return 0;
-        // Este método es para GUI 2D, lo dejaremos vacío por ahora para centrarnos en el Nametag.
+        // This method is for 2D GUIs, which is not the current focus.
         return 0;
     }
 
@@ -32,8 +44,8 @@ public class RankRenderer {
     }
 
     /**
-     * Dibuja el icono y el texto del rango para un Nametag en el mundo 3D.
-     * Devuelve el ancho total dibujado.
+     * Draws the rank icon and text for a 3D world nametag.
+     * @return The total width drawn, used to offset the player's name.
      */
     public static int drawNametagRank(MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light, RankInfo rankInfo) {
         if (rankInfo == null) return 0;
@@ -41,24 +53,25 @@ public class RankRenderer {
         int currentX = 0;
         Matrix4f positionMatrix = matrices.peek().getPositionMatrix();
 
-        // 1. Dibujar los iconos
-        // --- CORRECCIÓN: Usamos la API de renderizado 3D correcta ---
-        // --- CORRECCIÓN FINAL: Usamos el RenderLayer correcto para texturas de GUI ---
+        // 1. Draw the rank icons.
         VertexConsumer vertexConsumer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(rankInfo.rank().icon));
         for (int i = 0; i < rankInfo.iconCount(); i++) {
             float x1 = (float)currentX;
-            float y1 = -4f; // Ajuste vertical para alinear con el texto
+            float y1 = -4f; // Vertical adjustment to align with text.
             float x2 = x1 + ICON_SIZE;
             float y2 = y1 + ICON_SIZE;
             float z = 0.0f;
+
+            // Manually draw the quad for the texture.
             vertexConsumer.vertex(positionMatrix, x1, y1, z).color(255, 255, 255, 255).texture(0.0f, 0.0f).light(light);
             vertexConsumer.vertex(positionMatrix, x1, y2, z).color(255, 255, 255, 255).texture(0.0f, 1.0f).light(light);
-            vertexConsumer.vertex(positionMatrix, x2, y2, z).color(255, 255, 255, 255).texture(1.0f, 1.0f).light(light); // CORRECCIÓN: El valor de color era inválido.
+            vertexConsumer.vertex(positionMatrix, x2, y2, z).color(255, 255, 255, 255).texture(1.0f, 1.0f).light(light);
             vertexConsumer.vertex(positionMatrix, x2, y1, z).color(255, 255, 255, 255).texture(1.0f, 0.0f).light(light);
+
             currentX += ICON_SIZE + ICON_SPACING;
         }
 
-        // 2. Dibujar el texto del rango
+        // 2. Draw the rank text.
         TextRenderer textRenderer = MinecraftClient.getInstance().textRenderer;
         textRenderer.draw(rankInfo.rank().displayText, currentX, 0, 0xFFFFFF, false, positionMatrix, vertexConsumers, TextRenderer.TextLayerType.SEE_THROUGH, 0, light);
 

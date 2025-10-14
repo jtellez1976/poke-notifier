@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2024 ZeHrOx
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
 package com.zehro_mc.pokenotifier.util;
 
 import com.zehro_mc.pokenotifier.ConfigManager;
@@ -9,11 +17,14 @@ import net.minecraft.server.network.ServerPlayerEntity;
 
 import java.util.Set;
 
+/**
+ * A utility class for server-side helper methods.
+ */
 public class PokeNotifierServerUtils {
 
     /**
-     * Envía una actualización del progreso del modo "Catch 'em All" a un jugador.
-     * @param player El jugador al que se le enviará la actualización.
+     * Sends a "Catch 'em All" progress update to a specific player.
+     * @param player The player to send the update to.
      */
     public static void sendCatchProgressUpdate(ServerPlayerEntity player) {
         PlayerCatchProgress progress = ConfigManager.getPlayerCatchProgress(player.getUuid());

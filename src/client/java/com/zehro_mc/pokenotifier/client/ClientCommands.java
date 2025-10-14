@@ -1,8 +1,14 @@
+/*
+ * Copyright (C) 2024 ZeHrOx
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
 package com.zehro_mc.pokenotifier.client;
 
 import com.mojang.brigadier.arguments.StringArgumentType;
-import com.mojang.brigadier.suggestion.SuggestionProvider;
-import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.zehro_mc.pokenotifier.ConfigClient;
@@ -12,6 +18,7 @@ import com.zehro_mc.pokenotifier.PokeNotifier;
 import com.zehro_mc.pokenotifier.networking.CatchemallUpdatePayload;
 import com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+import com.mojang.brigadier.suggestion.SuggestionProvider;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.loader.api.ModContainer;
@@ -24,19 +31,19 @@ import net.minecraft.util.Formatting;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 
+/**
+ * Registers and handles all client-side commands, which start with /pnc.
+ */
 public class ClientCommands {
 
     public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher) {
-        // --- Comando Principal del Cliente ---
         LiteralArgumentBuilder<FabricClientCommandSource> pncCommand = ClientCommandManager.literal("pnc");
 
-        // --- Comandos de Alertas ---
         pncCommand
                 .then(buildCommandToggle("alert_sound", "Alert Sounds", (config, enabled) -> config.alert_sounds_enabled = enabled))
                 .then(buildCommandToggle("alert_toast", "HUD (Toast) alerts", (config, enabled) -> config.alert_toast_enabled = enabled))
                 .then(buildCommandToggle("alert_chat", "Chat alerts", (config, enabled) -> config.alert_chat_enabled = enabled));
 
-        // --- NUEVO: Comando Silent ---
         pncCommand.then(ClientCommandManager.literal("silent")
                 .then(ClientCommandManager.literal("ON").executes(context -> {
                     ConfigClient config = ConfigManager.getClientConfig();
@@ -44,7 +51,7 @@ public class ClientCommands {
                     config.alert_toast_enabled = false;
                     config.alert_chat_enabled = false;
                     config.silent_mode_enabled = true;
-                    config.searching_enabled = false; // Detiene la búsqueda
+                    config.searching_enabled = false;
                     ConfigManager.saveClientConfigToFile();
                     context.getSource().sendFeedback(Text.literal("Silent mode is now ON. All notifications are disabled.").formatted(Formatting.RED));
                     return 1;
@@ -55,13 +62,12 @@ public class ClientCommands {
                     config.alert_toast_enabled = true;
                     config.alert_chat_enabled = true;
                     config.silent_mode_enabled = false;
-                    config.searching_enabled = true; // Reanuda la búsqueda
+                    config.searching_enabled = true;
                     ConfigManager.saveClientConfigToFile();
                     context.getSource().sendFeedback(Text.literal("Silent mode is now OFF. Notifications are enabled.").formatted(Formatting.GREEN));
                     return 1;
                 })));
 
-        // --- Comando Custom List ---
         SuggestionProvider<FabricClientCommandSource> pokemonSuggestionProvider = (context, builder) ->
                 CommandSource.suggestMatching(PokeNotifierApi.getAllPokemonNames(), builder);
 
@@ -99,7 +105,6 @@ public class ClientCommands {
 
         pncCommand.then(customListCommand);
 
-        // --- NUEVO: Comando Catch 'em All ---
         SuggestionProvider<FabricClientCommandSource> generationSuggestionProvider = (context, builder) ->
                 CompletableFuture.supplyAsync(() -> {
                     Stream.of("gen1", "gen2", "gen3", "gen4", "gen5", "gen6", "gen7", "gen8", "gen9")
@@ -135,7 +140,6 @@ public class ClientCommands {
 
         pncCommand.then(catchemallCommand);
 
-        // --- Comando de Versión (Cliente) ---
         pncCommand.then(ClientCommandManager.literal("version")
                 .executes(context -> {
                     String modVersion = FabricLoader.getInstance()
@@ -148,7 +152,6 @@ public class ClientCommands {
                     return 1;
                 }));
 
-        // --- Comandos de Test Mode (Placeholder - Cliente) ---
         pncCommand.then(ClientCommandManager.literal("test_mode")
                 .then(ClientCommandManager.literal("ON").executes(context -> {
                     context.getSource().sendFeedback(Text.literal("This command will be implemented in a future update.").formatted(Formatting.GRAY));
@@ -159,7 +162,6 @@ public class ClientCommands {
                     return 1;
                 })));
 
-        // --- NUEVO: Comando de Estado ---
         pncCommand.then(ClientCommandManager.literal("status")
                 .executes(context -> {
                     ConfigClient config = ConfigManager.getClientConfig();
@@ -170,12 +172,11 @@ public class ClientCommands {
                     sendStatusLine(context.getSource(), "  Alert Sounds", config.alert_sounds_enabled);
                     sendStatusLine(context.getSource(), "  Chat Alerts", config.alert_chat_enabled);
                     sendStatusLine(context.getSource(), "  Toast Alerts (HUD)", config.alert_toast_enabled);
-                    //sendStatusLine(context.getSource(), "Test Mode", config.enable_test_mode); // Descomentar cuando se implemente
                     return 1;
                 }));
 
 
-        // --- Redirección de Comandos de Servidor ---
+        // Redirects server-side commands to be accessible via /pnc for convenience.
         var serverCommandNode = dispatcher.getRoot().getChild("pokenotifier");
         if (serverCommandNode != null) {
             pncCommand.then(ClientCommandManager.literal("reloadconfig").redirect(serverCommandNode));
@@ -184,7 +185,6 @@ public class ClientCommands {
         dispatcher.register(pncCommand);
     }
 
-    // --- Método de Ayuda para crear comandos ON/OFF ---
     private static LiteralArgumentBuilder<FabricClientCommandSource> buildCommandToggle(String commandName, String feedbackText, ToggleAction action) {
         return ClientCommandManager.literal(commandName)
                 .then(ClientCommandManager.literal("ON")
@@ -205,7 +205,6 @@ public class ClientCommands {
                         }));
     }
 
-    // --- NUEVO: Método de Ayuda para el comando status ---
     private static void sendStatusLine(FabricClientCommandSource source, String label, boolean isEnabled) {
         MutableText message = Text.literal(label + " = ").formatted(Formatting.WHITE);
         if (isEnabled) {
@@ -216,7 +215,6 @@ public class ClientCommands {
         source.sendFeedback(message);
     }
 
-    // Interfaz funcional para hacer el código más limpio
     @FunctionalInterface
     private interface ToggleAction {
         void apply(ConfigClient config, boolean enabled);

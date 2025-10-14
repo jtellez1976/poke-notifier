@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2024 ZeHrOx
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
 package com.zehro_mc.pokenotifier.networking;
 
 import com.zehro_mc.pokenotifier.PokeNotifier;
@@ -6,6 +14,9 @@ import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.util.Identifier;
 
+/**
+ * A C2S payload for updating the "Catch 'em All" mode status.
+ */
 public record CatchemallUpdatePayload(Action action, String generationName) implements CustomPayload {
 
     public enum Action {

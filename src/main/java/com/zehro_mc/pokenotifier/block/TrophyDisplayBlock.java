@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2024 ZeHrOx
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
 package com.zehro_mc.pokenotifier.block;
 
 import com.mojang.serialization.MapCodec;
@@ -25,9 +33,12 @@ import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * The block that holds and displays a Pokédex trophy. It is visually invisible,
+ * with the rendering handled entirely by its associated BlockEntityRenderer.
+ */
 public class TrophyDisplayBlock extends BlockWithEntity {
 
-    // --- CORRECCIÓN: Definimos una hitbox para que el bloque sea interactuable ---
     private static final VoxelShape SHAPE = Block.createCuboidShape(4.0, 0.0, 4.0, 12.0, 8.0, 12.0);
 
     public TrophyDisplayBlock(Settings settings) {
@@ -35,8 +46,7 @@ public class TrophyDisplayBlock extends BlockWithEntity {
     }
 
     @Override
-    protected MapCodec<? extends BlockWithEntity> getCodec() {
-        // --- CORRECCIÓN: Implementamos el MapCodec requerido por Minecraft 1.20.5+ ---
+    protected MapCodec<? extends BlockWithEntity> getCodec() { // Required for 1.20.5+
         return createCodec(TrophyDisplayBlock::new);
     }
 
@@ -48,13 +58,12 @@ public class TrophyDisplayBlock extends BlockWithEntity {
 
     @Override
     public BlockRenderType getRenderType(BlockState state) {
-        // Hacemos que el bloque sea invisible, solo el BlockEntityRenderer dibujará algo.
+        // The block itself is invisible; rendering is handled by the BlockEntityRenderer.
         return BlockRenderType.INVISIBLE;
     }
 
     @Override
     public VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
-        // Devolvemos la hitbox que definimos.
         return SHAPE;
     }
 
@@ -63,13 +72,12 @@ public class TrophyDisplayBlock extends BlockWithEntity {
         if (!world.isClient) {
             if (world.getBlockEntity(pos) instanceof TrophyDisplayBlockEntity be) {
                 String ownerUuid = be.getOwnerUuid();
-                // --- LÓGICA DE RECUPERACIÓN SEGURA (CORREGIDA) ---
+                // Only the owner of the trophy can pick it up.
                 if (ownerUuid != null && !ownerUuid.isEmpty() && ownerUuid.equals(player.getUuidAsString())) {
-                    // El jugador es el dueño, le devolvemos el trofeo.
                     String trophyId = be.getTrophyId();
                     Item trophyItem = Registries.ITEM.get(Identifier.of(trophyId));
                     ItemStack trophyStack = new ItemStack(trophyItem);
-                    // Restauramos los datos de autenticidad al objeto.
+                    // Restore authenticity data to the item.
                     trophyStack.set(ModDataComponents.OWNER_NAME, player.getName().getString());
                     trophyStack.set(ModDataComponents.OWNER_UUID, player.getUuidAsString());
 
@@ -80,10 +88,9 @@ public class TrophyDisplayBlock extends BlockWithEntity {
                 }
             }
         }
-        return ActionResult.PASS; // Si no es el dueño, no hace nada.
+        return ActionResult.PASS; // If not the owner, do nothing.
     }
 
-    // --- CORRECCIÓN: Implementamos getPickStack para compatibilidad con Jade/WTHIT ---
     @Override
     public ItemStack getPickStack(WorldView world, BlockPos pos, BlockState state) {
         if (world.getBlockEntity(pos) instanceof TrophyDisplayBlockEntity be) {
@@ -98,8 +105,7 @@ public class TrophyDisplayBlock extends BlockWithEntity {
 
     @Override
     public void randomDisplayTick(BlockState state, World world, BlockPos pos, Random random) {
-        // --- EFECTO DE PARTÍCULAS ---
-        if (random.nextInt(5) == 0) { // Controla la frecuencia de las partículas
+        if (random.nextInt(5) == 0) { // Controls particle frequency.
             double x = pos.getX() + 0.5 + (random.nextDouble() - 0.5) * 0.4;
             double y = pos.getY() + 0.5 + (random.nextDouble() - 0.5) * 0.4;
             double z = pos.getZ() + 0.5 + (random.nextDouble() - 0.5) * 0.4;

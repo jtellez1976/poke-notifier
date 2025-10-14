@@ -1,11 +1,22 @@
+/*
+ * Copyright (C) 2024 ZeHrOx
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
 package com.zehro_mc.pokenotifier.model;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Defines the rewards for completing a Pokédex generation in "Catch 'em All" mode.
+ * This class is serialized to catchemall_rewards.json.
+ */
 public class CatchemallRewardsConfig {
 
     public String[] _instructions = new String[]{
@@ -30,8 +41,7 @@ public class CatchemallRewardsConfig {
     }
 
     public CatchemallRewardsConfig() {
-        // Set the default reward for all 9 generations.
-        // Admins can customize this file later.
+        // Set a default reward for all 9 generations, which admins can customize.
         List<RewardItem> defaultReward = new ArrayList<>(List.of(
                 new RewardItem("cobblemon:master_ball", 10)
         ));

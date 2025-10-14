@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2024 ZeHrOx
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
 package com.zehro_mc.pokenotifier.networking;
 
 import com.zehro_mc.pokenotifier.PokeNotifier;
@@ -10,12 +18,14 @@ import net.minecraft.util.Identifier;
 import java.util.Map;
 import java.util.UUID;
 import java.util.HashMap;
-import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * An S2C payload to synchronize player ranks (as integers) to all clients.
+ */
 public record RankSyncPayload(HashMap<UUID, Integer> ranks) implements CustomPayload {
     public static final Id<RankSyncPayload> ID = new Id<>(Identifier.of(PokeNotifier.MOD_ID, "rank_sync"));
 
-    // --- CORRECCIÓN DEFINITIVA: Definimos el codec del UUID manualmente para evitar errores de compilación ---
+    // Manually define the UUID codec to prevent potential compilation issues.
     private static final PacketCodec<ByteBuf, UUID> UUID_CODEC = PacketCodec.of(
             (uuid, buf) -> buf.writeLong(uuid.getMostSignificantBits()).writeLong(uuid.getLeastSignificantBits()),
             buf -> new UUID(buf.readLong(), buf.readLong())

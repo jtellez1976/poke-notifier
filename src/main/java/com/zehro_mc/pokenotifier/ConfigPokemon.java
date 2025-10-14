@@ -1,19 +1,29 @@
+/*
+ * Copyright (C) 2024 ZeHrOx
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
 package com.zehro_mc.pokenotifier;
 
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * Defines the default lists of Pokémon for each rarity category.
+ * This class is serialized to config-pokemon.json.
+ */
 public class ConfigPokemon {
 
     public String[] _instructions = new String[]{
             "Poke Notifier Configuration - Pokemon Lists",
             "This file defines which Pokémon belong to which rarity category.",
-            "Pokémon names should be in lowercase.",
-            " "
+            "Pokémon names should be in lowercase."
     };
 
-    // Inicializamos los Sets de esta forma para asegurar la compatibilidad con Gson.
     public Set<String> LEGENDARY = new HashSet<>();
     public Set<String> MYTHICAL = new HashSet<>();
     public Set<String> ULTRA_BEAST = new HashSet<>();
@@ -22,8 +32,7 @@ public class ConfigPokemon {
     public Set<String> RARE = new HashSet<>();
 
     public ConfigPokemon() {
-        // Populamos las listas con los valores por defecto en el constructor.
-        // Las listas por defecto ahora están vacías para que el usuario las configure.
+        // Populate the lists with default values in the constructor.
         LEGENDARY.addAll(Arrays.asList(
                 "articuno", "zapdos", "moltres", "mewtwo", "raikou", "entei", "suicune", "lugia", "hooh", "regirock",
                 "regice", "registeel", "latias", "latios", "kyogre", "groudon", "rayquaza", "uxie", "mesprit", "azelf",

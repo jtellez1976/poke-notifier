@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2024 ZeHrOx
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
 package com.zehro_mc.pokenotifier.util;
 
 import net.minecraft.component.DataComponentTypes;
@@ -14,15 +22,24 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.world.World;
 
+/**
+ * A utility class for handling special visual and sound effects related to player prestige.
+ */
 public class PrestigeEffects {
 
     public static void playMasterEffects(ServerPlayerEntity masterPlayer) {
         MinecraftServer server = masterPlayer.getServer();
         if (server == null) return;
 
-        // --- CORRECCIÓN: Iteramos sobre todos los jugadores y les enviamos el sonido individualmente ---
+        // Announce the Master's arrival to everyone.
+        Text championMessage = Text.literal("A Master, ").append(masterPlayer.getDisplayName()).append(Text.literal(", has joined the server!")).formatted(Formatting.GOLD);
+        server.getPlayerManager().broadcast(championMessage, false);
+
+        // Play the thunder sound for every player, regardless of their location.
         for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
             player.playSoundToPlayer(SoundEvents.ENTITY_LIGHTNING_BOLT_THUNDER, SoundCategory.MASTER, 1.0F, 1.0F);
         }
@@ -32,32 +49,28 @@ public class PrestigeEffects {
         World world = player.getWorld();
         if (world.isClient) return;
 
-        // Creamos un cohete de fuegos artificiales con una explosión aleatoria.
         ItemStack fireworkRocket = new ItemStack(Items.FIREWORK_ROCKET);
 
-        // Creamos una explosión con forma de esfera grande y colores aleatorios.
         FireworkExplosionComponent explosion = new FireworkExplosionComponent(
                 FireworkExplosionComponent.Type.LARGE_BALL,
-                IntList.of(0xE67E22, 0xF1C40F, 0x2ECC71), // CORRECCIÓN: Usamos IntList para los colores.
-                IntList.of(), // Sin colores de desvanecimiento
-                true, // Con rastro
-                false // Sin centelleo
+                IntList.of(0xE67E22, 0xF1C40F, 0x2ECC71), // Orange, Yellow, Green
+                IntList.of(), // No fade colors
+                true, // Has trail
+                false // No twinkle
         );
 
-        // Añadimos la explosión y la duración del vuelo al cohete.
         fireworkRocket.set(DataComponentTypes.FIREWORKS, new FireworksComponent(1, java.util.List.of(explosion)));
 
-        // Lanzamos el cohete desde la posición del jugador.
         world.spawnEntity(new FireworkRocketEntity(world, player.getX(), player.getY(), player.getZ(), fireworkRocket));
     }
 
     public static void playMasterAchievementEffects(ServerPlayerEntity player) {
         if (player.getWorld().isClient) return;
 
-        // 1. Efecto de Tótem de la Inmortalidad: Envuelve al jugador en partículas verdes y amarillas.
+        // 1. Totem of Undying effect: Engulfs the player in green and yellow particles.
         player.getWorld().sendEntityStatus(player, EntityStatuses.USE_TOTEM_OF_UNDYING);
 
-        // 4. Aura de Portal del End: Crea un anillo de partículas de portal alrededor del jugador.
+        // 2. End Portal aura: Creates a ring of portal particles around the player.
         if (player.getWorld() instanceof net.minecraft.server.world.ServerWorld serverWorld) {
             serverWorld.spawnParticles(ParticleTypes.PORTAL, player.getX(), player.getBodyY(0.5), player.getZ(), 50, 0.5, 0.5, 0.5, 0.1);
         }

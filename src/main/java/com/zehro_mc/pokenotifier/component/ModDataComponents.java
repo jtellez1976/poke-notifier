@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2024 ZeHrOx
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
 package com.zehro_mc.pokenotifier.component;
 
 import com.mojang.serialization.Codec;
@@ -10,6 +18,9 @@ import net.minecraft.util.Identifier;
 
 import java.util.function.UnaryOperator;
 
+/**
+ * Registers all custom data components used by the mod, such as for storing trophy ownership.
+ */
 public class ModDataComponents {
     public static final ComponentType<String> REGION_NAME = register("region_name", builder -> builder.codec(Codec.STRING).packetCodec(PacketCodecs.STRING));
     public static final ComponentType<String> OWNER_NAME = register("owner_name", builder -> builder.codec(Codec.STRING).packetCodec(PacketCodecs.STRING));

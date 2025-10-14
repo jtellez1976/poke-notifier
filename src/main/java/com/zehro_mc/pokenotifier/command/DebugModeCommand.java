@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2024 ZeHrOx
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
 package com.zehro_mc.pokenotifier.command;
 
 import com.mojang.brigadier.CommandDispatcher;
@@ -9,11 +17,14 @@ import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
+/**
+ * Registers the /pokenotifier debug_mode command.
+ */
 public class DebugModeCommand {
 
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
         LiteralArgumentBuilder<ServerCommandSource> debugCommand = CommandManager.literal("debug_mode")
-                .requires(source -> source.hasPermissionLevel(2)) // Solo OPs
+                .requires(source -> source.hasPermissionLevel(2))
                 .then(CommandManager.literal("enable")
                         .executes(context -> {
                             ConfigServer config = ConfigManager.getServerConfig();

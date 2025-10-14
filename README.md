@@ -1,92 +1,83 @@
 # Poke Notifier
 
-**¡Nunca más te pierdas un Pokémon raro!**
+**Never miss a rare Pokémon again!**
 
-Poke Notifier es un mod para Cobblemon diseñado para servidores que mejora drásticamente la experiencia de encontrar y cazar Pokémon raros. Alerta a los jugadores cuando un Pokémon especial aparece, proporcionando su nombre, rareza y coordenadas.
+Poke Notifier is a server-side mod for Cobblemon designed to dramatically enhance the experience of finding and hunting rare Pokémon. It alerts players when a special Pokémon spawns, providing its name, rarity, and coordinates.
 
-## ✨ Características Principales
+## ✨ Key Features
 
-- **Notificaciones de Spawns Raros:** Alertas en tiempo real cuando aparece un Pokémon Legendario, Mítico, Shiny, Ultra Raro y más.
-- **Múltiples Canales de Alerta:** Recibe notificaciones a través de mensajes en el chat, un HUD de notificación en pantalla (Toast) y alertas de sonido. ¡Totalmente configurable por el jugador!
-- **Modo "Catch 'em All":** ¡El desafío definitivo para los coleccionistas! Activa el seguimiento para una generación específica (ej. Kanto) y recibe notificaciones especiales de los Pokémon que aún no has capturado.
-- **HUD de Progreso:** Mientras el modo "Catch 'em All" está activo, un HUD persistente en pantalla muestra tu progreso de captura para la generación seleccionada (ej. `Gen1: 50/151`).
-- **Sincronización de Pokédex:** ¡No pierdes tu progreso! Al usar el modo "Catch 'em All" por primera vez, el mod **escanea tu PC y tu equipo** para acreditarte todos los Pokémon que ya has capturado. Es seguro de instalar en servidores existentes.
-- **Sistema de Trofeos de Prestigio:** Al completar la Pokédex de una región, recibirás una **insignia de trofeo única** como recompensa. Este objeto coleccionable puede ser colocado en un marco o directamente sobre un bloque sólido, donde se mostrará como un **modelo 3D que gira lentamente** y emite luz.
-- **Recompensas Configurables:** Las recompensas por completar una generación son **totalmente personalizables** por los administradores del servidor a través del archivo `catchemall_rewards.json`. Por defecto, se entregan 10 Master Balls.
-- **Listas de Caza Personalizadas:** ¿Buscas un Pokémon específico que no es necesariamente raro? Añádelo a tu lista personalizada y recibe una notificación especial cuando aparezca.
-- **Efecto de Resplandor:** Los Pokémon notificados reciben un efecto de resplandor temporal, haciéndolos fáciles de localizar.
-- **Compatibilidad Opcional:** Se integra con `AdvancementPlaques` para mostrar notificaciones de activación de modo más estilizadas, con un sistema de fallback si el mod no está instalado.
-
----
-
-## 🎮 Comandos para Jugadores (Cliente)
-
-Todos los comandos de jugador comienzan con `/pnc`.
-
-### Gestión de Alertas
-
-Controla cómo quieres recibir las notificaciones.
-
-| Comando | Descripción |
-| :--- | :--- |
-| `/pnc status` | Muestra el estado actual de todas tus configuraciones de cliente. |
-| `/pnc silent ON/OFF` | Activa o desactiva el **Modo Silencioso**, un interruptor maestro para todas las notificaciones. |
-| `/pnc alert_chat ON/OFF` | Activa o desactiva las notificaciones en el chat. |
-| `/pnc alert_toast ON/OFF` | Activa o desactiva las notificaciones en el HUD (pantalla). |
-| `/pnc alert_sound ON/OFF` | Activa o desactiva los sonidos de alerta. |
-
-### Lista de Caza Personalizada
-
-Crea tu propia lista de Pokémon para rastrear.
-
-| Comando | Descripción |
-| :--- | :--- |
-| `/pnc customlist add <pokemon>` | Añade un Pokémon a tu lista de caza personal. |
-| `/pnc customlist remove <pokemon>` | Elimina un Pokémon de tu lista. |
-| `/pnc customlist list` | Muestra todos los Pokémon en tu lista actual. |
-| `/pnc customlist clear` | Limpia por completo tu lista de caza. |
-
-### Modo "Catch 'em All"
-
-¡El desafío para los verdaderos coleccionistas!
-
-| Comando | Descripción |
-| :--- | :--- |
-| `/pnc catchemall enable <generacion>` | Activa el modo de caza para una generación (ej. `gen1`, `gen2`, etc.). |
-| `/pnc catchemall disable <generacion>` | Desactiva el modo de caza para esa generación. |
-| `/pnc catchemall list` | Muestra qué generación estás rastreando actualmente. |
-
-### Otros Comandos
-
-| Comando | Descripción |
-| :--- | :--- |
-| `/pnc version` | Muestra la versión actual del mod Poke Notifier. |
+- **Rare Spawn Notifications:** Get real-time alerts when a Legendary, Mythical, Shiny, Ultra Beast, and other rare Pokémon appear.
+- **Multiple Alert Channels:** Receive notifications via chat messages, an on-screen HUD (Toast), and sound alerts. Fully configurable by the player!
+- **"Catch 'em All" Mode:** The ultimate challenge for collectors! Enable tracking for a specific generation and receive special notifications for Pokémon you haven't caught yet.
+- **Visual Chat Rank System:** Show off your progress in style! As you complete generations, your name in the chat will gain a unique, multi-colored rank prefix that evolves with your achievements.
+  - **Trainee:** `🛡[Trainee]`
+  - **Great:** `🏆 [Great]`
+  - **Expert:** `🏆🏆 [Expert]`
+  - **Veteran:** `🏆🏆🏆 [Veteran]`
+  - **Master:** `⚡🏆⚡[Master]` (with your username in gold).
+- **Prestige Trophy System:** Upon completing a region's Pokédex, you will receive a **unique trophy badge**. This collectible item can be placed in the world, where it will display as a **slowly rotating 3D model** that emits light and particle effects.
+- **Spectacular Celebration Effects:**
+  - **Fireworks:** When you complete any generation, the sky will light up with fireworks launched from your position!
+  - **"Pokémon Master" Effects:** Upon completing all 9 generations, you will be enveloped in an aura of power, combining the visual effects of the Totem of Undying and the End Portal.
+- **Master's Welcome:** Players who reach the "Master" rank are announced with a **global thunder sound** and a golden chat message every time they join the server.
+- **Pokédex Synchronization:** Don't lose your progress! When using the "Catch 'em All" mode for the first time, the mod **scans your PC and party** to credit you for all the Pokémon you've already caught. It's safe to install on existing servers.
+- **Configurable Rewards:** The rewards for completing a generation are **fully customizable** by server administrators.
 
 ---
 
-## 🛠️ Comandos para Administradores (Servidor)
+## 🎮 Player Commands (Client)
 
-Todos los comandos de administrador comienzan con `/pokenotifier` y requieren nivel de permiso 2 (OP).
+All player commands start with `/pnc`.
 
-| Comando | Descripción |
-| :--- | :--- |
-| `/pokenotifier status` | Muestra el estado de la configuración del lado del servidor. |
-| `/pokenotifier reloadconfig` | Recarga todos los archivos de configuración del mod sin necesidad de reiniciar el servidor. |
-| `/pokenotifier reloadconfig new` | Borra las configuraciones actuales y genera unas nuevas por defecto. |
-| `/pokenotifier debug_mode enable/disable` | Activa o desactiva los logs de depuración detallados en la consola del servidor. |
-| `/pokenotifier test_mode enable/disable` | Activa o desactiva el modo de prueba. Cuando está activo, el mod también notificará spawns no naturales (ej. de comandos). |
-| `/pokenotifier testspawn <pokemon> [shiny]` | Genera un Pokémon específico para pruebas. Solo funciona si el `test_mode` está activado. |
-| `/pokenotifier autocompletegen <jugador> <gen>` | **(Pruebas)** Completa el 99% de la Pokédex de un jugador para una generación, creando un backup de su progreso. |
-| `/pokenotifier rollback <jugador>` | **(Pruebas)** Restaura el progreso de un jugador desde el backup creado por el comando `autocompletegen`. |
+### Alert Management
+| Command                 | Description                                                      |
+| :---------------------- | :--------------------------------------------------------------- |
+| `/pnc status`           | Shows the current status of all your client-side settings.       |
+| `/pnc silent ON/OFF`    | Toggles **Silent Mode**, a master switch for all notifications.    |
+| `/pnc alert_chat ON/OFF`  | Toggles chat notifications.                                      |
+| `/pnc alert_toast ON/OFF` | Toggles on-screen HUD (Toast) notifications.                     |
+| `/pnc alert_sound ON/OFF` | Toggles sound alerts.                                            |
+
+### Custom Hunt List
+| Command                       | Description                               |
+| :---------------------------- | :---------------------------------------- |
+| `/pnc customlist add <pokemon>`   | Adds a Pokémon to your custom hunt list.  |
+| `/pnc customlist remove <pokemon>`| Removes a Pokémon from your list.       |
+| `/pnc customlist list`        | Shows all Pokémon currently on your list. |
+| `/pnc customlist clear`       | Completely clears your hunt list.         |
+
+### "Catch 'em All" Mode
+| Command                           | Description                                                      |
+| :-------------------------------- | :--------------------------------------------------------------- |
+| `/pnc catchemall enable <generation>` | Activates hunt mode for a specific generation (e.g., `gen1`, `gen2`). |
+| `/pnc catchemall disable <generation>`| Deactivates hunt mode for that generation.                     |
+| `/pnc catchemall list`            | Shows which generation you are currently tracking.               |
 
 ---
 
-## 🔧 Instalación
+## 🛠️ Admin Commands (Server)
 
-1.  Asegúrate de tener Fabric Loader instalado.
-2.  Descarga la versión correcta de Fabric API y Cobblemon.
-3.  Descarga la última versión de **Poke Notifier**.
-4.  Coloca los tres archivos .jar en tu carpeta `mods`.
-5.  (Opcional) Para notificaciones de activación de modo más estilizadas, instala `AdvancementPlaques` y su dependencia `Iceberg`.
+All admin commands start with `/pokenotifier` and require permission level 2 (OP).
 
-¡Inicia el juego y disfruta de la caza!
+| Command                                   | Description                                                                    |
+| :---------------------------------------- | :----------------------------------------------------------------------------- |
+| `/pokenotifier status`                    | Shows the status of the server-side configuration.                             |
+| `/pokenotifier reloadconfig`              | Reloads all mod configuration files without a server restart.                  |
+| `/pokenotifier reloadconfig new`          | Deletes current configurations and generates new default ones.                 |
+| `/pokenotifier debug_mode enable/disable` | Toggles detailed debug logs in the server console.                             |
+| `/pokenotifier test_mode enable/disable`  | Toggles test mode. When active, the mod will also notify non-natural spawns. |
+| `/pokenotifier testspawn <pokemon> [shiny]` | Spawns a specific Pokémon for testing. Only works if `test_mode` is enabled.   |
+| `/pokenotifier autocompletegen <player> <gen>` | **(Testing)** Completes 99% of a player's Pokédex for a specific generation. |
+| `/pokenotifier rollback <player>`         | **(Testing)** Restores a player's progress from the backup.                    |
+
+---
+
+## 🔧 Installation
+
+1.  Ensure you have Fabric Loader installed.
+2.  Download the correct version of Fabric API and Cobblemon.
+3.  Download the latest version of **Poke Notifier**.
+4.  Place all three .jar files into your `mods` folder.
+5.  (Optional) For more stylized mode activation notifications, install `AdvancementPlaques` and its dependency, `Iceberg`.
+
+Start the game and enjoy the hunt!

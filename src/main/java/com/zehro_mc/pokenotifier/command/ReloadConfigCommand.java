@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2024 ZeHrOx
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
 package com.zehro_mc.pokenotifier.command;
 
 import com.mojang.brigadier.CommandDispatcher;
@@ -9,6 +17,9 @@ import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
+/**
+ * Registers the /pokenotifier reloadconfig command.
+ */
 public class ReloadConfigCommand {
 
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher, CommandManager.RegistrationEnvironment environment) {
@@ -31,7 +42,6 @@ public class ReloadConfigCommand {
                 .then(CommandManager.literal("new")
                         .executes(context -> {
                             try {
-                                // Al resetear, también guardamos para asegurar la persistencia.
                                 ConfigManager.resetToDefault();
                                 context.getSource().sendFeedback(() -> Text.literal("New default poke-notifier configs have been generated.").formatted(Formatting.GREEN), true);
                                 return 1;

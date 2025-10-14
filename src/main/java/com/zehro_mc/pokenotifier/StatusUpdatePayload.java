@@ -1,20 +1,43 @@
+/*
+ * Copyright (C) 2024 ZeHrOx
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
+/*
+ * Copyright (C) 2024 ZeHrOx
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
 package com.zehro_mc.pokenotifier;
 
+import net.minecraft.util.Identifier;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.packet.CustomPayload;
-import net.minecraft.util.Identifier;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.Optional;
+
+/**
+ * An S2C payload to update the status of a tracked Pokémon (e.g., captured or despawned).
+ */
 public record StatusUpdatePayload(
+        String uuid,
         String name,
-        int level,
         String rarityCategoryName,
-        UpdateType updateType
+        UpdateType updateType,
+        @Nullable String playerName
 ) implements CustomPayload {
 
     public enum UpdateType {
-        DESPAWNED,
-        CAPTURED
+        CAPTURED,
+        DESPAWNED
     }
 
     public static final CustomPayload.Id<StatusUpdatePayload> ID = new CustomPayload.Id<>(
@@ -26,14 +49,21 @@ public record StatusUpdatePayload(
     );
 
     public StatusUpdatePayload(PacketByteBuf buf) {
-        this(buf.readString(), buf.readInt(), buf.readString(), buf.readEnumConstant(UpdateType.class));
+        this(
+                buf.readString(),
+                buf.readString(),
+                buf.readString(),
+                buf.readEnumConstant(UpdateType.class),
+                buf.readOptional(PacketByteBuf::readString).orElse(null)
+        );
     }
 
-    public void write(PacketByteBuf buf) {
+    private void write(PacketByteBuf buf) {
+        buf.writeString(uuid);
         buf.writeString(name);
-        buf.writeInt(level);
         buf.writeString(rarityCategoryName);
         buf.writeEnumConstant(updateType);
+        buf.writeOptional(Optional.ofNullable(playerName), PacketByteBuf::writeString);
     }
 
     @Override

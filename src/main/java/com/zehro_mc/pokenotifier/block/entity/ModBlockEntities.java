@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2024 ZeHrOx
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
 package com.zehro_mc.pokenotifier.block.entity;
 
 import com.zehro_mc.pokenotifier.PokeNotifier;
@@ -8,6 +16,9 @@ import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.util.Identifier;
 
+/**
+ * Registers all custom Block Entity types for the mod.
+ */
 public class ModBlockEntities {
     public static final BlockEntityType<TrophyDisplayBlockEntity> TROPHY_DISPLAY_BLOCK_ENTITY =
             Registry.register(Registries.BLOCK_ENTITY_TYPE,

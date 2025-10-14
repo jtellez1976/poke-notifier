@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2024 ZeHrOx
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
 package com.zehro_mc.pokenotifier.client;
 
 import com.zehro_mc.pokenotifier.client.compat.AdvancementPlaquesCompat;
@@ -9,31 +17,32 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.fabricmc.loader.api.FabricLoader;
 
+/**
+ * Manages and renders a temporary feedback HUD on the screen for actions like enabling/disabling modes.
+ * It uses AdvancementPlaques for a better visual integration if available; otherwise, it falls back
+ * to its own rendering system.
+ */
 public class ActivationFeedbackHUD {
 
     private static Text message;
     private static Formatting color;
     private static long displayUntil = -1L;
-    private static boolean isActivation = false;
 
-    // Variable para saber si el mod de placas está cargado. La comprobamos una sola vez.
+    /** A flag to check only once if the compatibility mod is present. */
     private static final boolean plaquesModLoaded = FabricLoader.getInstance().isModLoaded("advancementplaques");
 
     public static void show(Text message, boolean isActivation) {
         if (plaquesModLoaded) {
-            // Si el mod está, llamamos a nuestro handler de compatibilidad.
             AdvancementPlaquesCompat.showPlaque(message, isActivation);
         } else {
-            // Si no, usamos nuestro sistema de fallback.
+            // Fallback to our custom HUD system if AdvancementPlaques is not installed.
             ActivationFeedbackHUD.message = message;
             ActivationFeedbackHUD.color = isActivation ? Formatting.GREEN : Formatting.RED;
-            ActivationFeedbackHUD.displayUntil = System.currentTimeMillis() + 3000L;
-            ActivationFeedbackHUD.isActivation = isActivation;
+            ActivationFeedbackHUD.displayUntil = System.currentTimeMillis() + 3000L; // Display message for 3 seconds.
         }
     }
 
     public static void render(DrawContext context, RenderTickCounter tickCounter) {
-        // El render solo se ejecuta si el mod de placas NO está cargado.
         if (plaquesModLoaded || System.currentTimeMillis() > displayUntil || message == null) {
             return;
         }
@@ -42,34 +51,33 @@ public class ActivationFeedbackHUD {
         int screenWidth = client.getWindow().getScaledWidth();
         int screenHeight = client.getWindow().getScaledHeight();
 
-        // --- Lógica de Animación (Fade Out) ---
+        // Animation logic for the fade-out effect.
         long timeRemaining = displayUntil - System.currentTimeMillis();
         float alpha = 1.0f;
-        if (timeRemaining < 500) { // En el último medio segundo, se desvanece
+        if (timeRemaining < 500) { // Fade out in the last half-second.
             alpha = timeRemaining / 500.0f;
         }
         int alphaInt = (int) (alpha * 255);
 
-        // --- DIBUJADO DE TEXTO CON ESCALADO ---
         int textWidth = client.textRenderer.getWidth(message);
-        float scale = 1.5f; // Aumentamos el texto a un 150% de su tamaño.
+        float scale = 1.5f;
         float scaledTextWidth = textWidth * scale;
 
-        // Calculamos la posición para que el texto escalado quede centrado.
+        // Center the scaled text on the screen.
         float x = (screenWidth - scaledTextWidth) / 2;
-        int y = screenHeight / 4; // Posicionado en el cuarto superior de la pantalla
+        int y = screenHeight / 4;
 
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
 
-        context.getMatrices().push(); // Guardamos el estado actual de la matriz
-        context.getMatrices().translate(x, y, 0); // Nos movemos a la posición del texto
-        context.getMatrices().scale(scale, scale, 1.0f); // Aplicamos la escala
+        context.getMatrices().push();
+        context.getMatrices().translate(x, y, 0);
+        context.getMatrices().scale(scale, scale, 1.0f);
 
-        // Dibujamos el texto en la coordenada (0,0) porque ya nos hemos trasladado a la posición correcta.
+        // Draw the text at (0,0) as we have already translated the matrix.
         context.drawTextWithShadow(client.textRenderer, message, 0, 0, color.getColorValue() | (alphaInt << 24));
 
-        context.getMatrices().pop(); // Restauramos la matriz para no afectar a otros elementos del HUD
+        context.getMatrices().pop();
 
         RenderSystem.disableBlend();
     }

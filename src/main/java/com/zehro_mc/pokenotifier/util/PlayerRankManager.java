@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2024 ZeHrOx
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
 package com.zehro_mc.pokenotifier.util;
 
 import com.zehro_mc.pokenotifier.PokeNotifier;
@@ -15,9 +23,13 @@ import java.util.HashMap;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Manages player ranks based on their "Catch 'em All" progress.
+ * It caches rank data and synchronizes it with clients.
+ */
 public class PlayerRankManager {
 
-    // Cache en el servidor para los rangos de los jugadores.
+    // Server-side cache for player ranks (number of completed generations).
     private static final Map<UUID, Integer> PLAYER_RANKS = new ConcurrentHashMap<>();
 
     public static void updateAndSyncRank(ServerPlayerEntity player) {
@@ -25,7 +37,6 @@ public class PlayerRankManager {
         int completedCount = progress.completed_generations.size();
         PLAYER_RANKS.put(player.getUuid(), completedCount);
 
-        // Sincronizamos el nuevo rango con todos los clientes.
         syncRanksToAll(player.getServer());
     }
 
@@ -41,13 +52,12 @@ public class PlayerRankManager {
     public static void onPlayerJoin(ServerPlayerEntity player) {
         updateAndSyncRank(player);
 
-        // --- CORRECCIÓN: Usamos una tarea con retraso para asegurar que los efectos se ejecuten ---
-        PokeNotifier.scheduleTask(() -> {
-            Text championMessage = Text.literal("A Champion has joined the server!").formatted(Formatting.GOLD, Formatting.BOLD);
-            PrestigeEffects.playMasterEffects(player); // CORRECCIÓN: El nombre del método era incorrecto.
-            MinecraftServer server = player.getServer();
-            if (server != null) server.getPlayerManager().broadcast(championMessage, false);
-        });
+        // Schedule Master rank effects to ensure they trigger after the player has fully loaded.
+        if (getRank(player.getUuid()) >= 9) {
+            PokeNotifier.scheduleTask(() -> {
+                PrestigeEffects.playMasterEffects(player);
+            });
+        }
     }    
 
     public static int getRank(UUID playerUuid) {

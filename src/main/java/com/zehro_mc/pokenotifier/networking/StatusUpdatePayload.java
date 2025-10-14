@@ -1,14 +1,33 @@
+/*
+ * Copyright (C) 2024 ZeHrOx
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
+/*
+ * Copyright (C) 2024 ZeHrOx
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
 package com.zehro_mc.pokenotifier.networking;
 
 import com.zehro_mc.pokenotifier.PokeNotifier;
-import net.minecraft.util.Identifier;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.packet.CustomPayload;
+import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
 
+/**
+ * An S2C payload to update the status of a tracked Pokémon (e.g., captured or despawned).
+ */
 public record StatusUpdatePayload(
         String uuid,
         String name,
@@ -22,7 +41,7 @@ public record StatusUpdatePayload(
         DESPAWNED
     }
 
-    public static final CustomPayload.Id<StatusUpdatePayload> ID = new CustomPayload.Id<>(
+    public static final Id<StatusUpdatePayload> ID = new Id<>(
             Identifier.of(PokeNotifier.MOD_ID, "status_update_payload"));
 
     public static final PacketCodec<PacketByteBuf, StatusUpdatePayload> CODEC = PacketCodec.of(

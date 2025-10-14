@@ -1,9 +1,22 @@
+/*
+ * Copyright (C) 2024 ZeHrOx
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
 package com.zehro_mc.pokenotifier;
 
 import java.util.List;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * An old, consolidated configuration class.
+ * @deprecated This class appears to be unused and is superseded by {@link ConfigServer}, {@link ConfigClient}, and {@link ConfigPokemon}. It is recommended to remove this file.
+ */
+@Deprecated
 public class Config {
 
     public List<String> _instructions = List.of(
@@ -24,15 +37,9 @@ public class Config {
             " "
     );
 
-    // --- Test Mode ---
-    // If true, the notifier will also trigger for Pokémon spawned with commands (e.g., /pokespawn).
-    // Useful for testing notifications without waiting for natural spawns.
     public boolean enable_test_mode = false;
 
-    // --- General Settings ---
-    // The maximum distance in blocks a player can be from a Pokémon to receive a notification.
     public int notification_distance = 200;
-    // The duration in seconds that a rare Pokémon will glow after spawning.
     public int glowing_duration_seconds = 120; // 2 minutes
 
 
