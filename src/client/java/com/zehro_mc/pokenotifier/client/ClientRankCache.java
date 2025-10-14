@@ -15,8 +15,7 @@ public class ClientRankCache {
         ranks = new ConcurrentHashMap<>(newRanks);
     }
 
-    public static Text getDecoratedName(UUID playerUuid, Text originalName) {
-        int rank = ranks.getOrDefault(playerUuid, 0);
-        return PlayerRankUtil.getDecoratedPlayerName(rank, originalName);
+    public static int getRank(UUID playerUuid) {
+        return ranks.getOrDefault(playerUuid, 0);
     }
 }

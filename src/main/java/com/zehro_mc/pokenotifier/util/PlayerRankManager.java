@@ -44,7 +44,7 @@ public class PlayerRankManager {
         // --- CORRECCIÓN: Usamos una tarea con retraso para asegurar que los efectos se ejecuten ---
         PokeNotifier.scheduleTask(() -> {
             Text championMessage = Text.literal("A Champion has joined the server!").formatted(Formatting.GOLD, Formatting.BOLD);
-            PrestigeEffects.playChampionEffects(player);
+            PrestigeEffects.playMasterEffects(player); // CORRECCIÓN: El nombre del método era incorrecto.
             MinecraftServer server = player.getServer();
             if (server != null) server.getPlayerManager().broadcast(championMessage, false);
         });

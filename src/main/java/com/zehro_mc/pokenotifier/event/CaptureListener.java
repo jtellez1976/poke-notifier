@@ -12,6 +12,7 @@ import com.zehro_mc.pokenotifier.model.PlayerCatchProgress;
 import com.zehro_mc.pokenotifier.networking.GlobalAnnouncementPayload;
 import com.zehro_mc.pokenotifier.networking.StatusUpdatePayload;
 import com.zehro_mc.pokenotifier.util.RarityUtil;
+import com.zehro_mc.pokenotifier.util.PrestigeEffects;
 import com.zehro_mc.pokenotifier.util.PlayerRankManager;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.item.ItemStack;
@@ -64,7 +65,8 @@ public class CaptureListener {
                         MinecraftServer server = player.getServer();
                         if (server != null) {
                             server.getPlayerManager().broadcast(masterMessage, false);
-                        }                    
+                        }
+                        PrestigeEffects.playMasterAchievementEffects(player); // ¡NUEVO!
                     }
 
                     // 2. Recompensa de Trofeo Regional
@@ -88,6 +90,8 @@ public class CaptureListener {
                             });
                         }
                     }
+                    // 4. ¡NUEVO! Lanzar fuegos artificiales de celebración.
+                    PrestigeEffects.launchCelebratoryFireworks(player);
                 }
 
                 // Guardamos el progreso después de todas las modificaciones.

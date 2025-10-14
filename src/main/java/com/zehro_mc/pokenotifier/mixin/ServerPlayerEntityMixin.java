@@ -20,7 +20,7 @@ public abstract class ServerPlayerEntityMixin {
         if (player instanceof ServerPlayerEntity) {
             Text originalName = cir.getReturnValue();
             int rank = PlayerRankManager.getRank(player.getUuid());
-            cir.setReturnValue(PlayerRankUtil.getDecoratedPlayerName(rank, originalName));
+            cir.setReturnValue(PlayerRankUtil.getDecoratedPlayerNameForChat(rank, originalName));
         }
     }
 }
