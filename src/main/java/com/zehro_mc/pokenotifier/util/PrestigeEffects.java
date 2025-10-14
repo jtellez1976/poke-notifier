@@ -10,6 +10,7 @@ package com.zehro_mc.pokenotifier.util;
 
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.FireworkExplosionComponent;
+import net.minecraft.util.math.Vec3d;
 import it.unimi.dsi.fastutil.ints.IntList;
 import net.minecraft.component.type.FireworksComponent;
 import net.minecraft.entity.EntityStatuses;
@@ -45,34 +46,51 @@ public class PrestigeEffects {
         }
     }
 
-    public static void launchCelebratoryFireworks(ServerPlayerEntity player) {
+    public static void launchCelebratoryFireworks(ServerPlayerEntity player, int completedGens) {
         World world = player.getWorld();
         if (world.isClient) return;
 
-        ItemStack fireworkRocket = new ItemStack(Items.FIREWORK_ROCKET);
+        // Scale the number of rockets based on player progress for a more impressive show.
+        int rocketCount = 1 + (completedGens / 2);
 
-        FireworkExplosionComponent explosion = new FireworkExplosionComponent(
-                FireworkExplosionComponent.Type.LARGE_BALL,
-                IntList.of(0xE67E22, 0xF1C40F, 0x2ECC71), // Orange, Yellow, Green
-                IntList.of(), // No fade colors
-                true, // Has trail
-                false // No twinkle
-        );
+        for (int i = 0; i < rocketCount; i++) {
+            ItemStack fireworkRocket = new ItemStack(Items.FIREWORK_ROCKET);
 
-        fireworkRocket.set(DataComponentTypes.FIREWORKS, new FireworksComponent(1, java.util.List.of(explosion)));
+            // Create an explosion with varied shapes and colors.
+            FireworkExplosionComponent.Type shape = world.random.nextBoolean() ? FireworkExplosionComponent.Type.LARGE_BALL : FireworkExplosionComponent.Type.BURST;
+            boolean hasTwinkle = world.random.nextBoolean();
 
-        world.spawnEntity(new FireworkRocketEntity(world, player.getX(), player.getY(), player.getZ(), fireworkRocket));
+            FireworkExplosionComponent explosion = new FireworkExplosionComponent(
+                    shape,
+                    IntList.of(0xE67E22, 0xF1C40F, 0x2ECC71, 0x3498DB, 0x9B59B6), // Orange, Yellow, Green, Blue, Purple
+                    IntList.of(),
+                    true,
+                    hasTwinkle
+            );
+
+            fireworkRocket.set(DataComponentTypes.FIREWORKS, new FireworksComponent(world.random.nextInt(2) + 1, java.util.List.of(explosion)));
+
+            // Launch the rocket with a slight variation in its trajectory for a better visual spread.
+            FireworkRocketEntity rocketEntity = new FireworkRocketEntity(world, player.getX(), player.getY(), player.getZ(), fireworkRocket);
+            Vec3d velocity = new Vec3d(
+                    world.random.nextGaussian() * 0.1,
+                    0.5, // Upward thrust
+                    world.random.nextGaussian() * 0.1
+            );
+            rocketEntity.setVelocity(velocity);
+            world.spawnEntity(rocketEntity);
+        }
     }
 
     public static void playMasterAchievementEffects(ServerPlayerEntity player) {
         if (player.getWorld().isClient) return;
+        if (!(player.getWorld() instanceof net.minecraft.server.world.ServerWorld serverWorld)) return;
 
-        // 1. Totem of Undying effect: Engulfs the player in green and yellow particles.
-        player.getWorld().sendEntityStatus(player, EntityStatuses.USE_TOTEM_OF_UNDYING);
+        // --- FIX: Spawn particles directly instead of using entity status to avoid showing the totem item on the HUD ---
+        // 1. Totem of Undying effect (particles only).
+        serverWorld.spawnParticles(ParticleTypes.TOTEM_OF_UNDYING, player.getX(), player.getBodyY(0.5), player.getZ(), 35, 0.5, 0.8, 0.5, 0.15);
 
         // 2. End Portal aura: Creates a ring of portal particles around the player.
-        if (player.getWorld() instanceof net.minecraft.server.world.ServerWorld serverWorld) {
-            serverWorld.spawnParticles(ParticleTypes.PORTAL, player.getX(), player.getBodyY(0.5), player.getZ(), 50, 0.5, 0.5, 0.5, 0.1);
-        }
+        serverWorld.spawnParticles(ParticleTypes.PORTAL, player.getX(), player.getBodyY(0.5), player.getZ(), 50, 0.5, 0.5, 0.5, 0.1);
     }
 }

@@ -97,7 +97,7 @@ public class CaptureListener {
                         }
                     }
                     // 4. Launch celebratory fireworks.
-                    PrestigeEffects.launchCelebratoryFireworks(player);
+                    PrestigeEffects.launchCelebratoryFireworks(player, progress.completed_generations.size());
                 }
 
                 ConfigManager.savePlayerCatchProgress(player.getUuid(), progress);
