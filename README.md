@@ -4,9 +4,12 @@
 
 Poke Notifier is a server-side mod for Cobblemon designed to dramatically enhance the experience of finding and hunting rare Pokémon. It alerts players when a special Pokémon spawns, providing its name, rarity, and coordinates.
 
+
 ## ✨ Key Features
 
 - **Rare Spawn Notifications:** Get real-time alerts when a Legendary, Mythical, Shiny, Ultra Beast, and other rare Pokémon appear.
+
+
 - **Multiple Alert Channels:** Receive notifications via chat messages, an on-screen HUD (Toast), and sound alerts. Fully configurable by the player!
 - **"Catch 'em All" Mode:** The ultimate challenge for collectors! Enable tracking for a specific generation and receive special notifications for Pokémon you haven't caught yet.
 - **Visual Chat Rank System:** Show off your progress in style! As you complete generations, your name in the chat will gain a unique, multi-colored rank prefix that evolves with your achievements.
@@ -15,10 +18,15 @@ Poke Notifier is a server-side mod for Cobblemon designed to dramatically enhanc
   - **Expert:** `🏆🏆 [Expert]`
   - **Veteran:** `🏆🏆🏆 [Veteran]`
   - **Master:** `⚡🏆⚡[Master]` (with your username in gold).
+
+
 - **Prestige Trophy System:** Upon completing a region's Pokédex, you will receive a **unique trophy badge**. This collectible item can be placed in the world, where it will display as a **slowly rotating 3D model** that emits light and particle effects.
+
 - **Spectacular Celebration Effects:**
-  - **Fireworks:** When you complete any generation, the sky will light up with fireworks launched from your position!
-  - **"Pokémon Master" Effects:** Upon completing all 9 generations, you will be enveloped in an aura of power, combining the visual effects of the Totem of Undying and the End Portal.
+  - **Dynamic Fireworks:** Upon completing any generation, the sky ignites with a celebratory firework display that **grows in scale and intensity** as you complete more Pokédexes!
+  - **"Pokémon Master" Aura:** When you complete all 9 generations, your character is enveloped in a unique aura of power, combining the ethereal particles of the **Totem of Undying** and the swirling energy of the **End Portal**.
+
+
 - **Master's Welcome:** Players who reach the "Master" rank are announced with a **global thunder sound** and a golden chat message every time they join the server.
 - **Pokédex Synchronization:** Don't lose your progress! When using the "Catch 'em All" mode for the first time, the mod **scans your PC and party** to credit you for all the Pokémon you've already caught. It's safe to install on existing servers.
 - **Configurable Rewards:** The rewards for completing a generation are **fully customizable** by server administrators.
@@ -32,6 +40,7 @@ All player commands start with `/pnc`.
 ### Alert Management
 | Command                 | Description                                                      |
 | :---------------------- | :--------------------------------------------------------------- |
+| `/pnc help`             | Displays a list of all available player commands.                |
 | `/pnc status`           | Shows the current status of all your client-side settings.       |
 | `/pnc silent ON/OFF`    | Toggles **Silent Mode**, a master switch for all notifications.    |
 | `/pnc alert_chat ON/OFF`  | Toggles chat notifications.                                      |
@@ -61,6 +70,7 @@ All admin commands start with `/pokenotifier` and require permission level 2 (OP
 
 | Command                                   | Description                                                                    |
 | :---------------------------------------- | :----------------------------------------------------------------------------- |
+| `/pokenotifier help`                      | Displays a list of all available admin commands.                               |
 | `/pokenotifier status`                    | Shows the status of the server-side configuration.                             |
 | `/pokenotifier reloadconfig`              | Reloads all mod configuration files without a server restart.                  |
 | `/pokenotifier reloadconfig new`          | Deletes current configurations and generates new default ones.                 |

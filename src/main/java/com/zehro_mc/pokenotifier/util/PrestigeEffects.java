@@ -68,14 +68,16 @@ public class PrestigeEffects {
                     hasTwinkle
             );
 
-            fireworkRocket.set(DataComponentTypes.FIREWORKS, new FireworksComponent(world.random.nextInt(2) + 1, java.util.List.of(explosion)));
+            // --- CORRECCIÓN: Reducimos la duración del vuelo a 0 para que exploten casi al instante ---
+            fireworkRocket.set(DataComponentTypes.FIREWORKS, new FireworksComponent(0, java.util.List.of(explosion)));
 
             // Launch the rocket with a slight variation in its trajectory for a better visual spread.
             FireworkRocketEntity rocketEntity = new FireworkRocketEntity(world, player.getX(), player.getY(), player.getZ(), fireworkRocket);
             Vec3d velocity = new Vec3d(
-                    world.random.nextGaussian() * 0.1,
+                    // Reducimos drásticamente la velocidad horizontal para que no se alejen.
+                    world.random.nextGaussian() * 0.01,
                     0.5, // Upward thrust
-                    world.random.nextGaussian() * 0.1
+                    world.random.nextGaussian() * 0.01
             );
             rocketEntity.setVelocity(velocity);
             world.spawnEntity(rocketEntity);

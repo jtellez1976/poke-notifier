@@ -19,6 +19,7 @@ import com.zehro_mc.pokenotifier.block.ModBlocks;
 import com.zehro_mc.pokenotifier.block.entity.ModBlockEntities;
 import com.zehro_mc.pokenotifier.component.ModDataComponents;
 import com.zehro_mc.pokenotifier.command.DebugModeCommand;
+import com.zehro_mc.pokenotifier.command.HelpCommand;
 import com.zehro_mc.pokenotifier.api.PokeNotifierApi;
 import com.zehro_mc.pokenotifier.model.GenerationData;
 import com.zehro_mc.pokenotifier.item.ModItems;
@@ -118,6 +119,7 @@ public class PokeNotifier implements ModInitializer {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             ReloadConfigCommand.register(dispatcher, environment);
             DebugModeCommand.register(dispatcher);
+            HelpCommand.register(dispatcher);
 
             // Server status command.
             var statusCommand = CommandManager.literal("status")

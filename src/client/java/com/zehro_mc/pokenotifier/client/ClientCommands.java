@@ -175,6 +175,31 @@ public class ClientCommands {
                     return 1;
                 }));
 
+        // --- Help Command ---
+        pncCommand.then(ClientCommandManager.literal("help")
+                .executes(context -> {
+                    FabricClientCommandSource source = context.getSource();
+                    source.sendFeedback(Text.literal("--- Poke Notifier Help ---").formatted(Formatting.GOLD));
+                    source.sendFeedback(Text.literal("/pnc status").formatted(Formatting.AQUA).append(Text.literal(" - Shows your current settings.").formatted(Formatting.WHITE)));
+                    source.sendFeedback(Text.literal("/pnc silent <ON/OFF>").formatted(Formatting.AQUA).append(Text.literal(" - Master switch for all alerts.").formatted(Formatting.WHITE)));
+                    source.sendFeedback(Text.literal("/pnc alert_chat <ON/OFF>").formatted(Formatting.AQUA).append(Text.literal(" - Toggles chat notifications.").formatted(Formatting.WHITE)));
+                    source.sendFeedback(Text.literal("/pnc alert_toast <ON/OFF>").formatted(Formatting.AQUA).append(Text.literal(" - Toggles on-screen notifications.").formatted(Formatting.WHITE)));
+                    source.sendFeedback(Text.literal("/pnc alert_sound <ON/OFF>").formatted(Formatting.AQUA).append(Text.literal(" - Toggles sound alerts.").formatted(Formatting.WHITE)));
+                    source.sendFeedback(Text.literal(" "));
+                    source.sendFeedback(Text.literal("--- Custom Hunt List ---").formatted(Formatting.GOLD));
+                    source.sendFeedback(Text.literal("/pnc customlist add <pokemon>").formatted(Formatting.AQUA).append(Text.literal(" - Adds a Pokémon to your hunt list.").formatted(Formatting.WHITE)));
+                    source.sendFeedback(Text.literal("/pnc customlist remove <pokemon>").formatted(Formatting.AQUA).append(Text.literal(" - Removes a Pokémon from your list.").formatted(Formatting.WHITE)));
+                    source.sendFeedback(Text.literal("/pnc customlist list").formatted(Formatting.AQUA).append(Text.literal(" - Shows all Pokémon on your list.").formatted(Formatting.WHITE)));
+                    source.sendFeedback(Text.literal("/pnc customlist clear").formatted(Formatting.AQUA).append(Text.literal(" - Clears your entire hunt list.").formatted(Formatting.WHITE)));
+                    source.sendFeedback(Text.literal(" "));
+                    source.sendFeedback(Text.literal("--- Catch 'em All Mode ---").formatted(Formatting.GOLD));
+                    source.sendFeedback(Text.literal("/pnc catchemall enable <gen>").formatted(Formatting.AQUA).append(Text.literal(" - Start tracking a Pokédex generation.").formatted(Formatting.WHITE)));
+                    source.sendFeedback(Text.literal("/pnc catchemall disable <gen>").formatted(Formatting.AQUA).append(Text.literal(" - Stop tracking a generation.").formatted(Formatting.WHITE)));
+                    source.sendFeedback(Text.literal("/pnc catchemall list").formatted(Formatting.AQUA).append(Text.literal(" - Shows which generation you are tracking.").formatted(Formatting.WHITE)));
+
+                    return 1;
+                }));
+
 
         // Redirects server-side commands to be accessible via /pnc for convenience.
         var serverCommandNode = dispatcher.getRoot().getChild("pokenotifier");
