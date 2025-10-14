@@ -88,29 +88,3 @@ publishing {
 	repositories {
 	}
 }
-
-	// --- Tarea Personalizada para Copiar el Mod al Entorno de Pruebas ---
-	// Esta tarea se ejecutará después de que 'build' termine.
-task copyModToTestEnvironment(type: Copy) {
-    // Define la ruta de la carpeta de mods de tu instancia de CurseForge.
-    def modsDir = file("C:/Users/JOHN/curseforge/minecraft/Instances/COBBLEVERSE - Pokemon Adventure [Cobblemon]/mods")
-
-	// Esta es la condición de seguridad: la tarea solo se ejecuta si la carpeta existe.
-	onlyIf { modsDir.exists() } // Ahora 'modsDir' es un objeto File y este método funcionará.
-
-	// ANTES de copiar, borramos cualquier versión anterior del mod en la carpeta de destino.
-	doFirst {
-		delete(fileTree(modsDir) {
-			include "${project.archives_base_name}-*.jar"
-		})
-		println "--> Cleaned old mod versions from target directory."
-	}
-
-    // Le decimos que copie el resultado de la tarea 'remapJar'.
-    // Este es el .jar final que no tiene el sufijo '-dev'.
-    from remapJar.archiveFile
-    into modsDir
-}
-
-	// Hacemos que la tarea 'build' ejecute nuestra tarea de copia al finalizar.
-build.finalizedBy(copyModToTestEnvironment)
