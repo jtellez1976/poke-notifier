@@ -11,6 +11,7 @@ package com.zehro_mc.pokenotifier.util;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
 
 /**
  * A utility class for creating decorated player names based on their rank.
@@ -33,27 +34,32 @@ public class PlayerRankUtil {
      */
     public static Text getDecoratedPlayerNameForChat(int completedCount, Text originalName) {
         MutableText prefix = Text.empty();
+        
+        // Custom font characters that map to our rank_icons.png
+        final String TRAINEE_ICON = "\uE001"; // Corresponds to cup0.png
+        final String GREAT_ICON = "\uE002";   // Corresponds to cup1.png
+        final String EXPERT_ICON = "\uE003";  // Corresponds to cup2.png
+        final String VETERAN_ICON = "\uE004"; // Corresponds to cup3.png
+        final String MASTER_ICON = "\uE005";  // Corresponds to cup4_master.png
+        
+        // --- CORRECCIÓN: Definimos el identificador de nuestra fuente personalizada ---
+        final Identifier RANK_FONT = Identifier.of("poke-notifier", "ranks");
 
         if (completedCount == 0) {
-            // 🛡[Trainee] (Gray)
-            prefix.append(Text.literal("🛡[Trainee] ").formatted(Formatting.GRAY)); 
+            prefix.append(Text.literal(TRAINEE_ICON).styled(style -> style.withFont(RANK_FONT)));
+            prefix.append(Text.literal(" [Trainee] ").formatted(Formatting.GRAY));
         } else if (completedCount >= 1 && completedCount <= 3) {
-            // 🏆 [Great] (Gold cup, gold text)
-            prefix.append(Text.literal("🏆 ").formatted(Formatting.GOLD));
+            prefix.append(Text.literal(GREAT_ICON.repeat(completedCount)).styled(style -> style.withFont(RANK_FONT))).append(Text.literal(" "));
             prefix.append(Text.literal("[Great] ").formatted(Formatting.GOLD));
         } else if (completedCount >= 4 && completedCount <= 6) {
-            // 🏆🏆 [Expert] (Gold cups, gray text)
-            prefix.append(Text.literal("🏆🏆 ").formatted(Formatting.GOLD));
-            prefix.append(Text.literal("[Expert] ").formatted(Formatting.GRAY));
+            prefix.append(Text.literal(EXPERT_ICON.repeat(completedCount - 3)).styled(style -> style.withFont(RANK_FONT))).append(Text.literal(" "));
+            prefix.append(Text.literal("[Expert] ").formatted(Formatting.AQUA));
         } else if (completedCount >= 7 && completedCount <= 8) {
-            // 🏆🏆🏆 [Veteran] (Gold cups, yellow text)
-            prefix.append(Text.literal("🏆🏆🏆 ").formatted(Formatting.GOLD));
+            prefix.append(Text.literal(VETERAN_ICON.repeat(completedCount - 6)).styled(style -> style.withFont(RANK_FONT))).append(Text.literal(" "));
             prefix.append(Text.literal("[Veteran] ").formatted(Formatting.YELLOW));
         } else { // 9 o más
-            // ⚡(green)🏆(gold)⚡(green) [Master](purple)
-            prefix.append(Text.literal("⚡").formatted(Formatting.GREEN));
-            prefix.append(Text.literal("🏆").formatted(Formatting.GOLD));
-            prefix.append(Text.literal("⚡").formatted(Formatting.GREEN));
+            // For the Master rank, the icon texture has its own colors, so we don't apply a format color to it.
+            prefix.append(Text.literal(MASTER_ICON).styled(style -> style.withFont(RANK_FONT))).append(Text.literal(" "));
             prefix.append(Text.literal("[Master] ").formatted(Formatting.LIGHT_PURPLE));
         }
 

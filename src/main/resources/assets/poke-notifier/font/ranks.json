@@ -1,0 +1,19 @@
+{
+  "providers": [
+    {
+      "type": "bitmap",
+      "file": "poke-notifier:font/rank_icons.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        "\uE001\uE002\uE003\uE004\uE005"
+      ]
+        },
+    {
+      "type": "space",
+      "advances": {
+        " ": 4
+      }
+    }
+  ]
+}

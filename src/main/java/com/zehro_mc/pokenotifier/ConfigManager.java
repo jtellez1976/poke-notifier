@@ -39,12 +39,9 @@ public class ConfigManager {
     private static final File CONFIG_DIR = FabricLoader.getInstance().getConfigDir().resolve(PokeNotifier.MOD_ID).toFile();
     private static final File PLAYER_DATA_DIR = new File(CONFIG_DIR, "player_data");
     public static final File CATCH_PROGRESS_DIR = new File(CONFIG_DIR, "catch_progress");
-
-    private static final File CONFIG_POKEMON_FILE = new File(CONFIG_DIR, "config-pokemon.json");
     private static final File CONFIG_CLIENT_FILE = new File(CONFIG_DIR, "config-client.json");
     private static final File CONFIG_SERVER_FILE = new File(CONFIG_DIR, "config-server.json");
     private static final File CATCHEMALL_REWARDS_FILE = new File(CONFIG_DIR, "catchemall_rewards.json");
-    private static final File CATCHEMALL_MODE_FILE = new File(CONFIG_DIR, "catchemall-mode.json");
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
@@ -52,7 +49,6 @@ public class ConfigManager {
     private static ConfigClient configClient;
     private static CatchemallRewardsConfig catchemallRewardsConfig;
     private static ConfigServer configServer;
-    private static CatchemallModeConfig catchemallModeConfig;
 
     // Caches player-specific data to avoid constant file I/O.
     private static final Map<UUID, CustomListConfig> playerConfigs = new ConcurrentHashMap<>();
@@ -84,25 +80,19 @@ public class ConfigManager {
 
         EnvType env = FabricLoader.getInstance().getEnvironmentType();
 
-        // This config is needed on both sides, though primarily used by the server.
-        loadCatchemallModeConfig();
-
         // Load environment-specific configuration files.
         if (env == EnvType.CLIENT) {
             loadConfigClient();
         } else { // Server-side environment
-            loadConfigPokemon();
             loadConfigServer();
             loadCatchemallRewardsConfig();
         }
     }
 
     public static void saveConfig() {
-        saveConfigPokemon();
         saveClientConfigToFile();
         saveServerConfigToFile();
         saveCatchemallRewardsConfig();
-        saveCatchemallModeConfig();
     }
 
     public static void resetToDefault() {
@@ -110,7 +100,6 @@ public class ConfigManager {
 
         configPokemon = new ConfigPokemon();
         catchemallRewardsConfig = new CatchemallRewardsConfig();
-        catchemallModeConfig = new CatchemallModeConfig();
 
         if (env == EnvType.CLIENT) {
             configClient = new ConfigClient();
@@ -156,17 +145,6 @@ public class ConfigManager {
         }
     }
 
-    private static void loadConfigPokemon() throws ConfigReadException {
-        configPokemon = loadConfigFile(CONFIG_POKEMON_FILE, ConfigPokemon.class, "config-pokemon.json");
-    }
-
-    private static void saveConfigPokemon() {
-        // Only save if not on a pure client.
-        if (FabricLoader.getInstance().getEnvironmentType() != EnvType.CLIENT) {
-            saveConfigFile(CONFIG_POKEMON_FILE, configPokemon, "config-pokemon.json");
-        }
-    }
-
     private static void loadConfigClient() throws ConfigReadException {
         configClient = loadConfigFile(CONFIG_CLIENT_FILE, ConfigClient.class, "config-client.json");
     }
@@ -198,22 +176,10 @@ public class ConfigManager {
         }
     }
 
-    private static void loadCatchemallModeConfig() throws ConfigReadException {
-        catchemallModeConfig = loadConfigFile(CATCHEMALL_MODE_FILE, CatchemallModeConfig.class, "catchemall-mode.json");
-    }
-
-    private static void saveCatchemallModeConfig() {
-        if (catchemallModeConfig != null) saveConfigFile(CATCHEMALL_MODE_FILE, catchemallModeConfig, "catchemall-mode.json");
-    }
-
     public static ConfigPokemon getPokemonConfig() {
         if (configPokemon == null) {
-            try {
-                loadConfigPokemon();
-            } catch (ConfigReadException e) {
-                PokeNotifier.LOGGER.error("Initial config-pokemon.json load failed. Using temporary default config.", e);
-                configPokemon = new ConfigPokemon();
-            }
+            // The Pokémon lists are now hardcoded, so we just create a new instance.
+            configPokemon = new ConfigPokemon();
         }
         return configPokemon;
     }
@@ -252,18 +218,6 @@ public class ConfigManager {
             }
         }
         return catchemallRewardsConfig;
-    }
-
-    public static CatchemallModeConfig getCatchemallModeConfig() {
-        if (catchemallModeConfig == null) {
-            try {
-                loadCatchemallModeConfig();
-            } catch (ConfigReadException e) {
-                PokeNotifier.LOGGER.error("Initial catchemall-mode.json load failed. Using temporary default config.", e);
-                catchemallModeConfig = new CatchemallModeConfig();
-            }
-        }
-        return catchemallModeConfig;
     }
 
     public static CustomListConfig getPlayerConfig(UUID playerUuid) {

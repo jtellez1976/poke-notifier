@@ -563,6 +563,9 @@ public class PokeNotifier implements ModInitializer {
             ConfigManager.forceReloadPlayerCatchProgress(player.getUuid());
             PokeNotifierServerUtils.sendCatchProgressUpdate(player);
 
+            // --- CORRECCIÓN: Forzamos la actualización y sincronización del rango ---
+            PlayerRankManager.updateAndSyncRank(player);
+
             player.getInventory().remove(stack -> stack.getItem() instanceof com.zehro_mc.pokenotifier.item.PokedexTrophyItem, -1, player.getInventory());
             player.sendMessage(Text.literal("Your Pokédex Trophies have been removed as part of the rollback.").formatted(Formatting.YELLOW), false);
 
