@@ -127,9 +127,24 @@ task copyModToServer(type: Copy) {
 	into modsDir
 }
 
-// A container task that runs both copy tasks.
+// --- Custom Task to Start the Test Server ---
+// This task runs after a successful deployment to automatically start your test server.
+task startTestServer {
+	doLast {
+		// Execute the command in a doLast block to prevent Gradle from hanging.
+		exec {
+			workingDir "C:/Users/JOHN/OneDrive/Escritorio/Cobbleverse-server"
+			// Use 'start' to launch the batch file in a new, separate terminal window.
+			commandLine 'cmd', '/c', 'start', '"Poke Notifier Test Server"', 'start.bat'
+		}
+	}
+}
+
+// A container task that runs both copy tasks and then starts the server.
 task deployToTest {
 	dependsOn copyModToClient, copyModToServer
+	// After deploying, trigger the server start.
+	finalizedBy startTestServer
 	doLast {
 		println "--> Deployed mod to client and server test environments."
 	}
