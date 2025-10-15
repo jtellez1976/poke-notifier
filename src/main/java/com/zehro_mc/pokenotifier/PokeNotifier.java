@@ -20,6 +20,7 @@ import com.zehro_mc.pokenotifier.block.entity.ModBlockEntities;
 import com.zehro_mc.pokenotifier.component.ModDataComponents;
 import com.zehro_mc.pokenotifier.api.PokeNotifierApi;
 import com.zehro_mc.pokenotifier.model.GenerationData;
+import com.zehro_mc.pokenotifier.event.EvolutionListener;
 import com.zehro_mc.pokenotifier.item.ModItems;
 import com.zehro_mc.pokenotifier.model.CustomListConfig;
 import com.zehro_mc.pokenotifier.model.PlayerCatchProgress;
@@ -213,10 +214,10 @@ public class PokeNotifier implements ModInitializer {
                             .executes(context -> {
                                 return executeTestSpawn(context.getSource().getPlayer(), StringArgumentType.getString(context, "pokemon"), false);
                             }))
-                            .then(CommandManager.literal("shiny")
-                                    .executes(context -> {
-                                        return executeTestSpawn(context.getSource().getPlayer(), StringArgumentType.getString(context, "pokemon"), true);
-                                    })).build();
+                    .then(CommandManager.literal("shiny")
+                            .executes(context -> {
+                                return executeTestSpawn(context.getSource().getPlayer(), StringArgumentType.getString(context, "pokemon"), true);
+                            })).build();
 
             // Command to autocomplete generations for testing.
             SuggestionProvider<ServerCommandSource> autoCompleteSuggestionProvider = (context, builder) -> {
@@ -256,12 +257,12 @@ public class PokeNotifier implements ModInitializer {
                                             return 0;
                                         }
 
-                                    // Check if the player has Catch 'em All mode active.
-                                    PlayerCatchProgress progress = ConfigManager.getPlayerCatchProgress(targetPlayer.getUuid());
-                                    if (progress.active_generations.isEmpty()) {
-                                        context.getSource().sendError(Text.literal("Player " + profile.getName() + " does not have Catch 'em All mode active.").formatted(Formatting.RED));
-                                        return 0;
-                                    }
+                                        // Check if the player has Catch 'em All mode active.
+                                        PlayerCatchProgress progress = ConfigManager.getPlayerCatchProgress(targetPlayer.getUuid());
+                                        if (progress.active_generations.isEmpty()) {
+                                            context.getSource().sendError(Text.literal("Player " + profile.getName() + " does not have Catch 'em All mode active.").formatted(Formatting.RED));
+                                            return 0;
+                                        }
 
                                         // Check if the player is already tracking a different generation.
                                         if (!progress.active_generations.isEmpty() && !progress.active_generations.contains(genName)) {
@@ -351,6 +352,9 @@ public class PokeNotifier implements ModInitializer {
             PokeNotifierServerUtils.sendCatchProgressUpdate(event.getPlayer());
             return Unit.INSTANCE;
         });
+
+        // New listener for evolutions, using the correct event.
+        EvolutionListener.register();
 
         ServerTickEvents.END_SERVER_TICK.register(currentServer -> {
             TRACKED_POKEMON.entrySet().removeIf(entry -> {
@@ -470,7 +474,7 @@ public class PokeNotifier implements ModInitializer {
                             ServerPlayNetworking.send(player, new ModeStatusPayload("Already Tracking: " + regionName, true));
                             return;
                         }
-                        
+
                         if (!progress.active_generations.isEmpty()) {
                             String oldGen = progress.active_generations.iterator().next();
                             player.sendMessage(Text.literal("Stopped tracking " + formatGenName(oldGen) + ".").formatted(Formatting.YELLOW), false);
@@ -545,7 +549,7 @@ public class PokeNotifier implements ModInitializer {
 
             PokemonEntity pokemonEntity = props.createEntity(world);
             pokemonEntity.refreshPositionAndAngles(player.getX(), player.getY(), player.getZ(), player.getYaw(), player.getPitch());
-            
+
             // Add a custom NBT tag to identify this as a test spawn.
             pokemonEntity.getPokemon().getPersistentData().putBoolean("pokenotifier_test_spawn", true);
 
@@ -643,7 +647,7 @@ public class PokeNotifier implements ModInitializer {
             // it will be re-read from the restored file and migrated correctly.
             ConfigManager.forceReloadPlayerCatchProgress(player.getUuid());
             PlayerRankManager.updateAndSyncRank(player);
-            
+
             // --- FIX: Force a progress update to the client to refresh the HUD immediately ---
             PokeNotifierServerUtils.sendCatchProgressUpdate(player);
 
