@@ -39,10 +39,11 @@ public class ClientCommands {
     public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher) {
         LiteralArgumentBuilder<FabricClientCommandSource> pncCommand = ClientCommandManager.literal("pnc");
 
-        pncCommand
-                .then(buildCommandToggle("alert_sound", "Alert Sounds", (config, enabled) -> config.alert_sounds_enabled = enabled))
-                .then(buildCommandToggle("alert_toast", "HUD (Toast) alerts", (config, enabled) -> config.alert_toast_enabled = enabled))
-                .then(buildCommandToggle("alert_chat", "Chat alerts", (config, enabled) -> config.alert_chat_enabled = enabled));
+        // --- Alerts Subcommand ---
+        var alertsNode = ClientCommandManager.literal("alerts")
+                .then(buildCommandToggle("sound", "Alert Sounds", (config, enabled) -> config.alert_sounds_enabled = enabled))
+                .then(buildCommandToggle("toast", "HUD (Toast) alerts", (config, enabled) -> config.alert_toast_enabled = enabled))
+                .then(buildCommandToggle("chat", "Chat alerts", (config, enabled) -> config.alert_chat_enabled = enabled));
 
         pncCommand.then(ClientCommandManager.literal("silent")
                 .then(ClientCommandManager.literal("ON").executes(context -> {
@@ -71,8 +72,9 @@ public class ClientCommands {
         SuggestionProvider<FabricClientCommandSource> pokemonSuggestionProvider = (context, builder) ->
                 CommandSource.suggestMatching(PokeNotifierApi.getAllPokemonNames(), builder);
 
-        var customListCommand = ClientCommandManager.literal("customlist")
-                .then(ClientCommandManager.literal("add")
+        // --- Custom Catch Subcommand ---
+        var customcatchNode = ClientCommandManager.literal("customcatch")
+                .then(ClientCommandManager.literal("add") // /pnc list add <pokemon>
                         .then(ClientCommandManager.argument("pokemon", StringArgumentType.greedyString())
                                 .suggests(pokemonSuggestionProvider)
                                 .executes(context -> {
@@ -80,7 +82,7 @@ public class ClientCommands {
                                     ClientPlayNetworking.send(new CustomListUpdatePayload(CustomListUpdatePayload.Action.ADD, pokemonName));
                                     context.getSource().sendFeedback(Text.literal("Request sent to add ").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append(" to your custom list.").formatted(Formatting.YELLOW));
                                     return 1;
-                                })))
+                                }))) // /pnc list remove <pokemon>
                 .then(ClientCommandManager.literal("remove")
                         .then(ClientCommandManager.argument("pokemon", StringArgumentType.greedyString())
                                 .suggests(pokemonSuggestionProvider)
@@ -89,21 +91,19 @@ public class ClientCommands {
                                     ClientPlayNetworking.send(new CustomListUpdatePayload(CustomListUpdatePayload.Action.REMOVE, pokemonName));
                                     context.getSource().sendFeedback(Text.literal("Request sent to remove ").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append(" from your custom list.").formatted(Formatting.YELLOW));
                                     return 1;
-                                })))
-                .then(ClientCommandManager.literal("list")
+                                }))) // /pnc list view
+                .then(ClientCommandManager.literal("view")
                         .executes(context -> {
                             ClientPlayNetworking.send(new CustomListUpdatePayload(CustomListUpdatePayload.Action.LIST, ""));
                             context.getSource().sendFeedback(Text.literal("Requesting your custom list from the server...").formatted(Formatting.YELLOW));
                             return 1;
-                        }))
+                        })) // /pnc list clear
                 .then(ClientCommandManager.literal("clear")
                         .executes(context -> {
                             ClientPlayNetworking.send(new CustomListUpdatePayload(CustomListUpdatePayload.Action.CLEAR, ""));
                             context.getSource().sendFeedback(Text.literal("Request sent to clear your custom list.").formatted(Formatting.YELLOW));
                             return 1;
                         }));
-
-        pncCommand.then(customListCommand);
 
         SuggestionProvider<FabricClientCommandSource> generationSuggestionProvider = (context, builder) ->
                 CompletableFuture.supplyAsync(() -> {
@@ -141,15 +141,13 @@ public class ClientCommands {
                                     ClientPlayNetworking.send(new CatchemallUpdatePayload(CatchemallUpdatePayload.Action.DISABLE, genName));
                                     context.getSource().sendFeedback(Text.literal("Requesting to disable Catch 'em All mode for " + genName + "...").formatted(Formatting.YELLOW));
                                     return 1;
-                                })))
-                .then(ClientCommandManager.literal("list")
+                                }))) // Renamed from 'list' to 'status' for clarity
+                .then(ClientCommandManager.literal("status")
                         .executes(context -> {
                             ClientPlayNetworking.send(new CatchemallUpdatePayload(CatchemallUpdatePayload.Action.LIST, ""));
                             context.getSource().sendFeedback(Text.literal("Requesting your active Catch 'em All modes...").formatted(Formatting.YELLOW));
                             return 1;
                         }));
-
-        pncCommand.then(catchemallCommand);
 
         pncCommand.then(ClientCommandManager.literal("version")
                 .executes(context -> {
@@ -162,16 +160,6 @@ public class ClientCommands {
                     context.getSource().sendFeedback(Text.literal("Poke Notifier ver. " + modVersion).formatted(Formatting.AQUA));
                     return 1;
                 }));
-
-        pncCommand.then(ClientCommandManager.literal("test_mode")
-                .then(ClientCommandManager.literal("ON").executes(context -> {
-                    context.getSource().sendFeedback(Text.literal("This command will be implemented in a future update.").formatted(Formatting.GRAY));
-                    return 1;
-                }))
-                .then(ClientCommandManager.literal("OFF").executes(context -> {
-                    context.getSource().sendFeedback(Text.literal("This command will be implemented in a future update.").formatted(Formatting.GRAY));
-                    return 1;
-                })));
 
         pncCommand.then(ClientCommandManager.literal("status")
                 .executes(context -> {
@@ -190,27 +178,26 @@ public class ClientCommands {
         pncCommand.then(ClientCommandManager.literal("help")
                 .executes(context -> {
                     FabricClientCommandSource source = context.getSource();
-                    source.sendFeedback(Text.literal("--- Poke Notifier Help ---").formatted(Formatting.GOLD));
-                    source.sendFeedback(Text.literal("/pnc status").formatted(Formatting.AQUA).append(Text.literal(" - Shows your current settings.").formatted(Formatting.WHITE)));
-                    source.sendFeedback(Text.literal("/pnc silent <ON/OFF>").formatted(Formatting.AQUA).append(Text.literal(" - Master switch for all alerts.").formatted(Formatting.WHITE)));
-                    source.sendFeedback(Text.literal("/pnc alert_chat <ON/OFF>").formatted(Formatting.AQUA).append(Text.literal(" - Toggles chat notifications.").formatted(Formatting.WHITE)));
-                    source.sendFeedback(Text.literal("/pnc alert_toast <ON/OFF>").formatted(Formatting.AQUA).append(Text.literal(" - Toggles on-screen notifications.").formatted(Formatting.WHITE)));
-                    source.sendFeedback(Text.literal("/pnc alert_sound <ON/OFF>").formatted(Formatting.AQUA).append(Text.literal(" - Toggles sound alerts.").formatted(Formatting.WHITE)));
+                    source.sendFeedback(Text.literal("--- Poke Notifier Help (v" + getModVersion() + ") ---").formatted(Formatting.GOLD));
+                    source.sendFeedback(Text.literal("/pnc status").formatted(Formatting.AQUA).append(Text.literal(" - Shows your current settings.").formatted(Formatting.GRAY)));
+                    source.sendFeedback(Text.literal("/pnc silent <on|off>").formatted(Formatting.AQUA).append(Text.literal(" - Master switch for all alerts.").formatted(Formatting.GRAY)));
                     source.sendFeedback(Text.literal(" "));
-                    source.sendFeedback(Text.literal("--- Custom Hunt List ---").formatted(Formatting.GOLD));
-                    source.sendFeedback(Text.literal("/pnc customlist add <pokemon>").formatted(Formatting.AQUA).append(Text.literal(" - Adds a Pokémon to your hunt list.").formatted(Formatting.WHITE)));
-                    source.sendFeedback(Text.literal("/pnc customlist remove <pokemon>").formatted(Formatting.AQUA).append(Text.literal(" - Removes a Pokémon from your list.").formatted(Formatting.WHITE)));
-                    source.sendFeedback(Text.literal("/pnc customlist list").formatted(Formatting.AQUA).append(Text.literal(" - Shows all Pokémon on your list.").formatted(Formatting.WHITE)));
-                    source.sendFeedback(Text.literal("/pnc customlist clear").formatted(Formatting.AQUA).append(Text.literal(" - Clears your entire hunt list.").formatted(Formatting.WHITE)));
+                    source.sendFeedback(Text.literal("Alerts: /pnc alerts <chat|toast|sound> <on|off>").formatted(Formatting.YELLOW));
+                    source.sendFeedback(Text.literal("Example: /pnc alerts chat on").formatted(Formatting.DARK_GRAY));
                     source.sendFeedback(Text.literal(" "));
-                    source.sendFeedback(Text.literal("--- Catch 'em All Mode ---").formatted(Formatting.GOLD));
-                    source.sendFeedback(Text.literal("/pnc catchemall enable <gen>").formatted(Formatting.AQUA).append(Text.literal(" - Start tracking a Pokédex generation.").formatted(Formatting.WHITE)));
-                    source.sendFeedback(Text.literal("/pnc catchemall disable <gen>").formatted(Formatting.AQUA).append(Text.literal(" - Stop tracking a generation.").formatted(Formatting.WHITE)));
-                    source.sendFeedback(Text.literal("/pnc catchemall list").formatted(Formatting.AQUA).append(Text.literal(" - Shows which generation you are tracking.").formatted(Formatting.WHITE)));
+                    source.sendFeedback(Text.literal("Custom Catch: /pnc customcatch <add|remove|view|clear> [pokemon]").formatted(Formatting.YELLOW));
+                    source.sendFeedback(Text.literal("Example: /pnc customcatch add pikachu").formatted(Formatting.DARK_GRAY));
+                    source.sendFeedback(Text.literal(" "));
+                    source.sendFeedback(Text.literal("Catch 'em All: /pnc catchemall <enable|disable|status> [gen]").formatted(Formatting.YELLOW));
+                    source.sendFeedback(Text.literal("Example: /pnc catchemall enable gen1").formatted(Formatting.DARK_GRAY));
 
                     return 1;
                 }));
 
+        // Register all subcommands
+        pncCommand.then(alertsNode);
+        pncCommand.then(customcatchNode);
+        pncCommand.then(catchemallCommand);
 
         // Redirects server-side commands to be accessible via /pnc for convenience.
         var serverCommandNode = dispatcher.getRoot().getChild("pokenotifier");
@@ -259,5 +246,13 @@ public class ClientCommands {
     private static String formatGenName(String genName) {
         if (genName == null || !genName.toLowerCase().startsWith("gen")) return genName;
         return "Gen" + genName.substring(3);
+    }
+
+    private static String getModVersion() {
+        return FabricLoader.getInstance()
+                .getModContainer(PokeNotifier.MOD_ID)
+                .map(ModContainer::getMetadata)
+                .map(meta -> meta.getVersion().getFriendlyString())
+                .orElse("Unknown");
     }
 }

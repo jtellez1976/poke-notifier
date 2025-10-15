@@ -18,8 +18,6 @@ import com.cobblemon.mod.common.Cobblemon;
 import com.zehro_mc.pokenotifier.block.ModBlocks;
 import com.zehro_mc.pokenotifier.block.entity.ModBlockEntities;
 import com.zehro_mc.pokenotifier.component.ModDataComponents;
-import com.zehro_mc.pokenotifier.command.DebugModeCommand;
-import com.zehro_mc.pokenotifier.command.HelpCommand;
 import com.zehro_mc.pokenotifier.api.PokeNotifierApi;
 import com.zehro_mc.pokenotifier.model.GenerationData;
 import com.zehro_mc.pokenotifier.item.ModItems;
@@ -34,6 +32,9 @@ import com.zehro_mc.pokenotifier.util.PokeNotifierServerUtils;
 import com.zehro_mc.pokenotifier.util.PlayerRankManager;
 import com.zehro_mc.pokenotifier.util.RarityUtil;
 import kotlin.Unit;
+import com.mojang.brigadier.context.CommandContext;
+import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.loader.api.ModContainer;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -57,7 +58,6 @@ import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 import net.minecraft.command.argument.GameProfileArgumentType;
 import org.slf4j.LoggerFactory;
-import com.zehro_mc.pokenotifier.command.ReloadConfigCommand;
 
 import java.io.File;
 import java.io.IOException;
@@ -86,13 +86,25 @@ public class PokeNotifier implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        LOGGER.info("Initializing Poke Notifier...");
+        // --- Initialization Banner ---
+        String modVersion = FabricLoader.getInstance()
+                .getModContainer(MOD_ID)
+                .map(ModContainer::getMetadata)
+                .map(meta -> meta.getVersion().getFriendlyString())
+                .orElse("Unknown");
+
+        LOGGER.info("+---------------------------------------------------+");
+        LOGGER.info("|                                                   |");
+        LOGGER.info(String.format("|      Initializing Poke Notifier v%-19s |", modVersion));
+        LOGGER.info("|                                                   |");
+        LOGGER.info("+---------------------------------------------------+");
 
         // Register C2S payload types.
         PayloadTypeRegistry.playC2S().register(CustomListUpdatePayload.ID, CustomListUpdatePayload.CODEC);
         PayloadTypeRegistry.playC2S().register(CatchemallUpdatePayload.ID, CatchemallUpdatePayload.CODEC);
 
         // Register S2C payload types.
+        LOGGER.info("| Phase 1/5: Registering Network Payloads...      |");
         PayloadTypeRegistry.playS2C().register(WaypointPayload.ID, WaypointPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(StatusUpdatePayload.ID, StatusUpdatePayload.CODEC);
         PayloadTypeRegistry.playS2C().register(ServerDebugStatusPayload.ID, ServerDebugStatusPayload.CODEC);
@@ -102,27 +114,31 @@ public class PokeNotifier implements ModInitializer {
         PayloadTypeRegistry.playS2C().register(ModeStatusPayload.ID, ModeStatusPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(RankSyncPayload.ID, RankSyncPayload.CODEC);
 
+        LOGGER.info("| Phase 2/5: Loading Configurations...              |");
         try {
             ConfigManager.loadConfig();
         } catch (ConfigManager.ConfigReadException e) {
             LOGGER.error("Failed to load Poke Notifier configuration on startup. Using default values.", e);
         }
 
+        LOGGER.info("| Phase 3/5: Registering Components & Items...      |");
         ModDataComponents.registerModDataComponents();
         ModItems.registerModItems();
         ModBlocks.registerModBlocks();
         ModBlockEntities.registerBlockEntities();
 
         // Register server-side packet receivers.
+        LOGGER.info("| Phase 4/5: Registering Commands & Listeners...   |");
         registerServerPacketReceivers();
 
         ServerLifecycleEvents.SERVER_STARTED.register(startedServer -> server = startedServer);
         ServerLifecycleEvents.SERVER_STOPPING.register(stoppingServer -> server = null);
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            ReloadConfigCommand.register(dispatcher, environment);
-            DebugModeCommand.register(dispatcher);
-            HelpCommand.register(dispatcher);
+            // --- Command Refactoring ---
+            // All commands are now registered here for better organization.
+            var pokenotifierNode = CommandManager.literal("pokenotifier")
+                    .requires(source -> source.hasPermissionLevel(2));
 
             // Server status command.
             var statusCommand = CommandManager.literal("status")
@@ -135,9 +151,30 @@ public class PokeNotifier implements ModInitializer {
                         return 1;
                     }).build();
 
+            // Help command for admins
+            var helpCommand = CommandManager.literal("help")
+                    .executes(context -> {
+                        ServerCommandSource source = context.getSource();
+                        source.sendFeedback(() -> Text.literal("--- Poke Notifier Admin Help ---").formatted(Formatting.GOLD), false);
+                        source.sendFeedback(() -> Text.literal("/pokenotifier status").formatted(Formatting.AQUA).append(Text.literal(" - Shows server config status.").formatted(Formatting.WHITE)), false);
+                        source.sendFeedback(() -> Text.literal("/pokenotifier config reload").formatted(Formatting.AQUA).append(Text.literal(" - Reloads all config files.").formatted(Formatting.WHITE)), false);
+                        source.sendFeedback(() -> Text.literal("/pokenotifier config reset").formatted(Formatting.AQUA).append(Text.literal(" - Generates new default configs.").formatted(Formatting.WHITE)), false);
+                        source.sendFeedback(() -> Text.literal("/pokenotifier test debug <enable/disable>").formatted(Formatting.AQUA).append(Text.literal(" - Toggles detailed console logs.").formatted(Formatting.WHITE)), false);
+                        source.sendFeedback(() -> Text.literal("/pokenotifier test mode <enable/disable>").formatted(Formatting.AQUA).append(Text.literal(" - Toggles notifications for non-natural spawns.").formatted(Formatting.WHITE)), false);
+                        source.sendFeedback(() -> Text.literal("/pokenotifier test spawn <pokemon> [shiny]").formatted(Formatting.AQUA).append(Text.literal(" - Spawns a Pokémon for testing.").formatted(Formatting.WHITE)), false);
+                        source.sendFeedback(() -> Text.literal("/pokenotifier data autocomplete <player> <gen>").formatted(Formatting.AQUA).append(Text.literal(" - Autocompletes a gen for a player.").formatted(Formatting.WHITE)), false);
+                        source.sendFeedback(() -> Text.literal("/pokenotifier data rollback <player>").formatted(Formatting.AQUA).append(Text.literal(" - Restores a player's progress from a backup.").formatted(Formatting.WHITE)), false);
+                        return 1;
+                    }).build();
+
+            // Config subcommands
+            var configNode = CommandManager.literal("config")
+                    .then(CommandManager.literal("reload").executes(PokeNotifier::executeReload))
+                    .then(CommandManager.literal("reset").executes(PokeNotifier::executeReset))
+                    .build();
+
             // Test mode command.
-            var testModeCommand = CommandManager.literal("test_mode")
-                    .requires(source -> source.hasPermissionLevel(2))
+            var testModeNode = CommandManager.literal("mode")
                     .then(CommandManager.literal("enable").executes(context -> {
                         ConfigManager.getServerConfig().enable_test_mode = true;
                         ConfigManager.saveServerConfigToFile();
@@ -151,12 +188,26 @@ public class PokeNotifier implements ModInitializer {
                         return 1;
                     })).build();
 
+            // Debug mode command
+            var debugNode = CommandManager.literal("debug")
+                    .then(CommandManager.literal("enable").executes(context -> {
+                        ConfigManager.getServerConfig().debug_mode_enabled = true;
+                        ConfigManager.saveServerConfigToFile();
+                        context.getSource().sendFeedback(() -> Text.literal("Debug mode enabled. Verbose logging is now ON.").formatted(Formatting.GREEN), true);
+                        return 1;
+                    }))
+                    .then(CommandManager.literal("disable").executes(context -> {
+                        ConfigManager.getServerConfig().debug_mode_enabled = false;
+                        ConfigManager.saveServerConfigToFile();
+                        context.getSource().sendFeedback(() -> Text.literal("Debug mode disabled. Verbose logging is now OFF.").formatted(Formatting.RED), true);
+                        return 1;
+                    })).build();
+
             // Test command to spawn Pokémon.
             SuggestionProvider<ServerCommandSource> pokemonSuggestionProvider = (context, builder) ->
                     CommandSource.suggestMatching(PokeNotifierApi.getAllPokemonNames(), builder);
 
-            var testSpawnCommand = CommandManager.literal("testspawn")
-                    .requires(source -> source.hasPermissionLevel(2))
+            var testSpawnNode = CommandManager.literal("spawn")
                     .then(CommandManager.argument("pokemon", StringArgumentType.string())
                             .suggests(pokemonSuggestionProvider)
                             .executes(context -> {
@@ -183,8 +234,8 @@ public class PokeNotifier implements ModInitializer {
                 }
             };
 
-            var autoCompleteGenCommand = CommandManager.literal("autocompletegen")
-                    .requires(source -> source.hasPermissionLevel(2))
+            // Data management commands
+            var autoCompleteGenNode = CommandManager.literal("autocomplete")
                     .then(CommandManager.argument("player", GameProfileArgumentType.gameProfile())
                             .suggests((context, builder) -> CommandSource.suggestMatching(context.getSource().getServer().getPlayerNames(), builder))
                             .then(CommandManager.argument("generation", StringArgumentType.string())
@@ -243,14 +294,8 @@ public class PokeNotifier implements ModInitializer {
                                     }))
                     ).build();
 
-            dispatcher.getRoot().getChild("pokenotifier").addChild(statusCommand);
-            dispatcher.getRoot().getChild("pokenotifier").addChild(testModeCommand);
-            dispatcher.getRoot().getChild("pokenotifier").addChild(testSpawnCommand);
-            dispatcher.getRoot().getChild("pokenotifier").addChild(autoCompleteGenCommand);
-
             // Command to restore player progress from a backup.
-            var rollbackCommand = CommandManager.literal("rollback")
-                    .requires(source -> source.hasPermissionLevel(2))
+            var rollbackNode = CommandManager.literal("rollback")
                     .then(CommandManager.argument("player", GameProfileArgumentType.gameProfile())
                             .suggests((context, builder) -> CommandSource.suggestMatching(context.getSource().getServer().getPlayerNames(), builder))
                             .executes(context -> {
@@ -271,9 +316,22 @@ public class PokeNotifier implements ModInitializer {
                                 return success ? 1 : 0;
                             })).build();
 
-            dispatcher.getRoot().getChild("pokenotifier").addChild(rollbackCommand);
+            // Build the command tree
+            pokenotifierNode.then(statusCommand);
+            pokenotifierNode.then(helpCommand);
+            pokenotifierNode.then(configNode);
+            pokenotifierNode.then(CommandManager.literal("test")
+                    .then(testModeNode)
+                    .then(debugNode)
+                    .then(testSpawnNode));
+            pokenotifierNode.then(CommandManager.literal("data")
+                    .then(autoCompleteGenNode)
+                    .then(rollbackNode));
+
+            dispatcher.register(pokenotifierNode);
         });
 
+        LOGGER.info("| Phase 5/5: Subscribing to Game Events...         |");
         // On player join, perform initial syncs and check for rank effects.
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             ServerPlayerEntity player = handler.getPlayer();
@@ -326,6 +384,10 @@ public class PokeNotifier implements ModInitializer {
                 PENDING_TASKS.clear();
             }
         });
+
+        LOGGER.info("+---------------------------------------------------+");
+        LOGGER.info("|         Poke Notifier successfully loaded!        |");
+        LOGGER.info("+---------------------------------------------------+");
     }
 
     /**
@@ -598,5 +660,31 @@ public class PokeNotifier implements ModInitializer {
 
     public static void scheduleTask(Runnable task) {
         PENDING_TASKS.add(task);
+    }
+
+    // --- Centralized Command Logic ---
+
+    private static int executeReload(CommandContext<ServerCommandSource> context) {
+        try {
+            ConfigManager.loadConfig();
+            context.getSource().sendFeedback(() -> Text.literal("Poke Notifier configurations reloaded successfully.").formatted(Formatting.GREEN), true);
+            return 1;
+        } catch (ConfigManager.ConfigReadException e) {
+            LOGGER.error("Failed to reload Poke Notifier configuration: {}", e.getMessage());
+            context.getSource().sendError(Text.literal("Error reloading configs: " + e.getMessage()).formatted(Formatting.RED));
+            return 0;
+        }
+    }
+
+    private static int executeReset(CommandContext<ServerCommandSource> context) {
+        try {
+            ConfigManager.resetToDefault();
+            context.getSource().sendFeedback(() -> Text.literal("New default poke-notifier configs have been generated.").formatted(Formatting.GREEN), true);
+            return 1;
+        } catch (Exception e) {
+            LOGGER.error("Failed to generate new default configurations.", e);
+            context.getSource().sendError(Text.literal("Failed to generate new configs. Check server logs.").formatted(Formatting.RED));
+            return 0;
+        }
     }
 }
