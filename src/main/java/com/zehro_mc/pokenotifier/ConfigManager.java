@@ -14,6 +14,7 @@ import com.zehro_mc.pokenotifier.model.CustomListConfig;
 import com.zehro_mc.pokenotifier.model.CatchemallRewardsConfig;
 import com.zehro_mc.pokenotifier.model.GenerationData;
 import com.zehro_mc.pokenotifier.model.PlayerCatchProgress;
+import com.zehro_mc.pokenotifier.util.DataSecurityUtil;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
 import net.fabricmc.api.EnvType;
@@ -240,19 +241,52 @@ public class ConfigManager {
 
     public static PlayerCatchProgress getPlayerCatchProgress(UUID playerUuid) {
         return playerCatchProgress.computeIfAbsent(playerUuid, uuid -> {
-            File progressFile = new File(CATCH_PROGRESS_DIR, uuid.toString() + ".json");
             try {
-                return loadConfigFile(progressFile, PlayerCatchProgress.class, "catch progress for " + uuid);
-            } catch (ConfigReadException e) {
-                PokeNotifier.LOGGER.error("Could not load catch progress for player " + uuid + ". Creating a new one.", e);
+                File progressFile = new File(CATCH_PROGRESS_DIR, uuid.toString() + ".json");
+                if (!progressFile.exists()) {
+                    return new PlayerCatchProgress();
+                }
+
+                // Load the raw map to check for the "data" field, which indicates the new, encrypted format.
+                Map<String, Object> rawData;
+                try (FileReader reader = new FileReader(progressFile)) {
+                    rawData = GSON.fromJson(reader, new TypeToken<Map<String, Object>>(){}.getType());
+                }
+
+                if (rawData.containsKey("data")) {
+                    // New format: Decrypt the data.
+                    String encryptedData = (String) rawData.get("data");
+                    String decryptedJson = DataSecurityUtil.decrypt(encryptedData);
+
+                    if (decryptedJson == null) {
+                        PokeNotifier.LOGGER.warn("Could not decrypt progress file for player {}. It might be tampered with or from an incompatible version. Ignoring.", uuid);
+                        return new PlayerCatchProgress(); // Return fresh progress for this session.
+                    }
+                    return GSON.fromJson(decryptedJson, PlayerCatchProgress.class);
+                } else {
+                    // Old format: Trust the data, migrate it, and save it back.
+                    PokeNotifier.LOGGER.info("Migrating old progress file to new secure format for player {}.", uuid);
+                    PlayerCatchProgress progress = GSON.fromJson(GSON.toJson(rawData), PlayerCatchProgress.class);
+                    savePlayerCatchProgress(uuid, progress); // This will save it in the new, encrypted format.
+                    return progress;
+                }
+            } catch (Exception e) {
+                PokeNotifier.LOGGER.error("Could not load or migrate catch progress for player " + uuid + ". Creating a new one.", e);
                 return new PlayerCatchProgress();
             }
         });
     }
 
     public static void savePlayerCatchProgress(UUID playerUuid, PlayerCatchProgress progress) {
+        // Encrypt the progress data before saving.
+        String jsonProgress = GSON.toJson(progress);
+        String encryptedData = DataSecurityUtil.encrypt(jsonProgress);
+
+        // We save it inside a map to have a consistent JSON structure: {"data": "..."}
+        Map<String, String> dataToSave = Map.of("data", encryptedData);
+
         File progressFile = new File(CATCH_PROGRESS_DIR, playerUuid.toString() + ".json");
-        saveConfigFile(progressFile, progress, "catch progress for " + playerUuid);
+        saveConfigFile(progressFile, dataToSave, "catch progress for " + playerUuid);
         playerCatchProgress.put(playerUuid, progress); // Update cache
     }
 

@@ -107,8 +107,19 @@ public class ClientCommands {
 
         SuggestionProvider<FabricClientCommandSource> generationSuggestionProvider = (context, builder) ->
                 CompletableFuture.supplyAsync(() -> {
+                    String activeGen = PokeNotifierClient.currentCatchEmAllGeneration;
                     Stream.of("gen1", "gen2", "gen3", "gen4", "gen5", "gen6", "gen7", "gen8", "gen9")
-                            .forEach(builder::suggest);
+                            .filter(gen -> !gen.equals(activeGen)) // --- CORRECCIÓN: No sugerir la generación ya activa ---
+                            .forEach(builder::suggest); 
+                    return builder.build();
+                });
+        
+        // Create a specific suggestion provider for the 'disable' command.
+        SuggestionProvider<FabricClientCommandSource> activeGenerationSuggestionProvider = (context, builder) ->
+                CompletableFuture.supplyAsync(() -> {
+                    if (PokeNotifierClient.currentCatchEmAllGeneration != null && !"none".equals(PokeNotifierClient.currentCatchEmAllGeneration)) {
+                        builder.suggest(PokeNotifierClient.currentCatchEmAllGeneration);
+                    }
                     return builder.build();
                 });
 
@@ -124,7 +135,7 @@ public class ClientCommands {
                                 })))
                 .then(ClientCommandManager.literal("disable")
                         .then(ClientCommandManager.argument("generation", StringArgumentType.string())
-                                .suggests(generationSuggestionProvider)
+                                .suggests(activeGenerationSuggestionProvider)
                                 .executes(context -> {
                                     String genName = StringArgumentType.getString(context, "generation");
                                     ClientPlayNetworking.send(new CatchemallUpdatePayload(CatchemallUpdatePayload.Action.DISABLE, genName));

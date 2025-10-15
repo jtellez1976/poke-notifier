@@ -27,6 +27,8 @@ import com.zehro_mc.pokenotifier.model.CustomListConfig;
 import com.zehro_mc.pokenotifier.model.PlayerCatchProgress;
 import com.zehro_mc.pokenotifier.event.CaptureListener;
 import com.zehro_mc.pokenotifier.networking.*;
+import com.mojang.brigadier.suggestion.Suggestions;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.zehro_mc.pokenotifier.networking.ServerDebugStatusPayload;
 import com.zehro_mc.pokenotifier.util.PokeNotifierServerUtils;
 import com.zehro_mc.pokenotifier.util.PlayerRankManager;
@@ -62,6 +64,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -165,15 +168,27 @@ public class PokeNotifier implements ModInitializer {
                                     })).build();
 
             // Command to autocomplete generations for testing.
-            SuggestionProvider<ServerCommandSource> generationSuggestionProvider = (context, builder) ->
-                    CommandSource.suggestMatching(Stream.of("gen1", "gen2", "gen3", "gen4", "gen5", "gen6", "gen7", "gen8", "gen9"), builder);
+            SuggestionProvider<ServerCommandSource> autoCompleteSuggestionProvider = (context, builder) -> {
+                try {
+                    Collection<GameProfile> profiles = GameProfileArgumentType.getProfileArgument(context, "player");
+                    if (profiles.isEmpty()) {
+                        return Suggestions.empty(); // No player typed yet, no suggestions.
+                    }
+                    // We assume only one player is selected
+                    PlayerCatchProgress progress = ConfigManager.getPlayerCatchProgress(profiles.iterator().next().getId());
+                    return CommandSource.suggestMatching(progress.active_generations, builder);
+                } catch (CommandSyntaxException e) {
+                    // This can happen while the user is typing; just return no suggestions.
+                    return Suggestions.empty();
+                }
+            };
 
             var autoCompleteGenCommand = CommandManager.literal("autocompletegen")
                     .requires(source -> source.hasPermissionLevel(2))
                     .then(CommandManager.argument("player", GameProfileArgumentType.gameProfile())
                             .suggests((context, builder) -> CommandSource.suggestMatching(context.getSource().getServer().getPlayerNames(), builder))
                             .then(CommandManager.argument("generation", StringArgumentType.string())
-                                    .suggests(generationSuggestionProvider)
+                                    .suggests(autoCompleteSuggestionProvider)
                                     .executes(context -> {
                                         GameProfile profile = GameProfileArgumentType.getProfileArgument(context, "player").iterator().next();
                                         String genName = StringArgumentType.getString(context, "generation");
@@ -562,11 +577,13 @@ public class PokeNotifier implements ModInitializer {
 
         try {
             Files.move(backupFile.toPath(), progressFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            // Clear the player's progress from the cache. The next time their data is needed,
+            // it will be re-read from the restored file and migrated correctly.
             ConfigManager.forceReloadPlayerCatchProgress(player.getUuid());
-            PokeNotifierServerUtils.sendCatchProgressUpdate(player);
-
-            // --- CORRECCIÓN: Forzamos la actualización y sincronización del rango ---
             PlayerRankManager.updateAndSyncRank(player);
+            
+            // --- FIX: Force a progress update to the client to refresh the HUD immediately ---
+            PokeNotifierServerUtils.sendCatchProgressUpdate(player);
 
             player.getInventory().remove(stack -> stack.getItem() instanceof com.zehro_mc.pokenotifier.item.PokedexTrophyItem, -1, player.getInventory());
             player.sendMessage(Text.literal("Your Pokédex Trophies have been removed as part of the rollback.").formatted(Formatting.YELLOW), false);

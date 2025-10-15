@@ -88,3 +88,49 @@ publishing {
 	repositories {
 	}
 }
+
+// --- Custom Task to Copy Mod to Test Environments ---
+// This task automatically deploys the compiled mod to your local test folders
+// for rapid testing during development.
+
+task copyModToClient(type: Copy) {
+	// Define the path to your client instance's mods folder.
+	def modsDir = file("C:/Users/JOHN/curseforge/minecraft/Instances/COBBLEVERSE - Pokemon Adventure [Cobblemon]/mods")
+	// Safety check: this task will only run if the target directory exists.
+	onlyIf { modsDir.exists() }
+
+	// Before copying, delete any previous versions of the mod in the target directory.
+	doFirst {
+		delete(fileTree(modsDir) {
+			include "${project.archives_base_name}-*.jar"
+		})
+	}
+	// Copy the final, remapped .jar file.
+	from remapJar.archiveFile
+	into modsDir
+}
+
+task copyModToServer(type: Copy) {
+	// Define the path to your server instance's mods folder.
+	def modsDir = file("C:/Users/JOHN/OneDrive/Escritorio/Cobbleverse-server/mods")
+	onlyIf { modsDir.exists() }
+
+	doFirst {
+		delete(fileTree(modsDir) {
+			include "${project.archives_base_name}-*.jar"
+		})
+	}
+	from remapJar.archiveFile
+	into modsDir
+}
+
+// A container task that runs both copy tasks.
+task deployToTest {
+	dependsOn copyModToClient, copyModToServer
+	doLast {
+		println "--> Deployed mod to client and server test environments."
+	}
+}
+
+// Make the 'build' task run our deployment task when it finishes.
+build.finalizedBy(deployToTest)
