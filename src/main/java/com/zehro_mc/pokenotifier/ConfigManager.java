@@ -119,7 +119,7 @@ public class ConfigManager {
                 if (configObject == null) {
                     throw new ConfigReadException("The " + configName + " file is empty or invalid.");
                 }
-                PokeNotifier.LOGGER.info("Poke Notifier " + configName + " loaded.");
+        // PokeNotifier.LOGGER.info("Poke Notifier " + configName + " loaded."); // Silenced to keep startup log clean
                 return configObject;
             } catch (JsonSyntaxException e) {
                 throw new ConfigReadException("Failed to parse " + configName + ". Please check for syntax errors.", e);

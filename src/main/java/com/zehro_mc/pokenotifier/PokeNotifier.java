@@ -95,9 +95,10 @@ public class PokeNotifier implements ModInitializer {
                 .orElse("Unknown");
 
         LOGGER.info("+---------------------------------------------------+");
-        LOGGER.info("|                                                   |");
-        LOGGER.info(String.format("|      Initializing Poke Notifier v%-19s |", modVersion));
-        LOGGER.info("|                                                   |");
+        LOGGER.info(createBannerLine(""));
+        LOGGER.info(createBannerLine("Initializing Poke Notifier"));
+        LOGGER.info(createBannerLine("v" + modVersion));
+        LOGGER.info(createBannerLine(""));
         LOGGER.info("+---------------------------------------------------+");
 
         // Register C2S payload types.
@@ -690,5 +691,21 @@ public class PokeNotifier implements ModInitializer {
             context.getSource().sendError(Text.literal("Failed to generate new configs. Check server logs.").formatted(Formatting.RED));
             return 0;
         }
+    }
+
+    /**
+     * Creates a formatted line for the startup banner, centering the text.
+     * @param text The text to be included in the banner line.
+     * @return A formatted string ready for logging.
+     */
+    private static String createBannerLine(String text) {
+        int bannerWidth = 49; // The inner width of the banner (51 total chars - 2 for '|')
+        if (text.isEmpty()) {
+            return "|" + " ".repeat(bannerWidth) + "|";
+        }
+        int padding = bannerWidth - text.length();
+        int leftPadding = padding / 2;
+        int rightPadding = padding - leftPadding;
+        return "| " + " ".repeat(leftPadding) + text + " ".repeat(rightPadding) + " |";
     }
 }

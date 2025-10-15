@@ -31,6 +31,6 @@ public class ModDataComponents {
     }
 
     public static void registerModDataComponents() {
-        PokeNotifier.LOGGER.info("Registering ModDataComponents for " + PokeNotifier.MOD_ID);
+    // This log is silenced to keep the main startup banner clean.
     }
 }

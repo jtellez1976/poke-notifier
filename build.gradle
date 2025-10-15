@@ -5,7 +5,11 @@ plugins {
 	id 'maven-publish'
 }
 
-version = project.mod_version
+// --- CORRECCIÓN: Construimos la versión completa aquí ---
+// Definimos el formato de la fecha y hora para el build.
+def buildTime = new SimpleDateFormat("yyyyMMdd-HHmm").format(new Date())
+// Combinamos la versión base con el buildTime para crear la versión completa.
+version = "${project.mod_version}-build-${buildTime}"
 group = project.maven_group
 
 base {
@@ -65,8 +69,7 @@ def customizeJar(theJar) {
 	theJar.from("LICENSE") {
 		rename { "${it}_${project.archives_base_name}" }
 	}
-	def buildTime = new SimpleDateFormat("yyyyMMdd-HHmm").format(new Date())
-	theJar.archiveFileName = "${project.archives_base_name}-${project.version}-build-${buildTime}.jar"
+	theJar.archiveFileName = "${project.archives_base_name}-${project.version}.jar"
 }
 
 // Aplicamos la personalización tanto al JAR de desarrollo como al JAR final.
