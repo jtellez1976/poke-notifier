@@ -14,7 +14,7 @@ package com.zehro_mc.pokenotifier;
  */
 public class ConfigServer {
 
-    public int config_version = 2;
+    public int config_version = 5;
 
     public String[] _instructions = new String[]{
             "Poke Notifier Configuration - Server-Only Settings",
@@ -29,7 +29,11 @@ public class ConfigServer {
             "active_bounty: The currently active bounty Pokémon. Do not edit this manually. To clear, set to null.",
             "rival_notification_cooldown_seconds: How long (in seconds) a player must wait between rival notifications.",
             "rival_notification_override_distance: If a rival is within this distance (in blocks), they will be notified regardless of the cooldown.",
-            "update_checker_source: The platform to check for updates ('modrinth', 'curseforge', 'none', or 'unknown')."
+            "update_checker_source: The platform to check for updates ('modrinth', 'curseforge', 'none', or 'unknown').",
+            "swarm_notifications_enabled: If true, a global announcement will be made when a Pokémon swarm starts.",
+            "swarm_system_enabled: If true, the server will automatically start random swarms.",
+            "swarm_check_interval_minutes: How often (in minutes) the system tries to start a new swarm.",
+            "swarm_start_chance_percent: The percentage chance (0-100) of a swarm starting during each interval."
     };
 
     public boolean debug_mode_enabled = false;
@@ -42,5 +46,9 @@ public class ConfigServer {
     public int rival_notification_cooldown_seconds = 60;
     public int rival_notification_override_distance = 200;
     public String update_checker_source = "unknown";
+    public boolean swarm_notifications_enabled = true;
+    public boolean swarm_system_enabled = true;
+    public int swarm_check_interval_minutes = 30;
+    public int swarm_start_chance_percent = 25;
     public String active_bounty = null;
 }

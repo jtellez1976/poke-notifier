@@ -26,8 +26,6 @@ import com.zehro_mc.pokenotifier.model.CustomListConfig;
 import com.zehro_mc.pokenotifier.model.PlayerCatchProgress;
 import com.zehro_mc.pokenotifier.event.CaptureListener;
 import com.zehro_mc.pokenotifier.networking.*;
-import com.mojang.brigadier.suggestion.Suggestions;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.zehro_mc.pokenotifier.networking.ServerDebugStatusPayload;
 import com.zehro_mc.pokenotifier.util.PokeNotifierServerUtils;
 import com.zehro_mc.pokenotifier.util.PlayerRankManager;
@@ -58,6 +56,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 import net.minecraft.command.argument.GameProfileArgumentType;
@@ -73,9 +72,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import java.util.concurrent.CompletableFuture;
+import net.minecraft.world.Heightmap;
 import java.util.stream.StreamSupport;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -93,6 +94,10 @@ public class PokeNotifier implements ModInitializer {
     private static final Random BOUNTY_RANDOM = new Random();
     private static int bountyReminderTickCounter = 0;
     private static long bountyStartTime = 0L;
+
+    // --- Swarm System Scheduler ---
+    private static int swarmTickCounter = 0;
+    private static final Random SWARM_RANDOM = new Random();
 
     // --- Rival System Cooldowns ---
     public static final Map<UUID, Long> RIVAL_NOTIFICATION_COOLDOWNS = new ConcurrentHashMap<>();
@@ -195,7 +200,7 @@ public class PokeNotifier implements ModInitializer {
                         source.sendFeedback(() -> Text.literal("/pokenotifier test debug <enable/disable>").formatted(Formatting.AQUA).append(Text.literal(" - Toggles detailed console logs.").formatted(Formatting.WHITE)), false);
                         source.sendFeedback(() -> Text.literal("/pokenotifier test mode <enable/disable>").formatted(Formatting.AQUA).append(Text.literal(" - Toggles notifications for non-natural spawns.").formatted(Formatting.WHITE)), false);
                         source.sendFeedback(() -> Text.literal("/pokenotifier test spawn <pokemon> [shiny]").formatted(Formatting.AQUA).append(Text.literal(" - Spawns a Pokémon for testing.").formatted(Formatting.WHITE)), false);
-                        source.sendFeedback(() -> Text.literal("/pokenotifier data autocomplete <player> <gen>").formatted(Formatting.AQUA).append(Text.literal(" - Autocompletes a gen for a player.").formatted(Formatting.WHITE)), false);
+                        source.sendFeedback(() -> Text.literal("/pokenotifier data autocomplete <player>").formatted(Formatting.AQUA).append(Text.literal(" - Autocompletes a gen for a player.").formatted(Formatting.WHITE)), false);
                         source.sendFeedback(() -> Text.literal("/pokenotifier bounty system <enable/disable>").formatted(Formatting.AQUA).append(Text.literal(" - Toggles the automatic bounty system.").formatted(Formatting.WHITE)), false);
                         source.sendFeedback(() -> Text.literal("/pokenotifier data rollback <player>").formatted(Formatting.AQUA).append(Text.literal(" - Restores a player's progress from a backup.").formatted(Formatting.WHITE)), false);
                         return 1;
@@ -213,36 +218,15 @@ public class PokeNotifier implements ModInitializer {
                 String token = UUID.randomUUID().toString().substring(0, 8);
                 RESET_CONFIRMATION_TOKENS.put(player.getUuid(), token);
 
-                // --- MEJORA: Apuntamos a comandos "ocultos" para que no se autocompleten ---
                 Text confirmText = Text.literal("[CONFIRM]").formatted(Formatting.GREEN, Formatting.BOLD)
-                        .styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pokenotifier_confirm_reset " + token)));
+                        .styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pokenotifier internal confirm_reset " + token)));
                 Text cancelText = Text.literal("[CANCEL]").formatted(Formatting.RED, Formatting.BOLD)
-                        .styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pokenotifier_cancel_reset")));
+                        .styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pokenotifier internal cancel_reset")));
 
                 context.getSource().sendFeedback(() -> Text.literal("WARNING: This will reset all Poke Notifier configurations to their defaults. This action cannot be undone.").formatted(Formatting.RED), false);
                 context.getSource().sendFeedback(() -> Text.literal("Click to proceed: ").append(confirmText).append(" ").append(cancelText), false);
                 return 1;
             }));
-
-            // --- MEJORA: Comando de callback para configurar la fuente de actualizaciones ---
-            pokenotifierNode.then(CommandManager.literal("set_update_source")
-                    .then(CommandManager.argument("source", StringArgumentType.string())
-                            .executes(context -> {
-                                String source = StringArgumentType.getString(context, "source");
-                                if (List.of("modrinth", "curseforge", "none").contains(source)) {
-                                    ConfigManager.getServerConfig().update_checker_source = source;
-                                    ConfigManager.saveServerConfigToFile();
-                                    context.getSource().sendFeedback(() -> Text.literal("Update check source set to: ").formatted(Formatting.GREEN)
-                                            .append(Text.literal(source).formatted(Formatting.GOLD)), false);
-                                    // Re-check for updates with the new setting
-                                    UpdateChecker.checkForUpdates(context.getSource().getPlayer());
-                                    return 1;
-                                } else {
-                                    context.getSource().sendError(Text.literal("Invalid source. Use 'modrinth', 'curseforge', or 'none'."));
-                                    return 0;
-                                }
-                            }))
-            );
 
             // Test mode command.
             var testModeNode = CommandManager.literal("mode")
@@ -290,79 +274,47 @@ public class PokeNotifier implements ModInitializer {
                             })).build();
 
             // Command to autocomplete generations for testing.
-            SuggestionProvider<ServerCommandSource> autoCompleteSuggestionProvider = (context, builder) -> {
-                try {
-                    Collection<GameProfile> profiles = GameProfileArgumentType.getProfileArgument(context, "player");
-                    if (profiles.isEmpty()) {
-                        return Suggestions.empty(); // No player typed yet, no suggestions.
-                    }
-                    // We assume only one player is selected
-                    PlayerCatchProgress progress = ConfigManager.getPlayerCatchProgress(profiles.iterator().next().getId());
-                    return CommandSource.suggestMatching(progress.active_generations, builder);
-                } catch (CommandSyntaxException e) {
-                    // This can happen while the user is typing; just return no suggestions.
-                    return Suggestions.empty();
-                }
-            };
-
-            // Data management commands
             var autoCompleteGenNode = CommandManager.literal("autocomplete")
                     .then(CommandManager.argument("player", GameProfileArgumentType.gameProfile())
                             .suggests((context, builder) -> CommandSource.suggestMatching(context.getSource().getServer().getPlayerNames(), builder))
-                            .then(CommandManager.argument("generation", StringArgumentType.string())
-                                    .suggests(autoCompleteSuggestionProvider)
-                                    .executes(context -> {
-                                        GameProfile profile = GameProfileArgumentType.getProfileArgument(context, "player").iterator().next();
-                                        String genName = StringArgumentType.getString(context, "generation");
-                                        ServerPlayerEntity targetPlayer = context.getSource().getServer().getPlayerManager().getPlayer(profile.getId());
+                            .executes(context -> {
+                                GameProfile profile = GameProfileArgumentType.getProfileArgument(context, "player").iterator().next();
+                                ServerPlayerEntity targetPlayer = context.getSource().getServer().getPlayerManager().getPlayer(profile.getId());
+                                if (targetPlayer == null) {
+                                    context.getSource().sendError(Text.literal("Player " + profile.getName() + " is not online."));
+                                    return 0;
+                                }
 
-                                        if (targetPlayer == null) {
-                                            context.getSource().sendError(Text.literal("Player " + profile.getName() + " is not online."));
-                                            return 0;
-                                        }
+                                PlayerCatchProgress progress = ConfigManager.getPlayerCatchProgress(targetPlayer.getUuid());
+                                if (progress.active_generations.isEmpty()) {
+                                    context.getSource().sendError(Text.literal("Player " + profile.getName() + " does not have Catch 'em All mode active.").formatted(Formatting.RED));
+                                    return 0;
+                                }
+                                String genName = progress.active_generations.iterator().next();
+                                GenerationData genData = ConfigManager.getGenerationData(genName);
+                                if (genData == null) {
+                                    context.getSource().sendError(Text.literal("Internal error: Could not find data for generation '" + genName + "'."));
+                                    return 0;
+                                }
 
-                                        GenerationData genData = ConfigManager.getGenerationData(genName);
-                                        if (genData == null) {
-                                            context.getSource().sendError(Text.literal("Generation '" + genName + "' not found."));
-                                            return 0;
-                                        }
+                                // --- LÓGICA DE BACKUP ---
+                                File progressFile = new File(ConfigManager.CATCH_PROGRESS_DIR, targetPlayer.getUuid().toString() + ".json");
+                                File backupFile = new File(ConfigManager.CATCH_PROGRESS_DIR, targetPlayer.getUuid().toString() + ".json.bak");
+                                try {
+                                    if (progressFile.exists() && !backupFile.exists()) {
+                                        Files.copy(progressFile.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                                        context.getSource().sendFeedback(() -> Text.literal("Backup of original progress created.").formatted(Formatting.YELLOW), false);
+                                    }
+                                } catch (IOException e) {
+                                    LOGGER.error("Failed to create backup for " + profile.getName(), e);
+                                }
 
-                                        // Check if the player has Catch 'em All mode active.
-                                        PlayerCatchProgress progress = ConfigManager.getPlayerCatchProgress(targetPlayer.getUuid());
-                                        if (progress.active_generations.isEmpty()) {
-                                            context.getSource().sendError(Text.literal("Player " + profile.getName() + " does not have Catch 'em All mode active.").formatted(Formatting.RED));
-                                            return 0;
-                                        }
-
-                                        // Check if the player is already tracking a different generation.
-                                        if (!progress.active_generations.isEmpty() && !progress.active_generations.contains(genName)) {
-                                            String activeGen = progress.active_generations.iterator().next();
-                                            context.getSource().sendError(Text.literal("Player " + profile.getName() + " is already tracking " + formatGenName(activeGen) + ". They must disable it first.").formatted(Formatting.RED));
-                                            return 0;
-                                        }
-
-                                        // --- LÓGICA DE BACKUP ---
-                                        File progressFile = new File(ConfigManager.CATCH_PROGRESS_DIR, targetPlayer.getUuid().toString() + ".json");
-                                        File backupFile = new File(ConfigManager.CATCH_PROGRESS_DIR, targetPlayer.getUuid().toString() + ".json.bak");
-
-                                        // Only create a backup if one doesn't already exist.
-                                        try {
-                                            if (progressFile.exists() && !backupFile.exists()) {
-                                                Files.copy(progressFile.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                                                context.getSource().sendFeedback(() -> Text.literal("Backup of original progress created.").formatted(Formatting.YELLOW), false);
-                                            }
-                                        } catch (IOException e) {
-                                            context.getSource().sendError(Text.literal("Failed to create backup file. Aborting."));
-                                            LOGGER.error("Failed to create backup for " + profile.getName(), e);
-                                            return 0;
-                                        }
-
-                                        context.getSource().sendFeedback(() -> Text.literal("WARNING: This command modifies player data directly. Use with caution.").formatted(Formatting.RED), false);
-                                        String missingPokemon = autocompleteGenerationForPlayer(targetPlayer, genName, genData);
-                                        context.getSource().sendFeedback(() -> Text.literal("Autocompleted " + formatGenName(genName) + " for player " + targetPlayer.getName().getString()).formatted(Formatting.GREEN), true);
-                                        context.getSource().sendFeedback(() -> Text.literal("To complete the list, capture ").append(Text.literal(missingPokemon).formatted(Formatting.GOLD)).append(". Use '/pokenotifier testspawn " + missingPokemon + "' to test.").formatted(Formatting.AQUA), false);
-                                        return 1;
-                                    }))
+                                context.getSource().sendFeedback(() -> Text.literal("WARNING: This command modifies player data directly. Use with caution.").formatted(Formatting.RED), false);
+                                String missingPokemon = autocompleteGenerationForPlayer(targetPlayer, genName, genData);
+                                context.getSource().sendFeedback(() -> Text.literal("Autocompleted " + formatGenName(genName) + " for player " + targetPlayer.getName().getString()).formatted(Formatting.GREEN), true);
+                                context.getSource().sendFeedback(() -> Text.literal("To complete the list, capture: ").append(Text.literal(missingPokemon).formatted(Formatting.GOLD)).append(". Use '/pokenotifier test spawn " + missingPokemon + "' to test.").formatted(Formatting.AQUA), false);
+                                return 1;
+                            })
                     ).build();
 
             // Command to restore player progress from a backup.
@@ -416,20 +368,56 @@ public class PokeNotifier implements ModInitializer {
                     .then(rollbackNode));
             pokenotifierNode.then(CommandManager.literal("bounty").then(bountySystemNode));
 
+            // --- MEJORA: Comando para iniciar enjambres (swarms) ---
+            var swarmNode = CommandManager.literal("swarm")
+                    .requires(source -> source.hasPermissionLevel(2)) // Ensure only admins can use it
+                    .then(CommandManager.literal("start")
+                            .then(CommandManager.argument("pokemon", StringArgumentType.string())
+                                    .suggests(pokemonSuggestionProvider)
+                                    .executes(context -> {
+                                        ServerPlayerEntity player = context.getSource().getPlayer();
+                                        if (player == null) return 0;
+                                        String pokemonName = StringArgumentType.getString(context, "pokemon");
+                                        boolean success = executeSwarmStart(player, pokemonName);
+                                        if (success) {
+                                            context.getSource().sendFeedback(() -> Text.literal("Attempting to start a swarm of ").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append("...").formatted(Formatting.GREEN), true);
+                                        }
+                                        return success ? 1 : 0;
+                                    })
+                            )
+                    );
+            pokenotifierNode.then(swarmNode);
+
+            // --- FIX: Register internal commands as a hidden subcommand ---
+            var internalNode = CommandManager.literal("internal")
+                    .requires(source -> false) // This makes the command un-suggestable, effectively hiding it.
+                    .then(CommandManager.literal("set_update_source")
+                            .then(CommandManager.argument("source", StringArgumentType.string())
+                                    .executes(context -> {
+                                        ServerPlayerEntity player = context.getSource().getPlayer();
+                                        if (player == null) return 0;
+                                        String source = StringArgumentType.getString(context, "source");
+                                        if (List.of("modrinth", "curseforge", "none").contains(source)) {
+                                            ConfigManager.getServerConfig().update_checker_source = source;
+                                            ConfigManager.saveServerConfigToFile();
+                                            context.getSource().sendFeedback(() -> Text.literal("Update check source set to: ").formatted(Formatting.GREEN)
+                                                    .append(Text.literal(source).formatted(Formatting.GOLD)), false);
+                                            UpdateChecker.checkForUpdates(player);
+                                            return 1;
+                                        }
+                                        return 0;
+                                    })))
+                    .then(CommandManager.literal("confirm_reset")
+                            .then(CommandManager.argument("token", StringArgumentType.string())
+                                    .executes(PokeNotifier::executeConfirmReset)))
+                    .then(CommandManager.literal("cancel_reset")
+                            .executes(context -> {
+                                context.getSource().sendFeedback(() -> Text.literal("Configuration reset cancelled.").formatted(Formatting.YELLOW), false);
+                                return 1;
+                            }));
+            pokenotifierNode.then(internalNode);
+
             dispatcher.register(pokenotifierNode);
-
-            // --- FIX: Register callback commands as separate, hidden root commands ---
-            dispatcher.register(CommandManager.literal("pokenotifier_confirm_reset")
-                    .then(CommandManager.argument("token", StringArgumentType.string())
-                            .executes(PokeNotifier::executeConfirmReset))
-            );
-
-            dispatcher.register(CommandManager.literal("pokenotifier_cancel_reset")
-                    .executes(context -> {
-                        context.getSource().sendFeedback(() -> Text.literal("Configuration reset cancelled.").formatted(Formatting.YELLOW), false);
-                        return 1;
-                    })
-            );
         });
 
         LOGGER.info("| Phase 5/5: Subscribing to Game Events...         |");
@@ -451,13 +439,10 @@ public class PokeNotifier implements ModInitializer {
             // --- MEJORA: Check for update source configuration ---
             if (player.hasPermissionLevel(2)) {
                 if ("unknown".equalsIgnoreCase(ConfigManager.getServerConfig().update_checker_source)) {
-                    Text prompt = Text.literal("Please configure the update checker source for Poke Notifier.").formatted(Formatting.YELLOW);
-                    Text modrinthButton = Text.literal("[Modrinth]").formatted(Formatting.GREEN)
-                            .styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pokenotifier set_update_source modrinth")));
-                    Text curseforgeButton = Text.literal("[CurseForge]").formatted(Formatting.AQUA)
-                            .styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pokenotifier set_update_source curseforge")));
-                    Text disableButton = Text.literal("[Disable]").formatted(Formatting.RED)
-                            .styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pokenotifier set_update_source none")));
+                    Text prompt = Text.literal("Please configure the update checker source for Poke Notifier:").formatted(Formatting.YELLOW);
+                    Text modrinthButton = Text.literal("[Modrinth]").formatted(Formatting.GREEN).styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pokenotifier internal set_update_source modrinth")));
+                    Text curseforgeButton = Text.literal("[CurseForge]").formatted(Formatting.AQUA).styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pokenotifier internal set_update_source curseforge")));
+                    Text disableButton = Text.literal("[Disable]").formatted(Formatting.RED).styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pokenotifier internal set_update_source none")));
 
                     player.sendMessage(prompt, false);
                     player.sendMessage(Text.literal("Choose your preferred platform: ").append(modrinthButton).append(" ").append(curseforgeButton).append(" ").append(disableButton), false);
@@ -524,6 +509,9 @@ public class PokeNotifier implements ModInitializer {
 
             // Tick the bounty system scheduler.
             tickBountySystem(currentServer);
+
+            // Tick the swarm system scheduler.
+            tickSwarmSystem(currentServer);
         });
 
         // --- MEJORA: Print the final success banner synchronously ---
@@ -756,14 +744,21 @@ public class PokeNotifier implements ModInitializer {
     private static String autocompleteGenerationForPlayer(ServerPlayerEntity player, String genName, GenerationData genData) {
         PlayerCatchProgress progress = ConfigManager.getPlayerCatchProgress(player.getUuid());
 
-        List<String> pokemonList = new ArrayList<>(genData.pokemon);
-        if (pokemonList.isEmpty()) {
+        // --- FIX: Correctly identify the missing Pokémon ---
+        Set<String> allPokemonForGen = new HashSet<>(genData.pokemon);
+        if (allPokemonForGen.isEmpty()) {
             return "none";
         }
 
-        String lastPokemon = pokemonList.remove(pokemonList.size() - 1);
+        // Find the difference between all Pokémon and the ones the player has caught.
+        allPokemonForGen.removeAll(progress.caught_pokemon.getOrDefault(genName, new HashSet<>()));
 
-        progress.caught_pokemon.put(genName, new HashSet<>(pokemonList));
+        // The remaining Pokémon is the one to leave out.
+        String lastPokemon = allPokemonForGen.stream().findFirst().orElse("mew"); // Fallback
+
+        Set<String> completedList = new HashSet<>(genData.pokemon);
+        completedList.remove(lastPokemon);
+        progress.caught_pokemon.put(genName, completedList);
         ConfigManager.savePlayerCatchProgress(player.getUuid(), progress);
 
         player.sendMessage(Text.literal("An administrator has autocompleted your " + formatGenName(genName) + " progress for testing purposes.").formatted(Formatting.YELLOW), false);
@@ -919,7 +914,7 @@ public class PokeNotifier implements ModInitializer {
 
     private static int executeConfirmReset(CommandContext<ServerCommandSource> context) {
         ServerPlayerEntity player = context.getSource().getPlayer();
-        if (player == null) return 0;
+        if (player == null) return 0; // Should not happen from a click event
 
         String providedToken = StringArgumentType.getString(context, "token");
         String expectedToken = RESET_CONFIRMATION_TOKENS.get(player.getUuid());
@@ -955,5 +950,98 @@ public class PokeNotifier implements ModInitializer {
         int leftPadding = padding / 2;
         int rightPadding = padding - leftPadding;
         return "| " + " ".repeat(leftPadding) + text + " ".repeat(rightPadding) + " |";
+    }
+
+    private static boolean executeSwarmStart(ServerPlayerEntity player, String pokemonName) {
+        // --- FIX: The manual command now triggers the same logic as the automatic system ---
+        startRandomSwarm(player.getServer(), pokemonName);
+        return true;
+    }
+
+    private static void tickSwarmSystem(MinecraftServer server) {
+        ConfigServer config = ConfigManager.getServerConfig();
+        if (!config.swarm_system_enabled) {
+            return;
+        }
+
+        swarmTickCounter++;
+
+        if (swarmTickCounter >= config.swarm_check_interval_minutes * 60 * 20) {
+            swarmTickCounter = 0;
+
+            if (SWARM_RANDOM.nextInt(100) < config.swarm_start_chance_percent) {
+                startRandomSwarm(server, null);
+            }
+        }
+    }
+
+    private static void startRandomSwarm(MinecraftServer server, String forcedPokemonName) {
+        String pokemonName;
+        if (forcedPokemonName != null) {
+            pokemonName = forcedPokemonName;
+        } else {
+            // 1. Create the pool of eligible Pokémon.
+            ConfigPokemon pokemonConfig = ConfigManager.getPokemonConfig();
+            List<String> swarmPool = new ArrayList<>();
+            swarmPool.addAll(pokemonConfig.RARE);
+            swarmPool.addAll(pokemonConfig.ULTRA_RARE);
+
+            if (swarmPool.isEmpty()) {
+                LOGGER.warn("[Swarm System] No Pokémon available in RARE or ULTRA_RARE lists to create a swarm.");
+                return;
+            }
+            // 2. Select a random Pokémon.
+            pokemonName = swarmPool.get(SWARM_RANDOM.nextInt(swarmPool.size()));
+        }
+
+        // 3. Find a random, valid location.
+        List<ServerPlayerEntity> players = server.getPlayerManager().getPlayerList().stream()
+                .filter(p -> p.getServerWorld().getRegistryKey() == ServerWorld.OVERWORLD).toList();
+
+        if (players.isEmpty()) {
+            LOGGER.info("[Swarm System] No players in Overworld, skipping swarm.");
+            return;
+        }
+
+        ServerPlayerEntity referencePlayer = players.get(SWARM_RANDOM.nextInt(players.size()));
+        ServerWorld world = referencePlayer.getServerWorld();
+
+        double angle = SWARM_RANDOM.nextDouble() * 2 * Math.PI;
+        // --- MEJORA: Use a closer, more engaging distance for swarms ---
+        double distance = 30 + (SWARM_RANDOM.nextDouble() * 20); // 30-50 blocks away
+
+        int x = (int) (referencePlayer.getX() + Math.cos(angle) * distance);
+        int z = (int) (referencePlayer.getZ() + Math.sin(angle) * distance);
+        int y = world.getTopY(Heightmap.Type.WORLD_SURFACE, x, z);
+
+        BlockPos swarmPos = new BlockPos(x, y, z);
+
+        // 4. Execute the outbreak at the found location.
+        try {
+            PokemonProperties props = PokemonProperties.Companion.parse(pokemonName);
+            Pokemon pokemon = props.create(); // Create a sample to get the name
+            String capitalizedName = pokemon.getSpecies().getName();
+            String biomeName = world.getBiome(swarmPos).getKey().map(key -> key.getValue().getPath()).orElse("unknown").replace("_", " ");
+
+            Text message = Text.literal("🌊 Swarm Alert! ").formatted(Formatting.AQUA)
+                    .append(Text.literal("A large concentration of ").formatted(Formatting.YELLOW))
+                    .append(Text.literal(capitalizedName).formatted(Formatting.GOLD, Formatting.BOLD))
+                    .append(Text.literal(" has been detected in " + biomeName + " biomes").formatted(Formatting.YELLOW))
+                    .append(Text.literal(" around X: " + swarmPos.getX() + ", Z: " + swarmPos.getZ()).formatted(Formatting.AQUA)); // Add coordinates
+
+            server.getPlayerManager().broadcast(message, false);
+            server.getPlayerManager().getPlayerList().forEach(p -> p.playSoundToPlayer(SoundEvents.EVENT_RAID_HORN.value(), SoundCategory.NEUTRAL, 1.0F, 1.0F));
+
+            // --- MEJORA: Spawn a random amount of Pokémon between 10 and 15 ---
+            int swarmSize = 10 + SWARM_RANDOM.nextInt(6); // Generates a number from 0-5, so the result is 10-15.
+            for (int i = 0; i < swarmSize; i++) {
+                PokemonEntity entity = props.createEntity(world);
+                entity.teleport(swarmPos.getX() + (Math.random() - 0.5) * 20, swarmPos.getY(), swarmPos.getZ() + (Math.random() - 0.5) * 20, true);
+                world.spawnEntity(entity);
+            }
+            LOGGER.info("[Swarm System] Started a swarm of {} at {}", pokemonName, swarmPos);
+        } catch (Exception e) {
+            LOGGER.error("Failed to start automatic swarm for " + pokemonName, e);
+        }
     }
 }
