@@ -130,6 +130,7 @@ public class PokeNotifier implements ModInitializer {
         // Register C2S payload types.
         PayloadTypeRegistry.playC2S().register(CustomListUpdatePayload.ID, CustomListUpdatePayload.CODEC);
         PayloadTypeRegistry.playC2S().register(CatchemallUpdatePayload.ID, CatchemallUpdatePayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(UpdateSourcePayload.ID, UpdateSourcePayload.CODEC);
 
         // Register S2C payload types.
         LOGGER.info("| Phase 1/5: Registering Network Payloads...      |");
@@ -389,32 +390,12 @@ public class PokeNotifier implements ModInitializer {
             pokenotifierNode.then(swarmNode);
 
             // --- FIX: Register internal commands as a hidden subcommand ---
-            var internalNode = CommandManager.literal("internal")
-                    .requires(source -> false) // This makes the command un-suggestable, effectively hiding it.
-                    .then(CommandManager.literal("set_update_source")
-                            .then(CommandManager.argument("source", StringArgumentType.string())
-                                    .executes(context -> {
-                                        ServerPlayerEntity player = context.getSource().getPlayer();
-                                        if (player == null) return 0;
-                                        String source = StringArgumentType.getString(context, "source");
-                                        if (List.of("modrinth", "curseforge", "none").contains(source)) {
-                                            ConfigManager.getServerConfig().update_checker_source = source;
-                                            ConfigManager.saveServerConfigToFile();
-                                            context.getSource().sendFeedback(() -> Text.literal("Update check source set to: ").formatted(Formatting.GREEN)
-                                                    .append(Text.literal(source).formatted(Formatting.GOLD)), false);
-                                            UpdateChecker.checkForUpdates(player);
-                                            return 1;
-                                        }
-                                        return 0;
-                                    })))
-                    .then(CommandManager.literal("confirm_reset")
-                            .then(CommandManager.argument("token", StringArgumentType.string())
-                                    .executes(PokeNotifier::executeConfirmReset)))
-                    .then(CommandManager.literal("cancel_reset")
-                            .executes(context -> {
-                                context.getSource().sendFeedback(() -> Text.literal("Configuration reset cancelled.").formatted(Formatting.YELLOW), false);
-                                return 1;
-                            }));
+            var internalNode = CommandManager.literal("internal").requires(source -> false)
+                .then(CommandManager.literal("confirm_reset").then(CommandManager.argument("token", StringArgumentType.string()).executes(PokeNotifier::executeConfirmReset)))
+                .then(CommandManager.literal("cancel_reset").executes(context -> {
+                    context.getSource().sendFeedback(() -> Text.literal("Configuration reset cancelled.").formatted(Formatting.YELLOW), false);
+                    return 1;
+                }));
             pokenotifierNode.then(internalNode);
 
             dispatcher.register(pokenotifierNode);
@@ -439,10 +420,10 @@ public class PokeNotifier implements ModInitializer {
             // --- MEJORA: Check for update source configuration ---
             if (player.hasPermissionLevel(2)) {
                 if ("unknown".equalsIgnoreCase(ConfigManager.getServerConfig().update_checker_source)) {
-                    Text prompt = Text.literal("Please configure the update checker source for Poke Notifier:").formatted(Formatting.YELLOW);
-                    Text modrinthButton = Text.literal("[Modrinth]").formatted(Formatting.GREEN).styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pokenotifier internal set_update_source modrinth")));
-                    Text curseforgeButton = Text.literal("[CurseForge]").formatted(Formatting.AQUA).styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pokenotifier internal set_update_source curseforge")));
-                    Text disableButton = Text.literal("[Disable]").formatted(Formatting.RED).styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pokenotifier internal set_update_source none")));
+                    Text prompt = Text.literal("Please configure the update checker source for Poke Notifier:").formatted(Formatting.YELLOW);                    
+                    Text modrinthButton = Text.literal("[Modrinth]").formatted(Formatting.GREEN).styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pnc set_update_source modrinth")));
+                    Text curseforgeButton = Text.literal("[CurseForge]").formatted(Formatting.AQUA).styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pnc set_update_source curseforge")));
+                    Text disableButton = Text.literal("[Disable]").formatted(Formatting.RED).styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pnc set_update_source none")));
 
                     player.sendMessage(prompt, false);
                     player.sendMessage(Text.literal("Choose your preferred platform: ").append(modrinthButton).append(" ").append(curseforgeButton).append(" ").append(disableButton), false);
@@ -636,6 +617,23 @@ public class PokeNotifier implements ModInitializer {
                             });
                         }
                         break;
+                }
+            });
+        });
+
+        // --- FIX: Handle update source selection via packet ---
+        ServerPlayNetworking.registerGlobalReceiver(UpdateSourcePayload.ID, (payload, context) -> {
+            ServerPlayerEntity player = context.player();
+            String source = payload.source();
+
+            context.server().execute(() -> {
+                if (player.hasPermissionLevel(2) && List.of("modrinth", "curseforge", "none").contains(source)) {
+                    ConfigManager.getServerConfig().update_checker_source = source;
+                    ConfigManager.saveServerConfigToFile();
+                    player.sendMessage(Text.literal("Update check source set to: ").formatted(Formatting.GREEN)
+                            .append(Text.literal(source).formatted(Formatting.GOLD)), false);
+                    // Give the player immediate feedback on the update status.
+                    UpdateChecker.checkForUpdates(player);
                 }
             });
         });

@@ -17,6 +17,7 @@ import com.zehro_mc.pokenotifier.ConfigManager;
 import com.zehro_mc.pokenotifier.PokeNotifier;
 import com.zehro_mc.pokenotifier.networking.CatchemallUpdatePayload;
 import com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload;
+import com.zehro_mc.pokenotifier.networking.UpdateSourcePayload;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
@@ -38,6 +39,20 @@ public class ClientCommands {
 
     public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher) {
         LiteralArgumentBuilder<FabricClientCommandSource> pncCommand = ClientCommandManager.literal("pnc");
+
+        // --- FIX: Create a client-side command to handle the update source selection ---
+        // This command is what the clickable text will now execute.
+        pncCommand.then(ClientCommandManager.literal("set_update_source")
+                .then(ClientCommandManager.argument("source", StringArgumentType.string())
+                        .executes(context -> {
+                            String source = StringArgumentType.getString(context, "source");
+                            // Send a packet to the server with the chosen source.
+                            ClientPlayNetworking.send(new UpdateSourcePayload(source));
+                            context.getSource().sendFeedback(Text.literal("Setting update source to: ").formatted(Formatting.YELLOW)
+                                    .append(Text.literal(source).formatted(Formatting.GOLD)));
+                            return 1;
+                        }))
+        );
 
         // --- Alerts Subcommand ---
         var alertsNode = ClientCommandManager.literal("alerts")
