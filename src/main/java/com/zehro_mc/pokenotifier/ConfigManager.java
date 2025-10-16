@@ -11,6 +11,7 @@ package com.zehro_mc.pokenotifier;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.zehro_mc.pokenotifier.model.CustomListConfig;
+import com.zehro_mc.pokenotifier.model.BountyRewardsConfig;
 import com.zehro_mc.pokenotifier.model.CatchemallRewardsConfig;
 import com.zehro_mc.pokenotifier.model.GenerationData;
 import com.zehro_mc.pokenotifier.model.PlayerCatchProgress;
@@ -40,15 +41,18 @@ public class ConfigManager {
     private static final File CONFIG_DIR = FabricLoader.getInstance().getConfigDir().resolve(PokeNotifier.MOD_ID).toFile();
     private static final File PLAYER_DATA_DIR = new File(CONFIG_DIR, "player_data");
     public static final File CATCH_PROGRESS_DIR = new File(CONFIG_DIR, "catch_progress");
+    private static final File EVENTS_DIR = new File(CONFIG_DIR, "events"); // New directory for event configs
     private static final File CONFIG_CLIENT_FILE = new File(CONFIG_DIR, "config-client.json");
     private static final File CONFIG_SERVER_FILE = new File(CONFIG_DIR, "config-server.json");
-    private static final File CATCHEMALL_REWARDS_FILE = new File(CONFIG_DIR, "catchemall_rewards.json");
+    private static final File CATCHEMALL_REWARDS_FILE = new File(EVENTS_DIR, "catchemall_rewards.json"); // Moved
+    private static final File BOUNTY_REWARDS_FILE = new File(EVENTS_DIR, "bounty_rewards.json"); // New
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     private static ConfigPokemon configPokemon;
     private static ConfigClient configClient;
     private static CatchemallRewardsConfig catchemallRewardsConfig;
+    private static BountyRewardsConfig bountyRewardsConfig;
     private static ConfigServer configServer;
 
     // Caches player-specific data to avoid constant file I/O.
@@ -78,6 +82,9 @@ public class ConfigManager {
         if (!CATCH_PROGRESS_DIR.exists()) {
             CATCH_PROGRESS_DIR.mkdirs();
         }
+        if (!EVENTS_DIR.exists()) { // Create the new events directory
+            EVENTS_DIR.mkdirs();
+        }
 
         EnvType env = FabricLoader.getInstance().getEnvironmentType();
 
@@ -87,6 +94,7 @@ public class ConfigManager {
         } else { // Server-side environment
             loadConfigServer();
             loadCatchemallRewardsConfig();
+            loadBountyRewardsConfig();
         }
     }
 
@@ -94,6 +102,7 @@ public class ConfigManager {
         saveClientConfigToFile();
         saveServerConfigToFile();
         saveCatchemallRewardsConfig();
+        saveBountyRewardsConfig();
     }
 
     public static void resetToDefault() {
@@ -101,6 +110,7 @@ public class ConfigManager {
 
         configPokemon = new ConfigPokemon();
         catchemallRewardsConfig = new CatchemallRewardsConfig();
+        bountyRewardsConfig = new BountyRewardsConfig();
 
         if (env == EnvType.CLIENT) {
             configClient = new ConfigClient();
@@ -177,6 +187,18 @@ public class ConfigManager {
         }
     }
 
+    private static void loadBountyRewardsConfig() throws ConfigReadException {
+        bountyRewardsConfig = loadConfigFile(BOUNTY_REWARDS_FILE, BountyRewardsConfig.class, "events/bounty_rewards.json");
+    }
+
+    private static void saveBountyRewardsConfig() {
+        if (FabricLoader.getInstance().getEnvironmentType() != EnvType.CLIENT) {
+            if (bountyRewardsConfig == null) bountyRewardsConfig = new BountyRewardsConfig();
+            saveConfigFile(BOUNTY_REWARDS_FILE, bountyRewardsConfig, "events/bounty_rewards.json");
+        }
+    }
+
+
     public static ConfigPokemon getPokemonConfig() {
         if (configPokemon == null) {
             // The Pokémon lists are now hardcoded, so we just create a new instance.
@@ -219,6 +241,18 @@ public class ConfigManager {
             }
         }
         return catchemallRewardsConfig;
+    }
+
+    public static BountyRewardsConfig getBountyRewardsConfig() {
+        if (bountyRewardsConfig == null) {
+            try {
+                loadBountyRewardsConfig();
+            } catch (ConfigReadException e) {
+                PokeNotifier.LOGGER.error("Initial bounty_rewards.json load failed. Using temporary default config.", e);
+                bountyRewardsConfig = new BountyRewardsConfig();
+            }
+        }
+        return bountyRewardsConfig;
     }
 
     public static CustomListConfig getPlayerConfig(UUID playerUuid) {

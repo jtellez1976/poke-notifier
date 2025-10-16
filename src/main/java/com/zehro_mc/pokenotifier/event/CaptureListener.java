@@ -11,6 +11,7 @@ package com.zehro_mc.pokenotifier.event;
 import com.cobblemon.mod.common.api.events.pokemon.PokemonCapturedEvent;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.zehro_mc.pokenotifier.PokeNotifier;
+import com.zehro_mc.pokenotifier.model.BountyRewardsConfig;
 import com.zehro_mc.pokenotifier.component.ModDataComponents;
 import com.zehro_mc.pokenotifier.model.CatchemallRewardsConfig;
 import com.zehro_mc.pokenotifier.ConfigManager;
@@ -124,8 +125,9 @@ public class CaptureListener {
             ServerPlayNetworking.send(player, new GlobalAnnouncementPayload(player.getName().getString(), "Bounty Claimed!"));
 
             // Give the reward.
-            CatchemallRewardsConfig rewardsConfig = ConfigManager.getCatchemallRewardsConfig();
-            List<CatchemallRewardsConfig.RewardItem> rewardPool = rewardsConfig.bounty_reward;            if (rewardPool != null && !rewardPool.isEmpty()) {
+            BountyRewardsConfig rewardsConfig = ConfigManager.getBountyRewardsConfig();
+            List<CatchemallRewardsConfig.RewardItem> rewardPool = rewardsConfig.bounty_reward;
+            if (rewardPool != null && !rewardPool.isEmpty()) {
                 // --- MEJORA: Pick one random reward from the list ---
                 CatchemallRewardsConfig.RewardItem randomReward = rewardPool.get(new Random().nextInt(rewardPool.size()));
                 Registries.ITEM.getOrEmpty(Identifier.of(randomReward.item)).ifPresent(item -> 

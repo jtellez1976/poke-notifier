@@ -88,6 +88,7 @@ public class PokeNotifier implements ModInitializer {
     // --- Bounty System Scheduler ---
     private static int bountyTickCounter = 0;
     private static final Random BOUNTY_RANDOM = new Random();
+    private static int bountyReminderTickCounter = 0;
     private static long bountyStartTime = 0L;
 
     private static final List<Runnable> PENDING_TASKS = new ArrayList<>();
@@ -372,6 +373,15 @@ public class PokeNotifier implements ModInitializer {
             ServerPlayerEntity player = handler.getPlayer();
             performInitialPcSync(player);
             PokeNotifierServerUtils.sendCatchProgressUpdate(player);
+
+            // --- MEJORA: Notify player on join if a bounty is active ---
+            String currentBounty = getActiveBounty();
+            if (currentBounty != null) {
+                Text message = Text.literal("Psst! There is currently an active bounty for a ").formatted(Formatting.GRAY)
+                        .append(Text.literal(currentBounty).formatted(Formatting.GOLD))
+                        .append(Text.literal("!").formatted(Formatting.GRAY));
+                player.sendMessage(message, false);
+            }
             PlayerRankManager.onPlayerJoin(player);
         });
 
@@ -730,12 +740,27 @@ public class PokeNotifier implements ModInitializer {
         bountyTickCounter++;
 
         // --- Lógica de Expiración ---
-        if (getActiveBounty() != null && bountyStartTime > 0) {
+        String activeBounty = getActiveBounty();
+        if (activeBounty != null && bountyStartTime > 0) {
             long elapsedTime = System.currentTimeMillis() - bountyStartTime;
             if (elapsedTime >= (long)config.bounty_duration_minutes * 60 * 1000) {
-                LOGGER.info("[Bounty System] Bounty for {} has expired.", getActiveBounty());
-                server.getPlayerManager().broadcast(Text.literal("The bounty for ").append(Text.literal(getActiveBounty()).formatted(Formatting.GOLD)).append(" has expired! The Pokémon got away...").formatted(Formatting.YELLOW), false);
+                LOGGER.info("[Bounty System] Bounty for {} has expired.", activeBounty);
+                server.getPlayerManager().broadcast(Text.literal("The bounty for ").append(Text.literal(activeBounty).formatted(Formatting.GOLD)).append(" has expired! The Pokémon got away...").formatted(Formatting.YELLOW), false);
                 clearActiveBounty(false);
+                return; // Stop further processing for this tick
+            }
+
+            // --- MEJORA: Periodic Reminder Logic ---
+            if (config.bounty_reminder_interval_minutes > 0) {
+                bountyReminderTickCounter++;
+                if (bountyReminderTickCounter >= config.bounty_reminder_interval_minutes * 60 * 20) {
+                    bountyReminderTickCounter = 0;
+                    long remainingMinutes = config.bounty_duration_minutes - (elapsedTime / (60 * 1000));
+                    Text reminder = Text.literal("Reminder: The bounty for ").formatted(Formatting.YELLOW)
+                            .append(Text.literal(activeBounty).formatted(Formatting.GOLD))
+                            .append(Text.literal(" is still active! Time remaining: ~" + remainingMinutes + " minutes.").formatted(Formatting.YELLOW));
+                    server.getPlayerManager().broadcast(reminder, false);
+                }
             }
         }
 
@@ -744,7 +769,7 @@ public class PokeNotifier implements ModInitializer {
             bountyTickCounter = 0;
 
             // Only start a new bounty if there isn't one active.
-            if (getActiveBounty() == null) {
+            if (activeBounty == null) {
                 if (BOUNTY_RANDOM.nextInt(100) < config.bounty_start_chance_percent) {
                     startNewBounty(server);
                 }
@@ -766,6 +791,7 @@ public class PokeNotifier implements ModInitializer {
         String newBounty = bountyPool.get(BOUNTY_RANDOM.nextInt(bountyPool.size()));
         ConfigManager.getServerConfig().active_bounty = newBounty;
         ConfigManager.saveServerConfigToFile(); // Persist the new bounty immediately
+        bountyReminderTickCounter = 0; // Reset reminder timer
         bountyStartTime = System.currentTimeMillis(); // Start the timer
 
 
