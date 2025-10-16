@@ -72,6 +72,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.UUID;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import java.util.concurrent.ConcurrentHashMap;
@@ -90,6 +91,9 @@ public class PokeNotifier implements ModInitializer {
     private static final Random BOUNTY_RANDOM = new Random();
     private static int bountyReminderTickCounter = 0;
     private static long bountyStartTime = 0L;
+
+    // --- Rival System Cooldowns ---
+    public static final Map<UUID, Long> RIVAL_NOTIFICATION_COOLDOWNS = new ConcurrentHashMap<>();
 
     private static final List<Runnable> PENDING_TASKS = new ArrayList<>();
     private static MinecraftServer server;

@@ -10,6 +10,7 @@ package com.zehro_mc.pokenotifier.event;
 
 import com.cobblemon.mod.common.api.events.pokemon.PokemonCapturedEvent;
 import com.cobblemon.mod.common.pokemon.Pokemon;
+import com.zehro_mc.pokenotifier.ConfigServer;
 import com.zehro_mc.pokenotifier.PokeNotifier;
 import com.zehro_mc.pokenotifier.model.BountyRewardsConfig;
 import com.zehro_mc.pokenotifier.component.ModDataComponents;
@@ -118,15 +119,32 @@ public class CaptureListener {
                     // Check if the other player is a rival (tracking the same generation).
                     if (rivalProgress.active_generations.contains(activeGen)) {
                         // Check if the rival had NOT already caught this Pokémon.
-                        boolean rivalHadCaught = rivalProgress.caught_pokemon.getOrDefault(activeGen, java.util.Collections.emptySet()).contains(pokemonName);
-                        if (!rivalHadCaught) {
-                            // The captor got it first! Send a taunt to the rival.
-                            Text message = Text.literal("Your rival, ").formatted(Formatting.RED)
-                                    .append(player.getDisplayName())
-                                    .append(Text.literal(", just caught a ").formatted(Formatting.RED))
-                                    .append(pokemon.getDisplayName().copy().formatted(Formatting.GOLD))
-                                    .append(Text.literal(" before you! Better hurry!").formatted(Formatting.RED));
-                            otherPlayer.sendMessage(message, false);
+                        boolean rivalHadCaught = rivalProgress.caught_pokemon.getOrDefault(activeGen, java.util.Collections.emptySet()).contains(pokemonName);                        if (!rivalHadCaught) {
+                            ConfigServer config = ConfigManager.getServerConfig();
+                            long now = System.currentTimeMillis();
+                            long lastNotificationTime = PokeNotifier.RIVAL_NOTIFICATION_COOLDOWNS.getOrDefault(otherPlayer.getUuid(), 0L);
+                            long cooldownMillis = (long) config.rival_notification_cooldown_seconds * 1000;
+
+                            boolean onCooldown = (now - lastNotificationTime) < cooldownMillis;
+
+                            // Check for proximity override
+                            double distanceSq = player.getPos().squaredDistanceTo(otherPlayer.getPos());
+                            double overrideDistanceSq = Math.pow(config.rival_notification_override_distance, 2);
+                            boolean inProximity = distanceSq <= overrideDistanceSq;
+
+                            // Notify if not on cooldown OR if in proximity (override).
+                            if (!onCooldown || inProximity) {
+                                // The captor got it first! Send a taunt to the rival.
+                                Text message = Text.literal("Your rival, ").formatted(Formatting.RED)
+                                        .append(player.getDisplayName())
+                                        .append(Text.literal(", just caught a ").formatted(Formatting.RED))
+                                        .append(pokemon.getDisplayName().copy().formatted(Formatting.GOLD))
+                                        .append(Text.literal(" before you! Better hurry!").formatted(Formatting.RED));
+                                otherPlayer.sendMessage(message, false);
+
+                                // Update the cooldown timer for the rival.
+                                PokeNotifier.RIVAL_NOTIFICATION_COOLDOWNS.put(otherPlayer.getUuid(), now);
+                            }
                         }
                     }
                 }
