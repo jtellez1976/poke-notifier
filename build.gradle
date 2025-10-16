@@ -28,6 +28,7 @@ repositories {
 
 loom {
 	splitEnvironmentSourceSets()
+
 }
 
 dependencies {
@@ -55,6 +56,11 @@ processResources {
 
 tasks.withType(JavaCompile).configureEach {
 	it.options.release = 21
+	// --- FIX: Address Windows command line length limit ---
+	// This forces Gradle to use a temporary JAR manifest to pass classpath arguments,
+	// avoiding the character limit on Windows.
+	it.options.fork = true
+	it.options.forkOptions.jvmArgs += ["-Xms1G", "-Xmx2G"]
 }
 
 java {
@@ -92,6 +98,7 @@ publishing {
 	}
 }
 
+
 // --- Custom Task to Copy Mod to Test Environments ---
 // This task automatically deploys the compiled mod to your local test folders
 // for rapid testing during development.
@@ -127,6 +134,20 @@ task copyModToServer(type: Copy) {
 	into modsDir
 }
 
+task copyModToVanillaLauncher(type: Copy) {
+	// Define the path to your vanilla launcher's mods folder for the specific profile.
+	def modsDir = file("C:/Users/JOHN/AppData/Roaming/.minecraft/versions/COBBLEVERSE - Pokemon Adventure [Cobblemon] COBBLEVERSE 1.5.6/mods")
+	onlyIf { modsDir.exists() }
+
+	doFirst {
+		delete(fileTree(modsDir) {
+			include "${project.archives_base_name}-*.jar"
+		})
+	}
+	from remapJar.archiveFile
+	into modsDir
+}
+
 // --- Custom Task to Start the Test Server ---
 // This task runs after a successful deployment to automatically start your test server.
 task startTestServer {
@@ -142,7 +163,7 @@ task startTestServer {
 
 // A container task that runs both copy tasks and then starts the server.
 task deployToTest {
-	dependsOn copyModToClient, copyModToServer
+	dependsOn copyModToClient, copyModToServer, copyModToVanillaLauncher
 	// After deploying, trigger the server start.
 	finalizedBy startTestServer
 	doLast {

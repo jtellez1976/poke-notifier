@@ -46,20 +46,20 @@ public class PlayerRankUtil {
         final Identifier RANK_FONT = Identifier.of("poke-notifier", "ranks");
 
         if (completedCount == 0) {
-            prefix.append(Text.literal(TRAINEE_ICON).styled(style -> style.withFont(RANK_FONT)));
+            prefix.append(Text.literal(TRAINEE_ICON).formatted(Formatting.WHITE).styled(style -> style.withFont(RANK_FONT)));
             prefix.append(Text.literal(" [Trainee] ").formatted(Formatting.GRAY));
         } else if (completedCount >= 1 && completedCount <= 3) {
-            prefix.append(Text.literal(GREAT_ICON.repeat(completedCount)).styled(style -> style.withFont(RANK_FONT))).append(Text.literal(" "));
+            prefix.append(Text.literal(GREAT_ICON.repeat(completedCount)).formatted(Formatting.WHITE).styled(style -> style.withFont(RANK_FONT))).append(Text.literal(" "));
             prefix.append(Text.literal("[Great] ").formatted(Formatting.GOLD));
         } else if (completedCount >= 4 && completedCount <= 6) {
-            prefix.append(Text.literal(EXPERT_ICON.repeat(completedCount - 3)).styled(style -> style.withFont(RANK_FONT))).append(Text.literal(" "));
+            prefix.append(Text.literal(EXPERT_ICON.repeat(completedCount - 3)).formatted(Formatting.WHITE).styled(style -> style.withFont(RANK_FONT))).append(Text.literal(" "));
             prefix.append(Text.literal("[Expert] ").formatted(Formatting.AQUA));
         } else if (completedCount >= 7 && completedCount <= 8) {
-            prefix.append(Text.literal(VETERAN_ICON.repeat(completedCount - 6)).styled(style -> style.withFont(RANK_FONT))).append(Text.literal(" "));
+            prefix.append(Text.literal(VETERAN_ICON.repeat(completedCount - 6)).formatted(Formatting.WHITE).styled(style -> style.withFont(RANK_FONT))).append(Text.literal(" "));
             prefix.append(Text.literal("[Veteran] ").formatted(Formatting.YELLOW));
         } else { // 9 o más
             // For the Master rank, the icon texture has its own colors, so we don't apply a format color to it.
-            prefix.append(Text.literal(MASTER_ICON).styled(style -> style.withFont(RANK_FONT))).append(Text.literal(" "));
+            prefix.append(Text.literal(MASTER_ICON).formatted(Formatting.WHITE).styled(style -> style.withFont(RANK_FONT))).append(Text.literal(" "));
             prefix.append(Text.literal("[Master] ").formatted(Formatting.LIGHT_PURPLE));
         }
 

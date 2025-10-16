@@ -107,6 +107,29 @@ public class CaptureListener {
 
                 // Update and sync the player's rank after each relevant capture.
                 PlayerRankManager.updateAndSyncRank(player);
+
+                // --- Rival System Logic ---
+                // After a successful capture in Catch 'em All mode, check for online rivals.
+                for (ServerPlayerEntity otherPlayer : player.getServer().getPlayerManager().getPlayerList()) {
+                    // Skip the player who made the capture.
+                    if (otherPlayer.equals(player)) continue;
+
+                    PlayerCatchProgress rivalProgress = ConfigManager.getPlayerCatchProgress(otherPlayer.getUuid());
+                    // Check if the other player is a rival (tracking the same generation).
+                    if (rivalProgress.active_generations.contains(activeGen)) {
+                        // Check if the rival had NOT already caught this Pokémon.
+                        boolean rivalHadCaught = rivalProgress.caught_pokemon.getOrDefault(activeGen, java.util.Collections.emptySet()).contains(pokemonName);
+                        if (!rivalHadCaught) {
+                            // The captor got it first! Send a taunt to the rival.
+                            Text message = Text.literal("Your rival, ").formatted(Formatting.RED)
+                                    .append(player.getDisplayName())
+                                    .append(Text.literal(", just caught a ").formatted(Formatting.RED))
+                                    .append(pokemon.getDisplayName().copy().formatted(Formatting.GOLD))
+                                    .append(Text.literal(" before you! Better hurry!").formatted(Formatting.RED));
+                            otherPlayer.sendMessage(message, false);
+                        }
+                    }
+                }
             }
         }
 
