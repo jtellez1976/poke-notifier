@@ -1,3 +1,46 @@
+# Poke Notifier v1.1.0 - The Prestige & Events Update! is now live!!
+
+Get ready for a completely new hunting experience! Version 1.1.0 brings dynamic event systems, a visual prestige system, and a huge number of quality-of-life improvements that make the mod more robust and fun than ever before.
+
+## ✨ New Core Features
+
+### 🏆 "Catch 'em All" Prestige System
+The "Catch 'em All" mode has been completely revamped with a deep progression and reward system:
+*   **Visual Ranks:** Show off your dedication! As you complete the Pokédex for each generation, your name in chat and above your head will gain a unique, colorful rank prefix that evolves with your achievements.
+*   **3D Trophies:** Upon completing a generation, you will be awarded a **unique trophy** for that region. Place it in the world to display a slowly rotating 3D model that emits light and particles!
+*   **Configurable Rewards:** Server admins can now define custom item rewards for players who complete each generation.
+*   **Epic Celebrations:** Enjoy a **firework show** that grows in intensity with every Pokédex you complete. Masters who achieve it all will be shrouded in a unique aura of power!
+
+### 🎯 Autonomous Bounty System
+The server now creates its own challenges!
+*   The system will automatically post bounties for random Pokémon (from the RARE and ULTRA_RARE lists).
+*   The first player to capture the target Pokémon claims the reward.
+*   Fully configurable: Admins can adjust the frequency, probability, duration, and rewards for bounty events.
+
+### 🌊 Autonomous Swarm System
+The world now feels more alive than ever!
+*   The server can now trigger **Pokémon Swarms** (10-15 creatures) in random, accessible locations in the Overworld.
+*   A **global announcement** is sent to all players with the Pokémon's name, the biome, and the **exact coordinates** of the event, starting a server-wide race to get there first!
+*   Admins can manually trigger swarms with the `/pokenotifier swarm start <pokemon>` command.
+
+### ⚔️ Rival System
+Friendly competition has arrived.
+*   When you're in "Catch 'em All" mode, if you capture a Pokémon that a nearby rival hasn't caught yet, that rival will get a private message letting them know you beat them to it!
+*   An intelligent cooldown and proximity-override system prevents spam on busy servers, keeping the notifications relevant and fun.
+
+### 🔄 Update Checker
+*   The mod now checks if new versions are available on Modrinth or CurseForge.
+*   Admins are notified in-game and can configure their preferred update source with a single click, no file editing required.
+
+## 🔧 Technical Improvements & Fixes
+*   **Data Security:** Player progress files are now encrypted to prevent manipulation.
+*   **Automatic Migration:** Server configurations are automatically updated to new versions, preserving all admin customizations.
+*   **Polished Commands:** The command interface has been cleaned up, hiding all internal commands from the autocomplete list for a cleaner admin experience.
+*   **Visual Fix:** Fixed a bug that caused rank icons to be tinted by the color of chat text.
+*   **Improved Compatibility:** Refactored all entity creation logic to use stable Cobblemon APIs, ensuring better future compatibility.
+
+
+
 # Poke Notifier
 
 **Never miss a rare Pokémon again!**
@@ -6,35 +49,19 @@ Poke Notifier is a server-side mod for Cobblemon designed to dramatically enhanc
 
 ---
 
-### ⭐ What's New in v1.1.0 (Development) ⭐
-
-This version introduces major under-the-hood improvements and a complete command overhaul for a more professional and user-friendly experience.
-
-*   **Data Encryption:** Player progress files are now fully encrypted to prevent tampering and ensure fair play.
-*   **Automatic Data Migration:** Existing players' progress is automatically and safely migrated to the new secure format.
-*   **Hierarchical Command Structure:** All commands have been reorganized into logical subcommands (e.g., `/pnc alerts chat`, `/pokenotifier test spawn`) for a more intuitive and scalable system.
-*   **Enhanced Server Logs:** The mod now features a clean, professional startup banner in the server console for better visibility.
-
----
-
 ## ✨ Key Features
 
-- **Rare Spawn Notifications:** Get real-time alerts when a Legendary, Mythical, Shiny, Ultra Beast, and other rare Pokémon appear.
+- **Rare Spawn Notifications:** Get real-time alerts when Legendary, Mythical, Shiny, Ultra Beast, and other rare Pokémon appear.
 - **Multiple Alert Channels:** Receive notifications via chat messages, an on-screen HUD (Toast), and sound alerts. Fully configurable by the player!
-- **"Catch 'em All" Mode:** The ultimate challenge for collectors! Enable tracking for a specific generation and receive special notifications for Pokémon you haven't caught yet.
-- **Visual Chat Rank System:** Show off your progress in style! As you complete generations, your name in the chat will gain a unique, multi-colored rank prefix that evolves with your achievements.
-    - **Trainee:** `🛡[Trainee]`
-    - **Great:** `🏆 [Great]`
-    - **Expert:** `🏆🏆 [Expert]`
-    - **Veteran:** `🏆🏆🏆 [Veteran]`
-    - **Master:** `⚡🏆⚡[Master]` (with your username in gold).
-- **Prestige Trophy System:** Upon completing a region's Pokédex, you will receive a **unique trophy badge**. This collectible item can be placed in the world, where it will display as a **slowly rotating 3D model** that emits light and particle effects.
-- **Spectacular Celebration Effects:**
-    - **Dynamic Fireworks:** Upon completing any generation, the sky ignites with a celebratory firework display that **grows in scale and intensity** as you complete more Pokédexes!
-    - **"Pokémon Master" Aura:** When you complete all 9 generations, your character is enveloped in a unique aura of power, combining the ethereal particles of the **Totem of Undying** and the swirling energy of the **End Portal**.
-- **Master's Welcome:** Players who reach the "Master" rank are announced with a **global thunder sound** and a golden chat message every time they join the server.
-- **Pokédex Synchronization:** Don't lose your progress! When using the "Catch 'em All" mode for the first time, the mod **scans your PC and party** to credit you for all the Pokémon you've already caught. It's safe to install on existing servers.
-- **Configurable Rewards:** The rewards for completing a generation are **fully customizable** by server administrators.
+- **"Catch 'em All" Mode & Prestige System:** The ultimate challenge for collectors!
+  - Activate tracking for a specific generation and receive special notifications for Pokémon you haven't caught yet.
+  - As you complete generations, your name in chat will gain a **visual rank prefix** that evolves with your achievements.
+  - Upon completing a regional Pokédex, you will receive a **unique, placeable 3D trophy item**.
+  - Enjoy **special effects and fireworks** to celebrate your accomplishments!
+- **Autonomous Bounty System:** The server will automatically post bounties for random Pokémon, with configurable rewards for the first trainer to capture them!
+- **Autonomous Swarm System:** Participate in community hunting events! The server will generate Pokémon swarms at random locations, announcing the coordinates to all players.
+- **Rival System:** Engage in friendly competition. Get private notifications when a rival in "Catch 'em All" mode beats you to a capture.
+- **Pokédex Synchronization:** Don't lose your progress! When using "Catch 'em All" mode for the first time, the mod **scans your PC and party** to credit you for all the Pokémon you've already caught. It's safe to install on existing servers.
 
 ---
 
@@ -46,10 +73,10 @@ All player commands start with `/pnc`.
 | :------------------------------------ | :-------------------------------------------------- |
 | `/pnc help`                           | Displays a list of all available player commands.   |
 | `/pnc status`                         | Shows your current notification settings.           |
-| `/pnc silent <on/off>`                | Master switch to disable/enable all alerts.         |
-| `/pnc alerts <chat/toast/sound> <on/off>` | Toggles a specific notification channel.            |
-| `/pnc customcatch <add/remove> <pokemon>` | Adds or removes a Pokémon from your custom hunt list. |
-| `/pnc customcatch <view/clear>`       | Views or clears your entire custom hunt list.       |
+| `/pnc silent <on|off>`                | Master switch to disable/enable all alerts.         |
+| `/pnc alerts <chat|toast|sound> <on|off>` | Toggles a specific notification channel.            |
+| `/pnc customcatch <add|remove> <pokemon>` | Adds or removes a Pokémon from your custom hunt list. |
+| `/pnc customcatch <view|clear>`       | Views or clears your entire custom hunt list.       |
 | `/pnc catchemall enable <generation>` | Starts tracking a Pokédex generation.               |
 | `/pnc catchemall disable <generation>`| Stops tracking a generation.                        |
 | `/pnc catchemall status`              | Shows which generation you are currently tracking.  |
@@ -68,8 +95,10 @@ All admin commands start with `/pokenotifier` and require permission level 2 (OP
 | `/pokenotifier test debug <enable/disable>`   | Toggles detailed debug logs in the server console.           |
 | `/pokenotifier test mode <enable/disable>`    | Toggles notifications for non-natural (command) spawns.      |
 | `/pokenotifier test spawn <pokemon> [shiny]`  | Spawns a specific Pokémon for testing.                       |
-| `/pokenotifier data autocomplete <player> <gen>`| **(Testing)** Autocompletes a generation for a player.       |
+| `/pokenotifier data autocomplete <player>`    | **(Testing)** Autocompletes the active gen for a player.     |
 | `/pokenotifier data rollback <player>`        | **(Testing)** Restores a player's progress from a backup.    |
+| `/pokenotifier bounty system <enable/disable>`| Toggles the automatic bounty system.                         |
+| `/pokenotifier swarm start <pokemon>`         | Manually starts a swarm of a specific Pokémon.             |
 
 ---
 
