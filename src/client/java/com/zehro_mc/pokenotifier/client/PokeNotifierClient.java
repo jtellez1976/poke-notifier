@@ -12,6 +12,7 @@ import com.zehro_mc.pokenotifier.ConfigClient;
 import com.zehro_mc.pokenotifier.ConfigManager;
 import com.zehro_mc.pokenotifier.PokeNotifier;
 import com.zehro_mc.pokenotifier.StatusUpdatePayload;
+import com.zehro_mc.pokenotifier.client.compat.AdvancementPlaquesCompat;
 import com.zehro_mc.pokenotifier.block.entity.ModBlockEntities;
 import com.zehro_mc.pokenotifier.client.renderer.TrophyDisplayBlockEntityRenderer;
 import com.zehro_mc.pokenotifier.networking.*;
@@ -198,14 +199,19 @@ public class PokeNotifierClient implements ClientModInitializer {
                 MinecraftClient client = context.client();
                 if (client.player == null) return;
 
-                Text message = Text.literal("Congratulations to ").formatted(Formatting.YELLOW)
+                // --- MEJORA: Creamos un título para el toast y un mensaje para el chat ---
+                Text toastTitle = Text.literal(payload.regionName()).formatted(Formatting.GOLD);
+                Text chatMessage = Text.literal("Congratulations to ").formatted(Formatting.YELLOW)
                         .append(Text.literal(payload.playerName()).formatted(Formatting.GOLD))
                         .append(Text.literal(" for completing the ").formatted(Formatting.YELLOW))
                         .append(Text.literal(payload.regionName()).formatted(Formatting.GOLD))
                         .append(Text.literal(" Pokédex!").formatted(Formatting.YELLOW));
 
-                client.player.sendMessage(message, false);
-                client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 1.0F, 1.0F));
+                // Si el jugador que recibe el paquete es el que completó el logro, muestra el toast.
+                if (client.player.getName().getString().equals(payload.playerName())) {
+                    AdvancementPlaquesCompat.showPlaque(toastTitle, true);
+                }
+                client.player.sendMessage(chatMessage, false);
             });
     });
 

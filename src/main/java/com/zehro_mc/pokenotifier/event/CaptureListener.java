@@ -10,6 +10,7 @@ package com.zehro_mc.pokenotifier.event;
 
 import com.cobblemon.mod.common.api.events.pokemon.PokemonCapturedEvent;
 import com.cobblemon.mod.common.pokemon.Pokemon;
+import com.zehro_mc.pokenotifier.PokeNotifier;
 import com.zehro_mc.pokenotifier.component.ModDataComponents;
 import com.zehro_mc.pokenotifier.model.CatchemallRewardsConfig;
 import com.zehro_mc.pokenotifier.ConfigManager;
@@ -31,6 +32,7 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 
 import java.util.List;
+import java.util.Random;
 
 /**
  * Listens for Pokémon capture events to update "Catch 'em All" progress and grant rewards.
@@ -105,6 +107,33 @@ public class CaptureListener {
                 // Update and sync the player's rank after each relevant capture.
                 PlayerRankManager.updateAndSyncRank(player);
             }
+        }
+
+        // --- Bounty System Logic ---
+        String activeBounty = PokeNotifier.getActiveBounty();
+        if (activeBounty != null && activeBounty.equalsIgnoreCase(pokemonName)) {
+            // Announce the winner.
+            Text bountyMessage = Text.literal("🎉 ").formatted(Formatting.GOLD)
+                    .append(player.getDisplayName())
+                    .append(Text.literal(" has claimed the bounty by capturing the ").formatted(Formatting.YELLOW))
+                    .append(pokemon.getDisplayName().copy().formatted(Formatting.GOLD))
+                    .append(Text.literal("!").formatted(Formatting.YELLOW));
+            player.getServer().getPlayerManager().broadcast(bountyMessage, false);
+
+            // --- MEJORA: Reutilizamos el sistema de anuncios de logros para el ganador ---
+            ServerPlayNetworking.send(player, new GlobalAnnouncementPayload(player.getName().getString(), "Bounty Claimed!"));
+
+            // Give the reward.
+            CatchemallRewardsConfig rewardsConfig = ConfigManager.getCatchemallRewardsConfig();
+            List<CatchemallRewardsConfig.RewardItem> rewardPool = rewardsConfig.bounty_reward;            if (rewardPool != null && !rewardPool.isEmpty()) {
+                // --- MEJORA: Pick one random reward from the list ---
+                CatchemallRewardsConfig.RewardItem randomReward = rewardPool.get(new Random().nextInt(rewardPool.size()));
+                Registries.ITEM.getOrEmpty(Identifier.of(randomReward.item)).ifPresent(item -> 
+                    player.getInventory().offerOrDrop(new ItemStack(item, randomReward.count))
+                );
+            }
+            // Clear the bounty so it can't be claimed again.
+            PokeNotifier.clearActiveBounty(false);
         }
 
         // Standard capture notification logic.

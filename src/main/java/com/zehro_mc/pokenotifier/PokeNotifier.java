@@ -50,6 +50,8 @@ import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.command.CommandSource;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
@@ -69,6 +71,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import java.util.concurrent.ConcurrentHashMap;
@@ -81,6 +84,11 @@ public class PokeNotifier implements ModInitializer {
     public static final Identifier STATUS_UPDATE_CHANNEL_ID = Identifier.of(MOD_ID, "status_update_payload");
 
     public static final Map<PokemonEntity, RarityUtil.RarityCategory> TRACKED_POKEMON = new ConcurrentHashMap<>();
+
+    // --- Bounty System Scheduler ---
+    private static int bountyTickCounter = 0;
+    private static final Random BOUNTY_RANDOM = new Random();
+    private static long bountyStartTime = 0L;
 
     private static final List<Runnable> PENDING_TASKS = new ArrayList<>();
     private static MinecraftServer server;
@@ -149,6 +157,13 @@ public class PokeNotifier implements ModInitializer {
                         ConfigServer config = ConfigManager.getServerConfig();
                         context.getSource().sendFeedback(() -> Text.literal("--- Poke Notifier Server Status ---").formatted(Formatting.GOLD), false);
                         context.getSource().sendFeedback(() -> createServerStatusLine("Debug Mode", config.debug_mode_enabled), false);
+                        context.getSource().sendFeedback(() -> createServerStatusLine("Bounty System", config.bounty_system_enabled), false);
+                        if (config.bounty_system_enabled) {
+                            String currentBounty = getActiveBounty();
+                            MutableText bountyStatus = Text.literal("  Current Bounty = ").formatted(Formatting.WHITE);
+                            bountyStatus.append(currentBounty == null ? Text.literal("None").formatted(Formatting.GRAY) : Text.literal(currentBounty).formatted(Formatting.GOLD));
+                            context.getSource().sendFeedback(() -> bountyStatus, false);
+                        }
                         context.getSource().sendFeedback(() -> createServerStatusLine("Test Mode", config.enable_test_mode), false);
                         return 1;
                     }).build();
@@ -165,6 +180,7 @@ public class PokeNotifier implements ModInitializer {
                         source.sendFeedback(() -> Text.literal("/pokenotifier test mode <enable/disable>").formatted(Formatting.AQUA).append(Text.literal(" - Toggles notifications for non-natural spawns.").formatted(Formatting.WHITE)), false);
                         source.sendFeedback(() -> Text.literal("/pokenotifier test spawn <pokemon> [shiny]").formatted(Formatting.AQUA).append(Text.literal(" - Spawns a Pokémon for testing.").formatted(Formatting.WHITE)), false);
                         source.sendFeedback(() -> Text.literal("/pokenotifier data autocomplete <player> <gen>").formatted(Formatting.AQUA).append(Text.literal(" - Autocompletes a gen for a player.").formatted(Formatting.WHITE)), false);
+                        source.sendFeedback(() -> Text.literal("/pokenotifier bounty system <enable/disable>").formatted(Formatting.AQUA).append(Text.literal(" - Toggles the automatic bounty system.").formatted(Formatting.WHITE)), false);
                         source.sendFeedback(() -> Text.literal("/pokenotifier data rollback <player>").formatted(Formatting.AQUA).append(Text.literal(" - Restores a player's progress from a backup.").formatted(Formatting.WHITE)), false);
                         return 1;
                     }).build();
@@ -318,6 +334,22 @@ public class PokeNotifier implements ModInitializer {
                                 return success ? 1 : 0;
                             })).build();
 
+            // Bounty system command
+            var bountySystemNode = CommandManager.literal("system")
+                    .then(CommandManager.literal("enable").executes(context -> {
+                        ConfigManager.getServerConfig().bounty_system_enabled = true;
+                        ConfigManager.saveServerConfigToFile();
+                        context.getSource().sendFeedback(() -> Text.literal("Automatic Bounty System enabled.").formatted(Formatting.GREEN), true);
+                        return 1;
+                    }))
+                    .then(CommandManager.literal("disable").executes(context -> {
+                        ConfigManager.getServerConfig().bounty_system_enabled = false;
+                        ConfigManager.saveServerConfigToFile();
+                        context.getSource().sendFeedback(() -> Text.literal("Automatic Bounty System disabled.").formatted(Formatting.RED), true);
+                        clearActiveBounty(false); // Clear any active bounty without announcement
+                        return 1;
+                    })).build();
+
             // Build the command tree
             pokenotifierNode.then(statusCommand);
             pokenotifierNode.then(helpCommand);
@@ -329,6 +361,7 @@ public class PokeNotifier implements ModInitializer {
             pokenotifierNode.then(CommandManager.literal("data")
                     .then(autoCompleteGenNode)
                     .then(rollbackNode));
+            pokenotifierNode.then(CommandManager.literal("bounty").then(bountySystemNode));
 
             dispatcher.register(pokenotifierNode);
         });
@@ -388,6 +421,9 @@ public class PokeNotifier implements ModInitializer {
                 }
                 PENDING_TASKS.clear();
             }
+
+            // Tick the bounty system scheduler.
+            tickBountySystem(currentServer);
         });
 
         LOGGER.info("+---------------------------------------------------+");
@@ -665,6 +701,89 @@ public class PokeNotifier implements ModInitializer {
 
     public static void scheduleTask(Runnable task) {
         PENDING_TASKS.add(task);
+    }
+
+    // --- Bounty System Logic ---
+
+    public static String getActiveBounty() { // Now reads directly from config
+        return ConfigManager.getServerConfig().active_bounty;
+    }
+
+    public static void clearActiveBounty(boolean announce) {
+        String currentBounty = getActiveBounty();
+        if (currentBounty != null && announce) {
+            Text message = Text.literal("The bounty for ").formatted(Formatting.YELLOW)
+                    .append(Text.literal(currentBounty).formatted(Formatting.GOLD))
+                    .append(Text.literal(" has been claimed!").formatted(Formatting.YELLOW));
+            server.getPlayerManager().broadcast(message, false);
+        }
+        ConfigManager.getServerConfig().active_bounty = null;
+        ConfigManager.saveServerConfigToFile(); // Persist the change
+    }
+
+    private static void tickBountySystem(MinecraftServer server) {
+        ConfigServer config = ConfigManager.getServerConfig();
+        if (!config.bounty_system_enabled) {
+            return;
+        }
+
+        bountyTickCounter++;
+
+        // --- Lógica de Expiración ---
+        if (getActiveBounty() != null && bountyStartTime > 0) {
+            long elapsedTime = System.currentTimeMillis() - bountyStartTime;
+            if (elapsedTime >= (long)config.bounty_duration_minutes * 60 * 1000) {
+                LOGGER.info("[Bounty System] Bounty for {} has expired.", getActiveBounty());
+                server.getPlayerManager().broadcast(Text.literal("The bounty for ").append(Text.literal(getActiveBounty()).formatted(Formatting.GOLD)).append(" has expired! The Pokémon got away...").formatted(Formatting.YELLOW), false);
+                clearActiveBounty(false);
+            }
+        }
+
+
+        if (bountyTickCounter >= config.bounty_check_interval_seconds * 20) {
+            bountyTickCounter = 0;
+
+            // Only start a new bounty if there isn't one active.
+            if (getActiveBounty() == null) {
+                if (BOUNTY_RANDOM.nextInt(100) < config.bounty_start_chance_percent) {
+                    startNewBounty(server);
+                }
+            }
+        }
+    }
+
+    private static void startNewBounty(MinecraftServer server) {
+        ConfigPokemon pokemonConfig = ConfigManager.getPokemonConfig();
+        List<String> bountyPool = new ArrayList<>();
+        bountyPool.addAll(pokemonConfig.RARE);
+        bountyPool.addAll(pokemonConfig.ULTRA_RARE);
+
+        if (bountyPool.isEmpty()) {
+            LOGGER.warn("[Bounty System] No Pokémon available in RARE or ULTRA_RARE lists to create a bounty.");
+            return;
+        }
+
+        String newBounty = bountyPool.get(BOUNTY_RANDOM.nextInt(bountyPool.size()));
+        ConfigManager.getServerConfig().active_bounty = newBounty;
+        ConfigManager.saveServerConfigToFile(); // Persist the new bounty immediately
+        bountyStartTime = System.currentTimeMillis(); // Start the timer
+
+
+        String capitalizedBounty = newBounty.substring(0, 1).toUpperCase() + newBounty.substring(1);
+        Text message = Text.literal("🎯 New Bounty Available! ").formatted(Formatting.GREEN)
+                .append(Text.literal("The first trainer to capture a ").formatted(Formatting.YELLOW))
+                .append(Text.literal(capitalizedBounty).formatted(Formatting.GOLD, Formatting.BOLD))
+                .append(Text.literal(" will receive a special reward!").formatted(Formatting.YELLOW));
+
+        // --- MEJORA: Usamos ModeStatusPayload para el toast y el sonido de campana ---
+        ModeStatusPayload payload = new ModeStatusPayload("New Bounty!", true);
+        server.getPlayerManager().broadcast(message, false);
+        server.getPlayerManager().getPlayerList().forEach(player -> {
+            player.playSoundToPlayer(SoundEvents.BLOCK_BELL_USE, SoundCategory.NEUTRAL, 1.0F, 1.2F);
+            ServerPlayNetworking.send(player, payload);
+        });
+
+        LOGGER.info("[Bounty System] New bounty started for: {}", newBounty);
     }
 
     // --- Centralized Command Logic ---
