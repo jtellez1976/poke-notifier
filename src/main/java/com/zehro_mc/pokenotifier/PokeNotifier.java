@@ -31,6 +31,7 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.zehro_mc.pokenotifier.networking.ServerDebugStatusPayload;
 import com.zehro_mc.pokenotifier.util.PokeNotifierServerUtils;
 import com.zehro_mc.pokenotifier.util.PlayerRankManager;
+import com.zehro_mc.pokenotifier.util.UpdateChecker;
 import com.zehro_mc.pokenotifier.util.RarityUtil;
 import kotlin.Unit;
 import com.mojang.brigadier.context.CommandContext;
@@ -74,6 +75,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Stream;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.StreamSupport;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -97,6 +99,9 @@ public class PokeNotifier implements ModInitializer {
 
     // --- Reset Confirmation ---
     private static final Map<UUID, String> RESET_CONFIRMATION_TOKENS = new ConcurrentHashMap<>();
+
+    // --- Update Checker ---
+    public static UpdateChecker.UpdateInfo LATEST_VERSION_INFO = null;
 
     private static final List<Runnable> PENDING_TASKS = new ArrayList<>();
     private static MinecraftServer server;
@@ -138,6 +143,9 @@ public class PokeNotifier implements ModInitializer {
         } catch (ConfigManager.ConfigReadException e) {
             LOGGER.error("Failed to load Poke Notifier configuration on startup. Using default values.", e);
         }
+
+        // Asynchronously check for updates. The checker itself will handle logging.
+        UpdateChecker.checkForUpdates(null);
 
         LOGGER.info("| Phase 3/5: Registering Components & Items...      |");
         ModDataComponents.registerModDataComponents();
@@ -207,14 +215,34 @@ public class PokeNotifier implements ModInitializer {
 
                 // --- MEJORA: Apuntamos a comandos "ocultos" para que no se autocompleten ---
                 Text confirmText = Text.literal("[CONFIRM]").formatted(Formatting.GREEN, Formatting.BOLD)
-                        .styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pokenotifier confirm_reset " + token)));
+                        .styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pokenotifier_confirm_reset " + token)));
                 Text cancelText = Text.literal("[CANCEL]").formatted(Formatting.RED, Formatting.BOLD)
-                        .styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pokenotifier cancel_reset")));
+                        .styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pokenotifier_cancel_reset")));
 
                 context.getSource().sendFeedback(() -> Text.literal("WARNING: This will reset all Poke Notifier configurations to their defaults. This action cannot be undone.").formatted(Formatting.RED), false);
                 context.getSource().sendFeedback(() -> Text.literal("Click to proceed: ").append(confirmText).append(" ").append(cancelText), false);
                 return 1;
             }));
+
+            // --- MEJORA: Comando de callback para configurar la fuente de actualizaciones ---
+            pokenotifierNode.then(CommandManager.literal("set_update_source")
+                    .then(CommandManager.argument("source", StringArgumentType.string())
+                            .executes(context -> {
+                                String source = StringArgumentType.getString(context, "source");
+                                if (List.of("modrinth", "curseforge", "none").contains(source)) {
+                                    ConfigManager.getServerConfig().update_checker_source = source;
+                                    ConfigManager.saveServerConfigToFile();
+                                    context.getSource().sendFeedback(() -> Text.literal("Update check source set to: ").formatted(Formatting.GREEN)
+                                            .append(Text.literal(source).formatted(Formatting.GOLD)), false);
+                                    // Re-check for updates with the new setting
+                                    UpdateChecker.checkForUpdates(context.getSource().getPlayer());
+                                    return 1;
+                                } else {
+                                    context.getSource().sendError(Text.literal("Invalid source. Use 'modrinth', 'curseforge', or 'none'."));
+                                    return 0;
+                                }
+                            }))
+            );
 
             // Test mode command.
             var testModeNode = CommandManager.literal("mode")
@@ -388,18 +416,20 @@ public class PokeNotifier implements ModInitializer {
                     .then(rollbackNode));
             pokenotifierNode.then(CommandManager.literal("bounty").then(bountySystemNode));
 
-            // --- MEJORA: Registramos los comandos de callback por separado para ocultarlos ---
-            pokenotifierNode.then(CommandManager.literal("confirm_reset")
-                    .then(CommandManager.argument("token", StringArgumentType.string())
-                            .executes(PokeNotifier::executeConfirmReset)));
+            dispatcher.register(pokenotifierNode);
 
-            pokenotifierNode.then(CommandManager.literal("cancel_reset")
+            // --- FIX: Register callback commands as separate, hidden root commands ---
+            dispatcher.register(CommandManager.literal("pokenotifier_confirm_reset")
+                    .then(CommandManager.argument("token", StringArgumentType.string())
+                            .executes(PokeNotifier::executeConfirmReset))
+            );
+
+            dispatcher.register(CommandManager.literal("pokenotifier_cancel_reset")
                     .executes(context -> {
                         context.getSource().sendFeedback(() -> Text.literal("Configuration reset cancelled.").formatted(Formatting.YELLOW), false);
                         return 1;
-                    }));
-
-            dispatcher.register(pokenotifierNode);
+                    })
+            );
         });
 
         LOGGER.info("| Phase 5/5: Subscribing to Game Events...         |");
@@ -416,6 +446,31 @@ public class PokeNotifier implements ModInitializer {
                         .append(Text.literal(currentBounty).formatted(Formatting.GOLD))
                         .append(Text.literal("!").formatted(Formatting.GRAY));
                 player.sendMessage(message, false);
+            }
+
+            // --- MEJORA: Check for update source configuration ---
+            if (player.hasPermissionLevel(2)) {
+                if ("unknown".equalsIgnoreCase(ConfigManager.getServerConfig().update_checker_source)) {
+                    Text prompt = Text.literal("Please configure the update checker source for Poke Notifier.").formatted(Formatting.YELLOW);
+                    Text modrinthButton = Text.literal("[Modrinth]").formatted(Formatting.GREEN)
+                            .styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pokenotifier set_update_source modrinth")));
+                    Text curseforgeButton = Text.literal("[CurseForge]").formatted(Formatting.AQUA)
+                            .styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pokenotifier set_update_source curseforge")));
+                    Text disableButton = Text.literal("[Disable]").formatted(Formatting.RED)
+                            .styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pokenotifier set_update_source none")));
+
+                    player.sendMessage(prompt, false);
+                    player.sendMessage(Text.literal("Choose your preferred platform: ").append(modrinthButton).append(" ").append(curseforgeButton).append(" ").append(disableButton), false);
+                } else if (LATEST_VERSION_INFO != null) {
+                    // --- MEJORA: Notify admin if a new version is available ---
+                    Text updateMessage = Text.literal("A new version of Poke Notifier is available: ").formatted(Formatting.GREEN)
+                            .append(Text.literal(LATEST_VERSION_INFO.version()).formatted(Formatting.GOLD));
+                    Text downloadLink = Text.literal("[Click here to download]").formatted(Formatting.AQUA, Formatting.UNDERLINE)
+                            .styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.OPEN_URL, LATEST_VERSION_INFO.url())));
+
+                    player.sendMessage(updateMessage, false);
+                    player.sendMessage(downloadLink, false);
+                }
             }
             PlayerRankManager.onPlayerJoin(player);
         });
@@ -471,6 +526,7 @@ public class PokeNotifier implements ModInitializer {
             tickBountySystem(currentServer);
         });
 
+        // --- MEJORA: Print the final success banner synchronously ---
         LOGGER.info("+---------------------------------------------------+");
         LOGGER.info("|         Poke Notifier successfully loaded!        |");
         LOGGER.info("+---------------------------------------------------+");

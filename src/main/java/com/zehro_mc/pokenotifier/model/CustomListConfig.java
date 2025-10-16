@@ -16,7 +16,8 @@ import java.util.Set;
  * This is saved per-player in the player_data directory.
  */
 public class CustomListConfig {
-
+    // --- FIX: Add config_version for migration compatibility ---
+    public int config_version = 1; 
     public Set<String> tracked_pokemon = new HashSet<>();
 
 }
