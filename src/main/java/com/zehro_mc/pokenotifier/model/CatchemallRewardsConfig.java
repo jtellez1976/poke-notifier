@@ -19,6 +19,8 @@ import java.util.Map;
  */
 public class CatchemallRewardsConfig {
 
+    public int config_version = 1;
+
     public String[] _instructions = new String[]{
             "Poke Notifier - Catch 'em All Rewards Configuration",
             "Define rewards for completing a Pokédex generation.",

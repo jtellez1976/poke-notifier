@@ -9,6 +9,7 @@
 package com.zehro_mc.pokenotifier;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import com.zehro_mc.pokenotifier.model.CustomListConfig;
 import com.zehro_mc.pokenotifier.model.BountyRewardsConfig;
@@ -27,6 +28,7 @@ import java.io.InputStreamReader;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.UUID;
 import java.util.Set;
@@ -125,12 +127,42 @@ public class ConfigManager {
     private static <T> T loadConfigFile(File file, Class<T> configClass, String configName) throws ConfigReadException {
         if (file.exists()) {
             try (FileReader reader = new FileReader(file)) {
-                T configObject = GSON.fromJson(reader, configClass);
-                if (configObject == null) {
+                // --- MEJORA: Lógica de Migración ---
+                // 1. Cargar como un objeto JSON genérico para leer la versión de forma segura.
+                JsonObject jsonObject = GSON.fromJson(reader, JsonObject.class);
+                if (jsonObject == null) {
                     throw new ConfigReadException("The " + configName + " file is empty or invalid.");
                 }
-        // PokeNotifier.LOGGER.info("Poke Notifier " + configName + " loaded."); // Silenced to keep startup log clean
-                return configObject;
+
+                // --- MEJORA: Envolvemos la lógica de reflexión en un try-catch para manejar errores ---
+                try {
+                    int fileVersion = jsonObject.has("config_version") ? jsonObject.get("config_version").getAsInt() : 0;
+                    T newConfigInstance = configClass.getDeclaredConstructor().newInstance();
+                    int currentVersion = configClass.getField("config_version").getInt(newConfigInstance);
+
+                    if (fileVersion < currentVersion) {
+                        PokeNotifier.LOGGER.info("Migrating " + configName + " from version " + fileVersion + " to " + currentVersion + "...");
+                        // 2. Cargar el archivo antiguo en su clase para obtener los valores existentes.
+                        T oldConfig = GSON.fromJson(jsonObject, configClass);
+
+                        // 3. Copiar los valores antiguos al nuevo objeto de configuración.
+                        for (Field field : configClass.getDeclaredFields()) {
+                            if (java.lang.reflect.Modifier.isStatic(field.getModifiers()) || java.lang.reflect.Modifier.isTransient(field.getModifiers())) continue;
+                            Object oldValue = field.get(oldConfig);
+                            if (oldValue != null) {
+                                field.set(newConfigInstance, oldValue);
+                            }
+                        }
+                        // 4. Guardar el archivo fusionado y devolverlo.
+                        saveConfigFile(file, newConfigInstance, configName);
+                        return newConfigInstance;
+                    } else {
+                        // La versión es actual, simplemente cargamos el objeto.
+                        return GSON.fromJson(jsonObject, configClass);
+                    }
+                } catch (Exception e) {
+                    throw new ConfigReadException("Failed to migrate " + configName + ". A reflection error occurred.", e);
+                }
             } catch (JsonSyntaxException e) {
                 throw new ConfigReadException("Failed to parse " + configName + ". Please check for syntax errors.", e);
             } catch (IOException e) {

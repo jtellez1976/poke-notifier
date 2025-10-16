@@ -95,6 +95,9 @@ public class PokeNotifier implements ModInitializer {
     // --- Rival System Cooldowns ---
     public static final Map<UUID, Long> RIVAL_NOTIFICATION_COOLDOWNS = new ConcurrentHashMap<>();
 
+    // --- Reset Confirmation ---
+    private static final Map<UUID, String> RESET_CONFIRMATION_TOKENS = new ConcurrentHashMap<>();
+
     private static final List<Runnable> PENDING_TASKS = new ArrayList<>();
     private static MinecraftServer server;
 
@@ -192,9 +195,26 @@ public class PokeNotifier implements ModInitializer {
 
             // Config subcommands
             var configNode = CommandManager.literal("config")
-                    .then(CommandManager.literal("reload").executes(PokeNotifier::executeReload))
-                    .then(CommandManager.literal("reset").executes(PokeNotifier::executeReset))
-                    .build();
+                    .then(CommandManager.literal("reload").executes(PokeNotifier::executeReload));
+
+            // --- MEJORA: Comando de reseteo con confirmación ---
+            configNode.then(CommandManager.literal("reset").executes(context -> {
+                ServerPlayerEntity player = context.getSource().getPlayer();
+                if (player == null) return 0;
+
+                String token = UUID.randomUUID().toString().substring(0, 8);
+                RESET_CONFIRMATION_TOKENS.put(player.getUuid(), token);
+
+                // --- MEJORA: Apuntamos a comandos "ocultos" para que no se autocompleten ---
+                Text confirmText = Text.literal("[CONFIRM]").formatted(Formatting.GREEN, Formatting.BOLD)
+                        .styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pokenotifier confirm_reset " + token)));
+                Text cancelText = Text.literal("[CANCEL]").formatted(Formatting.RED, Formatting.BOLD)
+                        .styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pokenotifier cancel_reset")));
+
+                context.getSource().sendFeedback(() -> Text.literal("WARNING: This will reset all Poke Notifier configurations to their defaults. This action cannot be undone.").formatted(Formatting.RED), false);
+                context.getSource().sendFeedback(() -> Text.literal("Click to proceed: ").append(confirmText).append(" ").append(cancelText), false);
+                return 1;
+            }));
 
             // Test mode command.
             var testModeNode = CommandManager.literal("mode")
@@ -367,6 +387,17 @@ public class PokeNotifier implements ModInitializer {
                     .then(autoCompleteGenNode)
                     .then(rollbackNode));
             pokenotifierNode.then(CommandManager.literal("bounty").then(bountySystemNode));
+
+            // --- MEJORA: Registramos los comandos de callback por separado para ocultarlos ---
+            pokenotifierNode.then(CommandManager.literal("confirm_reset")
+                    .then(CommandManager.argument("token", StringArgumentType.string())
+                            .executes(PokeNotifier::executeConfirmReset)));
+
+            pokenotifierNode.then(CommandManager.literal("cancel_reset")
+                    .executes(context -> {
+                        context.getSource().sendFeedback(() -> Text.literal("Configuration reset cancelled.").formatted(Formatting.YELLOW), false);
+                        return 1;
+                    }));
 
             dispatcher.register(pokenotifierNode);
         });
@@ -830,14 +861,26 @@ public class PokeNotifier implements ModInitializer {
         }
     }
 
-    private static int executeReset(CommandContext<ServerCommandSource> context) {
-        try {
-            ConfigManager.resetToDefault();
-            context.getSource().sendFeedback(() -> Text.literal("New default poke-notifier configs have been generated.").formatted(Formatting.GREEN), true);
-            return 1;
-        } catch (Exception e) {
-            LOGGER.error("Failed to generate new default configurations.", e);
-            context.getSource().sendError(Text.literal("Failed to generate new configs. Check server logs.").formatted(Formatting.RED));
+    private static int executeConfirmReset(CommandContext<ServerCommandSource> context) {
+        ServerPlayerEntity player = context.getSource().getPlayer();
+        if (player == null) return 0;
+
+        String providedToken = StringArgumentType.getString(context, "token");
+        String expectedToken = RESET_CONFIRMATION_TOKENS.get(player.getUuid());
+
+        if (expectedToken != null && expectedToken.equals(providedToken)) {
+            RESET_CONFIRMATION_TOKENS.remove(player.getUuid()); // Invalidate token
+            try {
+                ConfigManager.resetToDefault();
+                context.getSource().sendFeedback(() -> Text.literal("All Poke Notifier configurations have been reset to default.").formatted(Formatting.GREEN), true);
+                return 1;
+            } catch (Exception e) {
+                LOGGER.error("Failed to generate new default configurations.", e);
+                context.getSource().sendError(Text.literal("Failed to generate new configs. Check server logs.").formatted(Formatting.RED));
+                return 0;
+            }
+        } else {
+            context.getSource().sendError(Text.literal("Invalid or expired confirmation token. Please run '/pokenotifier config reset' again.").formatted(Formatting.RED));
             return 0;
         }
     }

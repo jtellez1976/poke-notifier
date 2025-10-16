@@ -14,6 +14,8 @@ package com.zehro_mc.pokenotifier;
  */
 public class ConfigClient {
 
+    public int config_version = 1;
+
     public String[] _instructions = new String[]{
             "Poke Notifier Configuration - Client Settings",
             "This file defines client-side preferences and general mod settings.",

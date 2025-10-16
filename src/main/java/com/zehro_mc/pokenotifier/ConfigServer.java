@@ -14,6 +14,8 @@ package com.zehro_mc.pokenotifier;
  */
 public class ConfigServer {
 
+    public int config_version = 1;
+
     public String[] _instructions = new String[]{
             "Poke Notifier Configuration - Server-Only Settings",
             "This file contains settings that only affect the server.",

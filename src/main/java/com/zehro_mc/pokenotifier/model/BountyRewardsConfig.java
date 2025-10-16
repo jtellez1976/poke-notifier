@@ -17,6 +17,8 @@ import java.util.List;
  */
 public class BountyRewardsConfig {
 
+    public int config_version = 1;
+
     public String[] _instructions = new String[]{
             "Poke Notifier - Bounty System Rewards",
             "This file defines the pool of possible rewards for capturing a bounty Pokémon.",
