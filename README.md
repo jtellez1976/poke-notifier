@@ -120,4 +120,4 @@ You can also check out the source code and contribute to the project at our GitH
 4.  Place all three .jar files into your `mods` folder.
 5.  (Optional) For more stylized mode activation notifications, install `AdvancementPlaques` and its dependency, `Iceberg`.
 
-Start the game and enjoy the hunt!
+Start the game and enjoy the hunt!!
