@@ -107,6 +107,8 @@ public class PokeNotifier implements ModInitializer {
 
     // --- Update Checker ---
     public static UpdateChecker.UpdateInfo LATEST_VERSION_INFO = null;
+    public static boolean UPDATE_CHECK_COMPLETED = false;
+    private static final Set<UUID> NOTIFIED_UP_TO_DATE_ADMINS = new HashSet<>();
 
     private static final List<Runnable> PENDING_TASKS = new ArrayList<>();
     private static MinecraftServer server;
@@ -151,7 +153,9 @@ public class PokeNotifier implements ModInitializer {
         }
 
         // Asynchronously check for updates. The checker itself will handle logging.
-        UpdateChecker.checkForUpdates(null);
+        UpdateChecker.checkForUpdates(null).thenRun(() -> {
+            UPDATE_CHECK_COMPLETED = true;
+        });
 
         LOGGER.info("| Phase 3/5: Registering Components & Items...      |");
         ModDataComponents.registerModDataComponents();
@@ -164,6 +168,10 @@ public class PokeNotifier implements ModInitializer {
         registerServerPacketReceivers();
 
         ServerLifecycleEvents.SERVER_STARTED.register(startedServer -> server = startedServer);
+        ServerLifecycleEvents.SERVER_STARTING.register(server -> {
+            // Clear the notified admin list on each server start.
+            NOTIFIED_UP_TO_DATE_ADMINS.clear();
+        });
         ServerLifecycleEvents.SERVER_STOPPING.register(stoppingServer -> server = null);
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
@@ -436,6 +444,10 @@ public class PokeNotifier implements ModInitializer {
 
                     player.sendMessage(updateMessage, false);
                     player.sendMessage(downloadLink, false);
+                } else if (UPDATE_CHECK_COMPLETED && !NOTIFIED_UP_TO_DATE_ADMINS.contains(player.getUuid())) {
+                    // --- MEJORA: Notify admin that the mod is up to date ---
+                    player.sendMessage(Text.literal("Poke Notifier is up to date!").formatted(Formatting.GREEN), false);
+                    NOTIFIED_UP_TO_DATE_ADMINS.add(player.getUuid());
                 }
             }
             PlayerRankManager.onPlayerJoin(player);

@@ -24,6 +24,8 @@ import java.nio.charset.StandardCharsets;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.concurrent.CompletableFuture;
 
 public class UpdateChecker {
@@ -102,12 +104,17 @@ public class UpdateChecker {
                     }
                 }
                 if (isCompatible) {
-                    String latestVersionNumber = file.get("name").getAsString()
-                            .replace("Poke Notifier", "")
-                            .replace(".jar", "")
-                            .trim().replaceAll("[^0-9.]", ""); // Clean up name to get version
-                    compareAndSetVersion(latestVersionNumber, projectData.get("urls").getAsJsonObject().get("curseforge").getAsString(), feedbackPlayer);
-                    return; // Found the latest compatible version
+                    // --- FIX: Use regex to reliably extract the version number from the file name ---
+                    String fileName = file.get("name").getAsString();
+                    // This regex looks for a version pattern like X.Y.Z that might be part of a larger string.
+                    Pattern pattern = Pattern.compile("(\\d+\\.\\d+\\.\\d+)"); 
+                    Matcher matcher = pattern.matcher(fileName);
+
+                    if (matcher.find()) {
+                        String latestVersionNumber = matcher.group(1);
+                        compareAndSetVersion(latestVersionNumber, projectData.get("urls").getAsJsonObject().get("curseforge").getAsString(), feedbackPlayer);
+                        return; // Found the latest compatible version
+                    }
                 }
             }
         }
@@ -135,6 +142,14 @@ public class UpdateChecker {
             } catch (InterruptedException ignored) {
             }
             
+            if (feedbackPlayer != null) {
+                // --- FIX: Send the correct feedback message when an update is found ---
+                Text updateMessage = Text.literal("A new version of Poke Notifier is available: ").formatted(Formatting.GREEN)
+                        .append(Text.literal(latestVersionNumber).formatted(Formatting.GOLD));
+                feedbackPlayer.sendMessage(updateMessage, false);
+            }
+        } else {
+            PokeNotifier.LOGGER.info("[UpdateChecker] You are running the latest version.");
             if (feedbackPlayer != null) {
                 feedbackPlayer.sendMessage(Text.literal("Poke Notifier is up to date!").formatted(Formatting.GREEN), false);
             }

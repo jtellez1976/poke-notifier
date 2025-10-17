@@ -44,6 +44,7 @@ public class ClientCommands {
         // This command is what the clickable text will now execute.
         pncCommand.then(ClientCommandManager.literal("set_update_source")
                 .then(ClientCommandManager.argument("source", StringArgumentType.string())
+                        .suggests((context, builder) -> CommandSource.suggestMatching(Stream.of("modrinth", "curseforge", "none"), builder))
                         .executes(context -> {
                             String source = StringArgumentType.getString(context, "source");
                             // Send a packet to the server with the chosen source.
