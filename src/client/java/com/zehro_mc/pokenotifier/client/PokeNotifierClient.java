@@ -11,18 +11,18 @@ package com.zehro_mc.pokenotifier.client;
 import com.zehro_mc.pokenotifier.ConfigClient;
 import com.zehro_mc.pokenotifier.ConfigManager;
 import com.zehro_mc.pokenotifier.PokeNotifier;
-import com.zehro_mc.pokenotifier.StatusUpdatePayload;
-import com.zehro_mc.pokenotifier.client.compat.AdvancementPlaquesCompat;
 import com.zehro_mc.pokenotifier.block.entity.ModBlockEntities;
+import com.zehro_mc.pokenotifier.client.compat.AdvancementPlaquesCompat;
 import com.zehro_mc.pokenotifier.client.renderer.TrophyDisplayBlockEntityRenderer;
 import com.zehro_mc.pokenotifier.networking.*;
 import net.fabricmc.api.ClientModInitializer;
-import net.minecraft.client.render.block.entity.BlockEntityRendererFactories;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.render.block.entity.BlockEntityRendererFactories;
 import net.minecraft.client.sound.PositionedSoundInstance;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.MutableText;
@@ -51,6 +51,9 @@ public class PokeNotifierClient implements ClientModInitializer {
         HudRenderCallback.EVENT.register(CatchEmAllHUD::render);
         HudRenderCallback.EVENT.register(ActivationFeedbackHUD::render);
 
+        // Now that payloads are registered, we can safely register their receivers.
+        registerClientPacketReceivers();
+
         BlockEntityRendererFactories.register(ModBlockEntities.TROPHY_DISPLAY_BLOCK_ENTITY, TrophyDisplayBlockEntityRenderer::new);
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> ClientCommands.register(dispatcher));
 
@@ -62,7 +65,12 @@ public class PokeNotifierClient implements ClientModInitializer {
                 }
             }
         });
+    }
 
+    /**
+     * Registers receivers for packets sent from the server to the client.
+     */
+    private void registerClientPacketReceivers() {
         // Receive debug mode status from the server.
         ClientPlayNetworking.registerGlobalReceiver(ServerDebugStatusPayload.ID, (payload, context) -> {
             if (payload.debugModeEnabled()) {

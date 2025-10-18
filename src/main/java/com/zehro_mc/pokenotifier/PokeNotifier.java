@@ -26,6 +26,7 @@ import com.zehro_mc.pokenotifier.model.CustomListConfig;
 import com.zehro_mc.pokenotifier.model.PlayerCatchProgress;
 import com.zehro_mc.pokenotifier.event.CaptureListener;
 import com.zehro_mc.pokenotifier.networking.*;
+import com.zehro_mc.pokenotifier.networking.PokeNotifierPayloads;
 import com.zehro_mc.pokenotifier.networking.ServerDebugStatusPayload;
 import com.zehro_mc.pokenotifier.util.PokeNotifierServerUtils;
 import com.zehro_mc.pokenotifier.util.PlayerRankManager;
@@ -129,28 +130,15 @@ public class PokeNotifier implements ModInitializer {
         LOGGER.info(createBannerLine(""));
         LOGGER.info("+---------------------------------------------------+");
 
-        // Register C2S payload types.
-        PayloadTypeRegistry.playC2S().register(CustomListUpdatePayload.ID, CustomListUpdatePayload.CODEC);
-        PayloadTypeRegistry.playC2S().register(CatchemallUpdatePayload.ID, CatchemallUpdatePayload.CODEC);
-        PayloadTypeRegistry.playC2S().register(UpdateSourcePayload.ID, UpdateSourcePayload.CODEC);
-
-        // Register S2C payload types.
-        LOGGER.info("| Phase 1/5: Registering Network Payloads...      |");
-        PayloadTypeRegistry.playS2C().register(WaypointPayload.ID, WaypointPayload.CODEC);
-        PayloadTypeRegistry.playS2C().register(StatusUpdatePayload.ID, StatusUpdatePayload.CODEC);
-        PayloadTypeRegistry.playS2C().register(ServerDebugStatusPayload.ID, ServerDebugStatusPayload.CODEC);
-        PayloadTypeRegistry.playS2C().register(CurrentGenPayload.ID, CurrentGenPayload.CODEC);
-        PayloadTypeRegistry.playS2C().register(CatchProgressPayload.ID, CatchProgressPayload.CODEC);
-        PayloadTypeRegistry.playS2C().register(GlobalAnnouncementPayload.ID, GlobalAnnouncementPayload.CODEC);
-        PayloadTypeRegistry.playS2C().register(ModeStatusPayload.ID, ModeStatusPayload.CODEC);
-        PayloadTypeRegistry.playS2C().register(RankSyncPayload.ID, RankSyncPayload.CODEC);
-
         LOGGER.info("| Phase 2/5: Loading Configurations...              |");
         try {
             ConfigManager.loadConfig();
         } catch (ConfigManager.ConfigReadException e) {
             LOGGER.error("Failed to load Poke Notifier configuration on startup. Using default values.", e);
         }
+
+        // Register networking payloads. This is called on both client and server.
+        PokeNotifierPayloads.register();
 
         // Asynchronously check for updates. The checker itself will handle logging.
         UpdateChecker.checkForUpdates(null).thenRun(() -> {
@@ -474,13 +462,12 @@ public class PokeNotifier implements ModInitializer {
                 if (!pokemonEntity.isAlive() || pokemonEntity.isRemoved()) {
                     Pokemon pokemon = pokemonEntity.getPokemon();
                     RarityUtil.RarityCategory rarity = entry.getValue();
-
                     StatusUpdatePayload payload = new StatusUpdatePayload(
                             pokemon.getUuid().toString(),
                             pokemon.getDisplayName().getString(),
                             rarity.name(),
                             StatusUpdatePayload.UpdateType.DESPAWNED,
-                            null
+                            null // Player name is null for despawns
                     );
 
                     if (server != null) {

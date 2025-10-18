@@ -1,74 +1,53 @@
-/*
- * Copyright (C) 2024 ZeHrOx
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/.
- */
-
-/*
- * Copyright (C) 2024 ZeHrOx
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/.
- */
-
 package com.zehro_mc.pokenotifier.networking;
 
-import com.zehro_mc.pokenotifier.PokeNotifier;
-import net.minecraft.network.PacketByteBuf;
+import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.util.Identifier;
-import org.jetbrains.annotations.Nullable;
-
-import java.util.Optional;
 
 /**
- * An S2C payload to update the status of a tracked Pokémon (e.g., captured or despawned).
+ * Synchronizes Pokémon status updates between server and client.
+ * Compatible with Fabric Loader 0.17.x (Minecraft 1.21.1)
  */
 public record StatusUpdatePayload(
         String uuid,
         String name,
-        String rarityCategoryName,
+        String rarity,
         UpdateType updateType,
-        @Nullable String playerName
+        String playerName
 ) implements CustomPayload {
 
-    public enum UpdateType {
-        CAPTURED,
-        DESPAWNED
-    }
+    public static final Id<StatusUpdatePayload> ID =
+            new Id<>(Identifier.of("poke-notifier", "status_update_payload"));
 
-    public static final Id<StatusUpdatePayload> ID = new Id<>(
-            Identifier.of(PokeNotifier.MOD_ID, "status_update_payload"));
+    public static final PacketCodec<RegistryByteBuf, StatusUpdatePayload> CODEC =
+            PacketCodec.of(
+                    (payload, buf) -> {
+                        buf.writeString(payload.uuid);
+                        buf.writeString(payload.name);
+                        buf.writeString(payload.rarity);
+                        buf.writeEnumConstant(payload.updateType);
+                        buf.writeNullable(payload.playerName, (b, s) -> b.writeString(s));
+                    },
+                    buf -> new StatusUpdatePayload(
+                            buf.readString(),
+                            buf.readString(),
+                            buf.readString(),
+                            buf.readEnumConstant(UpdateType.class),
+                            buf.readNullable((b) -> b.readString())
+                    )
+            );
 
-    public static final PacketCodec<PacketByteBuf, StatusUpdatePayload> CODEC = PacketCodec.of(
-            StatusUpdatePayload::write,
-            StatusUpdatePayload::new
-    );
-
-    public StatusUpdatePayload(PacketByteBuf buf) {
-        this(
-                buf.readString(),
-                buf.readString(),
-                buf.readString(),
-                buf.readEnumConstant(UpdateType.class),
-                buf.readOptional(PacketByteBuf::readString).orElse(null)
-        );
-    }
-
-    private void write(PacketByteBuf buf) {
-        buf.writeString(uuid);
-        buf.writeString(name);
-        buf.writeString(rarityCategoryName);
-        buf.writeEnumConstant(updateType);
-        buf.writeOptional(Optional.ofNullable(playerName), PacketByteBuf::writeString);
-    }
 
     @Override
     public Id<? extends CustomPayload> getId() {
         return ID;
+    }
+
+    /** Represents status update types for Pokémon lifecycle events. */
+    public enum UpdateType {
+        SPAWNED,
+        DESPAWNED,
+        CAPTURED
     }
 }

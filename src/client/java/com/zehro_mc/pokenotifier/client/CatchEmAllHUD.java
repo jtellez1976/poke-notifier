@@ -16,6 +16,7 @@ import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
+import com.zehro_mc.pokenotifier.client.PokeNotifierClient;
 
 /**
  * Renders the HUD that displays the progress of the "Catch 'em All" mode on the screen.

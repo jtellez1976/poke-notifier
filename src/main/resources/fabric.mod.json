@@ -18,7 +18,7 @@
 			"com.zehro_mc.pokenotifier.PokeNotifier"
 		],
 		"client": [
-			"com.zehro_mc.pokenotifier.client.PokeNotifierClient"
+          "com.zehro_mc.pokenotifier.client.PokeNotifierClient"
 		]
 	},
 	"mixins": [

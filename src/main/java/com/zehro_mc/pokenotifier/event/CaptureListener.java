@@ -20,7 +20,7 @@ import com.zehro_mc.pokenotifier.model.GenerationData;
 import com.zehro_mc.pokenotifier.item.ModItems;
 import com.zehro_mc.pokenotifier.model.PlayerCatchProgress;
 import com.zehro_mc.pokenotifier.networking.GlobalAnnouncementPayload;
-import com.zehro_mc.pokenotifier.StatusUpdatePayload;
+import com.zehro_mc.pokenotifier.networking.StatusUpdatePayload;
 import com.zehro_mc.pokenotifier.util.RarityUtil;
 import com.zehro_mc.pokenotifier.util.PrestigeEffects;
 import com.zehro_mc.pokenotifier.util.PlayerRankManager;

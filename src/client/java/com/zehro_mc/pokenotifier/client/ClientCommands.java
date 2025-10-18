@@ -15,6 +15,7 @@ import com.zehro_mc.pokenotifier.ConfigClient;
 import com.zehro_mc.pokenotifier.api.PokeNotifierApi;
 import com.zehro_mc.pokenotifier.ConfigManager;
 import com.zehro_mc.pokenotifier.PokeNotifier;
+import com.zehro_mc.pokenotifier.client.PokeNotifierClient;
 import com.zehro_mc.pokenotifier.networking.CatchemallUpdatePayload;
 import com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload;
 import com.zehro_mc.pokenotifier.networking.UpdateSourcePayload;
