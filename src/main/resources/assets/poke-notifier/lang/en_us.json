@@ -26,6 +26,19 @@
  "item.poke-notifier.kalos_trophy": "Kalos Pokédex Trophy",
  "item.poke-notifier.alola_trophy": "Alola Pokédex Trophy",
  "item.poke-notifier.galar_trophy": "Galar Pokédex Trophy",
- "item.poke-notifier.paldea_trophy": "Paldea Pokédex Trophy"
+ "item.poke-notifier.paldea_trophy": "Paldea Pokédex Trophy",
 
+ "title.pokenotifier.config": "Poke Notifier Settings",
+ "category.pokenotifier.general": "General",
+ "message.pokenotifier.welcome": "Welcome to Poke Notifier settings! Configure your notification preferences below.",
+  "option.pokenotifier.alert_chat_enabled": "Enable Chat Alerts",
+  "option.pokenotifier.alert_sounds_enabled": "Enable Sound Alerts",
+  "option.pokenotifier.alert_toast_enabled": "Enable Toast Alerts",
+  "option.pokenotifier.searching_enabled": "Enable Pokémon Searching",
+  "option.pokenotifier.silent_mode_enabled": "Silent Mode",
+  "tooltip.pokenotifier.alert_chat_enabled": "Show rare Pokémon alerts in chat",
+  "tooltip.pokenotifier.alert_sounds_enabled": "Play a sound when a rare Pokémon spawns",
+  "tooltip.pokenotifier.alert_toast_enabled": "Show a HUD notification when a rare Pokémon spawns",
+  "tooltip.pokenotifier.searching_enabled": "Master switch to enable or disable all Pokémon detection features",
+  "tooltip.pokenotifier.silent_mode_enabled": "Quickly disable all notifications (overrides other settings)"
 }

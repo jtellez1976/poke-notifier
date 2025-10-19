@@ -19,12 +19,15 @@ import com.zehro_mc.pokenotifier.client.PokeNotifierClient;
 import com.zehro_mc.pokenotifier.networking.CatchemallUpdatePayload;
 import com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload;
 import com.zehro_mc.pokenotifier.networking.UpdateSourcePayload;
+import net.minecraft.client.gui.screen.Screen;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
+import net.minecraft.client.MinecraftClient;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.loader.api.ModContainer;
 import net.minecraft.command.CommandSource;
+import net.minecraft.command.CommandRegistryAccess;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
@@ -38,12 +41,12 @@ import java.util.stream.Stream;
  */
 public class ClientCommands {
 
-    public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher) {
+    public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher, CommandRegistryAccess registryAccess) {
         LiteralArgumentBuilder<FabricClientCommandSource> pncCommand = ClientCommandManager.literal("pnc");
 
         // --- FIX: Create a client-side command to handle the update source selection ---
         // This command is what the clickable text will now execute.
-        pncCommand.then(ClientCommandManager.literal("set_update_source")
+        pncCommand.then(ClientCommandManager.literal("update")
                 .then(ClientCommandManager.argument("source", StringArgumentType.string())
                         .suggests((context, builder) -> CommandSource.suggestMatching(Stream.of("modrinth", "curseforge", "none"), builder))
                         .executes(context -> {
@@ -211,6 +214,15 @@ public class ClientCommands {
                     return 1;
                 }));
 
+        // --- FIX: Re-implement the client-side GUI command ---
+        // Instead of opening the screen directly, it executes the server-side command,
+        // which then sends a packet back to the client. This is the most robust pattern.
+        var guiCommand = ClientCommandManager.literal("gui")
+                .executes(context -> {
+                    context.getSource().getPlayer().networkHandler.sendChatCommand("pokenotifier gui");
+                    return 1;
+                });
+
         // Register all subcommands
         pncCommand.then(alertsNode);
         pncCommand.then(customcatchNode);
@@ -221,6 +233,7 @@ public class ClientCommands {
         if (serverCommandNode != null) {
             pncCommand.then(ClientCommandManager.literal("reloadconfig").redirect(serverCommandNode));
         }
+        pncCommand.then(guiCommand);
 
         dispatcher.register(pncCommand);
     }

@@ -203,6 +203,18 @@ public class PokeNotifier implements ModInitializer {
                         return 1;
                     }).build();
 
+            // --- FIX: GUI command is now server-side ---
+            // It sends a packet to the client to open the screen.
+            var guiCommand = CommandManager.literal("gui")
+                    .requires(source -> source.hasPermissionLevel(0)) // Allow all players to use it
+                    .executes(context -> {
+                        ServerPlayerEntity player = context.getSource().getPlayer();
+                        if (player != null) {
+                            ServerPlayNetworking.send(player, new OpenGuiPayload());
+                        }
+                        return 1;
+                    });
+
             // Config subcommands
             var configNode = CommandManager.literal("config")
                     .then(CommandManager.literal("reload").executes(PokeNotifier::executeReload));
@@ -355,6 +367,7 @@ public class PokeNotifier implements ModInitializer {
             // Build the command tree
             pokenotifierNode.then(statusCommand);
             pokenotifierNode.then(helpCommand);
+            pokenotifierNode.then(guiCommand);
             pokenotifierNode.then(configNode);
             pokenotifierNode.then(CommandManager.literal("test")
                     .then(testModeNode)
@@ -416,10 +429,10 @@ public class PokeNotifier implements ModInitializer {
             // --- MEJORA: Check for update source configuration ---
             if (player.hasPermissionLevel(2)) {
                 if ("unknown".equalsIgnoreCase(ConfigManager.getServerConfig().update_checker_source)) {
-                    Text prompt = Text.literal("Please configure the update checker source for Poke Notifier:").formatted(Formatting.YELLOW);                    
-                    Text modrinthButton = Text.literal("[Modrinth]").formatted(Formatting.GREEN).styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pnc set_update_source modrinth")));
-                    Text curseforgeButton = Text.literal("[CurseForge]").formatted(Formatting.AQUA).styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pnc set_update_source curseforge")));
-                    Text disableButton = Text.literal("[Disable]").formatted(Formatting.RED).styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pnc set_update_source none")));
+                    Text prompt = Text.literal("Please configure the update checker source for Poke Notifier:").formatted(Formatting.YELLOW);
+                    Text modrinthButton = Text.literal("[Modrinth]").formatted(Formatting.GREEN).styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pnc update modrinth")));
+                    Text curseforgeButton = Text.literal("[CurseForge]").formatted(Formatting.AQUA).styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pnc update curseforge")));
+                    Text disableButton = Text.literal("[Disable]").formatted(Formatting.RED).styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pnc update none")));
 
                     player.sendMessage(prompt, false);
                     player.sendMessage(Text.literal("Choose your preferred platform: ").append(modrinthButton).append(" ").append(curseforgeButton).append(" ").append(disableButton), false);

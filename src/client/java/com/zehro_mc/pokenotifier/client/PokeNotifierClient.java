@@ -47,6 +47,9 @@ public class PokeNotifierClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        // Load client-specific configurations at the very beginning.
+        ConfigManager.loadClientConfig();
+
         HudRenderCallback.EVENT.register(NotificationHUD::render);
         HudRenderCallback.EVENT.register(CatchEmAllHUD::render);
         HudRenderCallback.EVENT.register(ActivationFeedbackHUD::render);
@@ -55,7 +58,7 @@ public class PokeNotifierClient implements ClientModInitializer {
         registerClientPacketReceivers();
 
         BlockEntityRendererFactories.register(ModBlockEntities.TROPHY_DISPLAY_BLOCK_ENTITY, TrophyDisplayBlockEntityRenderer::new);
-        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> ClientCommands.register(dispatcher));
+        ClientCommandRegistrationCallback.EVENT.register(ClientCommands::register);
 
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
             ConfigClient config = ConfigManager.getClientConfig();
@@ -71,6 +74,14 @@ public class PokeNotifierClient implements ClientModInitializer {
      * Registers receivers for packets sent from the server to the client.
      */
     private void registerClientPacketReceivers() {
+        // --- FIX: Open the GUI via a server-sent packet ---
+        ClientPlayNetworking.registerGlobalReceiver(OpenGuiPayload.ID, (payload, context) -> {
+            context.client().execute(() -> {
+                // We can now safely re-enable Cloth Config and our proper GUI
+                context.client().setScreen(new SimpleGuiScreen());
+            });
+        });
+
         // Receive debug mode status from the server.
         ClientPlayNetworking.registerGlobalReceiver(ServerDebugStatusPayload.ID, (payload, context) -> {
             if (payload.debugModeEnabled()) {

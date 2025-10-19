@@ -91,12 +91,28 @@ public class ConfigManager {
         EnvType env = FabricLoader.getInstance().getEnvironmentType();
 
         // Load environment-specific configuration files.
-        if (env == EnvType.CLIENT) {
-            loadConfigClient();
-        } else { // Server-side environment
+        if (env != EnvType.CLIENT) { // Server-side environment
             loadConfigServer();
             loadCatchemallRewardsConfig();
             loadBountyRewardsConfig();
+        }
+    }
+
+    /**
+     * Loads only the client-specific configuration.
+     * This should be called from the client entrypoint.
+     */
+    public static void loadClientConfig() {
+        if (FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT) {
+            if (!CONFIG_DIR.exists()) {
+                CONFIG_DIR.mkdirs();
+            }
+            try {
+                loadConfigClient();
+            } catch (ConfigReadException e) {
+                PokeNotifier.LOGGER.error("Failed to load client config, creating a default one.", e);
+                configClient = new ConfigClient();
+            }
         }
     }
 
@@ -172,7 +188,8 @@ public class ConfigManager {
             PokeNotifier.LOGGER.info("No Poke Notifier " + configName + " file found, creating a new one.");
             try {
                 T newConfig = configClass.getDeclaredConstructor().newInstance();
-                saveConfigFile(file, newConfig, configName);
+                // --- FIX: Do not save the config file during the loading process to prevent an infinite loop. ---
+                // The config will be saved by the appropriate action (e.g., closing the GUI or on server shutdown).
                 return newConfig;
             } catch (Exception e) {
                 throw new ConfigReadException("Failed to create default " + configName + ".", e);
@@ -241,6 +258,8 @@ public class ConfigManager {
 
     public static ConfigClient getClientConfig() {
         if (configClient == null) {
+            // --- FIX: Load client config on demand (lazy loading) ---
+            // This prevents race conditions between the mod init thread and the render thread.
             try {
                 loadConfigClient();
             } catch (ConfigReadException e) {

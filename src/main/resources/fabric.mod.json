@@ -19,7 +19,10 @@
 		],
 		"client": [
           "com.zehro_mc.pokenotifier.client.PokeNotifierClient"
-		]
+		],
+		"modmenu": [
+          //"com.zehro_mc.pokenotifier.client.compat.ModMenuIntegration"
+        ]
 	},
 	"mixins": [
 		"poke-notifier.mixins.json"
@@ -29,5 +32,6 @@
 		"fabric-api": "*",
 		"minecraft": "1.21.1",
 		"cobblemon": ">=1.6.0"
+		//"cloth-config": ">=15.0.121"
 	}
 }
