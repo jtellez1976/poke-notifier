@@ -28,9 +28,11 @@ public class PokeNotifierCustomScreen extends Screen {
     private AutocompleteTextFieldWidget pokemonNameField;
     private ConfigClient config;
 
-    // --- NEW: Response Panel ---
     private List<Text> responseLines = new ArrayList<>();
     private int responseTimer = 0;
+
+    // --- NEW: Class constants for layout ---
+    private static final int NAV_WIDTH = 110;
 
     private enum Category {
         NOTIFICATIONS,
@@ -42,7 +44,7 @@ public class PokeNotifierCustomScreen extends Screen {
     private Category currentCategory = Category.NOTIFICATIONS;
 
     public PokeNotifierCustomScreen(Screen parent) {
-        super(Text.literal("PokéNotifier Configuration"));
+        super(Text.literal("Poke Notifier Configurations (User)"));
         this.parent = parent;
     }
 
@@ -54,26 +56,22 @@ public class PokeNotifierCustomScreen extends Screen {
     }
 
     private void buildLayout() {
-        // --- NEW: Centered Panel Layout ---
-        int panelWidth = 320; // Increased width
-        int panelHeight = 220; // Increased height
+        int panelWidth = 320;
+        int panelHeight = 240;
         int panelX = (this.width - panelWidth) / 2;
         int panelY = (this.height - panelHeight) / 2;
 
-        // Navigation Panel (Left side of our panel)
         int navX = panelX + 10;
         int navY = panelY + 30;
-        int navWidth = 110; // Increased width for nav buttons
 
-        addDrawableChild(createNavButton(navX, navY, navWidth, "🔔 Notifications", Category.NOTIFICATIONS));
-        addDrawableChild(createNavButton(navX, navY + 25, navWidth, "🎯 Custom Hunt", Category.CUSTOM_HUNT));
-        addDrawableChild(createNavButton(navX, navY + 50, navWidth, "🏆 Catch 'em All", Category.CATCH_EM_ALL));
-        addDrawableChild(createNavButton(navX, navY + 75, navWidth, "ℹ️ Info & Help", Category.INFO));
+        addDrawableChild(createNavButton(navX, navY, NAV_WIDTH, "🔔 Notifications", Category.NOTIFICATIONS));
+        addDrawableChild(createNavButton(navX, navY + 25, NAV_WIDTH, "🎯 Custom Hunt", Category.CUSTOM_HUNT));
+        addDrawableChild(createNavButton(navX, navY + 50, NAV_WIDTH, "🏆 Catch 'em All", Category.CATCH_EM_ALL));
+        addDrawableChild(createNavButton(navX, navY + 75, NAV_WIDTH, "ℹ️ Info & Help", Category.INFO));
 
-        // Content Panel (Right side of our panel)
-        int contentX = panelX + navWidth + 20;
+        int contentX = panelX + NAV_WIDTH + 20;
         int contentY = panelY + 30;
-        int contentWidth = panelWidth - navWidth - 40; // Adjusted width
+        int contentWidth = panelWidth - NAV_WIDTH - 40;
 
         switch (currentCategory) {
             case NOTIFICATIONS -> buildNotificationsPanel(contentX, contentY, contentWidth);
@@ -82,9 +80,8 @@ public class PokeNotifierCustomScreen extends Screen {
             case INFO -> buildInfoPanel(contentX, contentY, contentWidth);
         }
 
-        // Close Button
         addDrawableChild(ButtonWidget.builder(Text.literal("Close"), button -> this.close())
-                .dimensions(panelX + (panelWidth - 100) / 2, panelY + panelHeight - 25, 100, 20)
+                .dimensions(panelX + (panelWidth - 100) / 2, panelY + panelHeight - 30, 100, 20)
                 .build());
     }
 
@@ -98,7 +95,6 @@ public class PokeNotifierCustomScreen extends Screen {
     }
 
     private void buildNotificationsPanel(int x, int y, int width) {
-        // FIX: These buttons now modify the config directly for instant feedback.
         addDrawableChild(createToggleButton("Chat Alerts", config.alert_chat_enabled, newValue -> config.alert_chat_enabled = newValue, x, y, width));
         addDrawableChild(createToggleButton("Sound Alerts", config.alert_sounds_enabled, newValue -> config.alert_sounds_enabled = newValue, x, y + 25, width));
         addDrawableChild(createToggleButton("HUD Alerts", config.alert_toast_enabled, newValue -> config.alert_toast_enabled = newValue, x, y + 50, width));
@@ -124,7 +120,7 @@ public class PokeNotifierCustomScreen extends Screen {
         addDrawableChild(createActionButton("➕ Add", "pnc customcatch add", x, y + 25, buttonWidth));
 
         ButtonWidget removeButton = createActionButton("➖ Remove", "pnc customcatch remove", x + buttonWidth + 10, y + 25, buttonWidth);
-        removeButton.active = PokeNotifierClient.customHuntListSize > 0; // FIX: Disable if list is empty
+        // The button's state will be managed in the tick() method for real-time updates.
         addDrawableChild(removeButton);
 
         addDrawableChild(createActionButton("🗑️ Clear List", "pnc customcatch clear", x, y + 50, width));
@@ -143,7 +139,7 @@ public class PokeNotifierCustomScreen extends Screen {
 
     private void buildCatchEmAllPanel(int x, int y, int width) {
         List<String> generations = Arrays.asList("gen1", "gen2", "gen3", "gen4", "gen5", "gen6", "gen7", "gen8", "gen9");
-        int buttonWidth = (width - 5) / 2; // FIX: 2 buttons per row
+        int buttonWidth = (width - 5) / 2;
         int buttonHeight = 20;
 
         for (int i = 0; i < generations.size(); i++) {
@@ -163,7 +159,7 @@ public class PokeNotifierCustomScreen extends Screen {
             addDrawableChild(button);
         }
 
-        int statusY = y + 5 * (buttonHeight + 5); // FIX: Adjusted Y position
+        int statusY = y + 5 * (buttonHeight + 5);
         addDrawableChild(createActionButton("⏹️ Stop Tracking", "pnc catchemall disable " + PokeNotifierClient.currentCatchEmAllGeneration, x, statusY, width));
         addDrawableChild(createActionButton("📊 View Status", "pnc catchemall status", x, statusY + 25, width));
     }
@@ -173,11 +169,11 @@ public class PokeNotifierCustomScreen extends Screen {
         addDrawableChild(createActionButton("Version", "pnc version", x, y + 25, width));
         addDrawableChild(createActionButton("Status", "pnc status", x, y + 50, width));
 
-        // FIX: Use a CyclingButton for update source
-        addDrawableChild(CyclingButtonWidget.<String>builder(value -> Text.literal("Update Source: " + value))
+        // FIX: Use a custom name provider to get the correct capitalization.
+        addDrawableChild(CyclingButtonWidget.<String>builder(this::capitalize)
                 .values("modrinth", "curseforge", "none")
-                .initially(ConfigManager.getServerConfig().update_checker_source)
-                .build(x, y + 85, width, 20, Text.literal("Update Source"), (button, value) -> {
+                .initially(ConfigManager.getServerConfig().update_checker_source) // FIX: Get value from server config
+                .build(x, y + 110, width, 20, Text.literal("Update Source"), (button, value) -> {
                     executeCommand("pnc update " + value);
                 }));
     }
@@ -197,33 +193,52 @@ public class PokeNotifierCustomScreen extends Screen {
         };
     }
 
+    private Text capitalize(String str) {
+        if (str == null || str.isEmpty()) {
+            return Text.empty();
+        }
+        String capitalized = str.substring(0, 1).toUpperCase() + str.substring(1);
+        return Text.literal(capitalized).formatted(Formatting.GOLD);
+    }
+
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         this.renderBackground(context, mouseX, mouseY, delta);
 
-        // --- NEW: Draw the centered panel ---
         int panelWidth = 320;
-        int panelHeight = 220;
+        int panelHeight = 240;
         int panelX = (this.width - panelWidth) / 2;
         int panelY = (this.height - panelHeight) / 2;
-        context.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, 0xE01A1A1A); // Darker, more transparent
-        context.drawBorder(panelX, panelY, panelWidth, panelHeight, 0xFF888888); // Gray border
+        context.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, 0xE01A1A1A);
+        context.drawBorder(panelX, panelY, panelWidth, panelHeight, 0xFF888888);
 
         super.render(context, mouseX, mouseY, delta);
 
         context.drawCenteredTextWithShadow(this.textRenderer, this.title, this.width / 2, panelY + 10, 0xFFFFFF);
 
+        // FIX: Draw the subtitle for the update source button manually.
+        if (currentCategory == Category.INFO) {
+            context.drawTextWithShadow(this.textRenderer, "Update Source:", panelX + NAV_WIDTH + 20, panelY + 30 + 90, 0xFFFFFF);
+        }
+
         if (this.pokemonNameField != null && this.pokemonNameField.isVisible()) {
             this.pokemonNameField.renderSuggestions(context, mouseX, mouseY);
         }
 
-        // --- NEW: Render the response panel ---
         if (!responseLines.isEmpty()) {
             int responsePanelY = panelY + panelHeight + 5;
-            int responsePanelHeight = 5 + responseLines.size() * (this.textRenderer.fontHeight + 1);
+            int textWidth = panelWidth - 10;
+            int totalTextHeight = 0;
+            for (Text line : responseLines) {
+                totalTextHeight += this.textRenderer.getWrappedLinesHeight(line, textWidth);
+            }
+            int responsePanelHeight = 5 + totalTextHeight;
+
             context.fill(panelX, responsePanelY, panelX + panelWidth, responsePanelY + responsePanelHeight, 0xE0000000);
-            for (int i = 0; i < responseLines.size(); i++) {
-                context.drawTextWithShadow(this.textRenderer, responseLines.get(i), panelX + 5, responsePanelY + 4 + i * (this.textRenderer.fontHeight + 1), 0xFFFFFF);
+            int currentTextY = responsePanelY + 4;
+            for (Text line : responseLines) {
+                context.drawTextWrapped(this.textRenderer, line, panelX + 5, currentTextY, textWidth, 0xFFFFFF);
+                currentTextY += this.textRenderer.getWrappedLinesHeight(line, textWidth);
             }
         }
     }
@@ -237,11 +252,51 @@ public class PokeNotifierCustomScreen extends Screen {
                 responseLines.clear();
             }
         }
+
+        // --- FIX: Dynamically update the remove button's state in real-time ---
+        if (this.currentCategory == Category.CUSTOM_HUNT && this.children() != null) {
+            for (var child : this.children()) {
+                // Find the remove button by its message content
+                if (child instanceof ButtonWidget button && button.getMessage().getString().contains("➖ Remove")) {
+                    button.active = this.pokemonNameField != null && !this.pokemonNameField.getText().isEmpty();
+                }
+            }
+        }
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        // --- FIX: Handle clicks on the response panel text ---
+        if (button == 0 && !responseLines.isEmpty()) {
+            int panelWidth = 320;
+            int panelHeight = 240;
+            int panelX = (this.width - panelWidth) / 2;
+            int panelY = (this.height - panelHeight) / 2;
+            int responsePanelY = panelY + panelHeight + 5;
+            int currentTextY = responsePanelY + 4;
+
+            for (Text line : responseLines) {
+                if (mouseY >= currentTextY && mouseY < currentTextY + this.textRenderer.fontHeight) {
+                    // FIX: Use the correct method to handle text clicks.
+                    if (this.handleTextClick(line.getStyle())) return true;
+                }
+                currentTextY += this.textRenderer.getWrappedLinesHeight(line, panelWidth - 10);
+            }
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
     }
 
     public void displayResponse(List<Text> lines) {
-        this.responseLines = lines;
-        this.responseTimer = 200; // Display for 10 seconds
+        this.responseLines = new ArrayList<>(lines);
+        this.responseTimer = 200;
+    }
+
+    // NEW: Method for the internal command to set the text field value
+    public void setPokemonNameField(String text) {
+        if (this.pokemonNameField != null) {
+            // Set the text directly without rebuilding the entire screen
+            this.pokemonNameField.setText(text);
+        }
     }
 
     private void executeCommand(String command) {

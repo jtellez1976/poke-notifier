@@ -180,7 +180,7 @@ public class ClientCommands {
                             .map(meta -> meta.getVersion().getFriendlyString())
                             .orElse("Unknown");
 
-                    List<Text> lines = List.of(Text.literal("Poke Notifier ver. " + modVersion).formatted(Formatting.AQUA));
+                    List<Text> lines = new ArrayList<>(List.of(Text.literal("Poke Notifier ver. " + modVersion).formatted(Formatting.AQUA))); // FIX: Ensure mutable list
                     if (MinecraftClient.getInstance().currentScreen instanceof PokeNotifierCustomScreen screen) {
                         screen.displayResponse(lines);
                     } else {
@@ -238,6 +238,22 @@ public class ClientCommands {
                     context.getSource().getPlayer().networkHandler.sendChatCommand("pokenotifier gui");
                     return 1;
                 });
+
+        // --- NEW: Internal command for the GUI to set text field values ---
+        var internalCommand = ClientCommandManager.literal("internal")
+                .then(ClientCommandManager.literal("set_gui_text")
+                        .then(ClientCommandManager.argument("text", StringArgumentType.greedyString())
+                                .executes(context -> {
+                                    String text = StringArgumentType.getString(context, "text");
+                                    // FIX: Execute on the main client thread to avoid race conditions
+                                    context.getSource().getClient().execute(() -> {
+                                        if (context.getSource().getClient().currentScreen instanceof PokeNotifierCustomScreen screen) {
+                                            screen.setPokemonNameField(text);
+                                        }
+                                    });
+                                    return 1;
+                                })));
+        pncCommand.then(internalCommand);
 
         // Register all subcommands
         pncCommand.then(alertsNode);

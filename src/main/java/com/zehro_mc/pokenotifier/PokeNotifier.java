@@ -530,34 +530,47 @@ public class PokeNotifier implements ModInitializer {
                         try {
                             PokemonProperties.Companion.parse(pokemonName);
                         } catch (Exception e) {
-                            player.sendMessage(Text.literal("Error: '").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append("' is not a valid Pokémon name.").formatted(Formatting.RED), false);
+                            // FIX: Send error response to GUI
+                            List<Text> errorLines = new ArrayList<>(List.of(Text.literal("Error: '").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append("' is not a valid Pokémon name.").formatted(Formatting.RED)));
+                            ServerPlayNetworking.send(player, new GuiResponsePayload(errorLines));
                             return;
                         }
                         if (playerConfig.tracked_pokemon.add(pokemonName)) {
                             ConfigManager.savePlayerConfig(player.getUuid(), playerConfig);
-                            player.sendMessage(Text.literal("Added '").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append("' to your custom tracking list.").formatted(Formatting.GREEN), false);
+                            List<Text> lines = new ArrayList<>(List.of(Text.literal("Added '").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append("' to your custom tracking list.").formatted(Formatting.GREEN)));
+                            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                            PokeNotifierServerUtils.sendCatchProgressUpdate(player); // FIX: Update client state
                         } else {
-                            player.sendMessage(Text.literal("Pokémon '").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append("' is already on your list.").formatted(Formatting.YELLOW), false);
+                            List<Text> lines = new ArrayList<>(List.of(Text.literal("Pokémon '").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append("' is already on your list.").formatted(Formatting.YELLOW)));
+                            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
                         }
                         break;
 
                     case REMOVE:
                         if (playerConfig.tracked_pokemon.remove(pokemonName)) {
                             ConfigManager.savePlayerConfig(player.getUuid(), playerConfig);
-                            player.sendMessage(Text.literal("Removed '").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append("' from your custom tracking list.").formatted(Formatting.GREEN), false);
+                            List<Text> lines = new ArrayList<>(List.of(Text.literal("Removed '").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append("' from your custom tracking list.").formatted(Formatting.GREEN)));
+                            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                            PokeNotifierServerUtils.sendCatchProgressUpdate(player); // FIX: Update client state
                         } else {
-                            player.sendMessage(Text.literal("Pokémon '").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append("' was not on your list.").formatted(Formatting.YELLOW), false);
+                            List<Text> lines = new ArrayList<>(List.of(Text.literal("Pokémon '").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append("' was not on your list.").formatted(Formatting.YELLOW)));
+                            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
                         }
                         break;
 
                     case LIST:
                         if (playerConfig.tracked_pokemon.isEmpty()) {
-                            List<Text> lines = List.of(Text.literal("Your custom tracking list is empty.").formatted(Formatting.YELLOW));
+                            List<Text> lines = new ArrayList<>(List.of(Text.literal("Your custom tracking list is empty.").formatted(Formatting.YELLOW)));
                             ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
                         } else {
                             List<Text> lines = new ArrayList<>();
                             lines.add(Text.literal("Your custom tracking list:").formatted(Formatting.YELLOW));
-                            playerConfig.tracked_pokemon.forEach(name -> lines.add(Text.literal("- " + name).formatted(Formatting.GOLD)));
+                            // FIX: Make the list items clickable
+                            playerConfig.tracked_pokemon.forEach(name -> {
+                                Text clickableName = Text.literal("- " + name).formatted(Formatting.GOLD)
+                                        .styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pnc internal set_gui_text " + name)));
+                                lines.add(clickableName);
+                            });
                             ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
                         }
                         break;
@@ -566,10 +579,11 @@ public class PokeNotifier implements ModInitializer {
                         if (!playerConfig.tracked_pokemon.isEmpty()) {
                             playerConfig.tracked_pokemon.clear();
                             ConfigManager.savePlayerConfig(player.getUuid(), playerConfig);
-                            List<Text> lines = List.of(Text.literal("Your custom tracking list has been cleared.").formatted(Formatting.GREEN));
+                            List<Text> lines = new ArrayList<>(List.of(Text.literal("Your custom tracking list has been cleared.").formatted(Formatting.GREEN)));
                             ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                            PokeNotifierServerUtils.sendCatchProgressUpdate(player); // FIX: Update client state
                         } else {
-                            List<Text> lines = List.of(Text.literal("Your custom tracking list was already empty.").formatted(Formatting.YELLOW));
+                            List<Text> lines = new ArrayList<>(List.of(Text.literal("Your custom tracking list was already empty.").formatted(Formatting.YELLOW)));
                             ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
                         }
                         break;
@@ -589,14 +603,14 @@ public class PokeNotifier implements ModInitializer {
                     case ENABLE:
                         GenerationData genData = ConfigManager.getGenerationData(genName);
                         if (genData == null) {
-                            List<Text> lines = List.of(Text.literal("Error: Generation '" + genName + "' not found.").formatted(Formatting.RED));
+                            List<Text> lines = new ArrayList<>(List.of(Text.literal("Error: Generation '" + genName + "' not found.").formatted(Formatting.RED)));
                             ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
                             return;
                         }
                         // Allow only one active generation at a time.
                         if (progress.active_generations.contains(genName)) {
                             String regionName = formatRegionName(genData.region);
-                            List<Text> lines = List.of(Text.literal("Already tracking " + regionName + ".").formatted(Formatting.YELLOW));
+                            List<Text> lines = new ArrayList<>(List.of(Text.literal("Already tracking " + regionName + ".").formatted(Formatting.YELLOW)));
                             ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
                             return;
                         }
@@ -612,7 +626,7 @@ public class PokeNotifier implements ModInitializer {
                         String regionName = formatRegionName(genData.region);
 
                         ServerPlayNetworking.send(player, new ModeStatusPayload("Tracking: " + regionName, true));
-                        List<Text> lines = List.of(Text.literal("Now tracking: " + regionName).formatted(Formatting.GREEN));
+                        List<Text> lines = new ArrayList<>(List.of(Text.literal("Now tracking: " + regionName).formatted(Formatting.GREEN)));
                         ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
                         PokeNotifierServerUtils.sendCatchProgressUpdate(player);
                         break;
@@ -620,11 +634,11 @@ public class PokeNotifier implements ModInitializer {
                     case DISABLE:
                         if (progress.active_generations.remove(genName)) {
                             ConfigManager.savePlayerCatchProgress(player.getUuid(), progress);
-                            List<Text> disableLines = List.of(Text.literal("Tracking disabled for " + formatGenName(genName)).formatted(Formatting.YELLOW));
+                            List<Text> disableLines = new ArrayList<>(List.of(Text.literal("Tracking disabled for " + formatGenName(genName)).formatted(Formatting.YELLOW)));
                             ServerPlayNetworking.send(player, new GuiResponsePayload(disableLines));
                             PokeNotifierServerUtils.sendCatchProgressUpdate(player); // Update to hide the HUD
                         } else {
-                            List<Text> notTrackingLines = List.of(Text.literal("You were not tracking " + formatGenName(genName) + ".").formatted(Formatting.RED));
+                            List<Text> notTrackingLines = new ArrayList<>(List.of(Text.literal("You were not tracking " + formatGenName(genName) + ".").formatted(Formatting.RED)));
                             ServerPlayNetworking.send(player, new GuiResponsePayload(notTrackingLines));
                         }
                         break;
@@ -632,7 +646,7 @@ public class PokeNotifier implements ModInitializer {
                     case LIST:
                         List<Text> catchemallLines; // Use a unique name to avoid scope conflicts
                         if (progress.active_generations.isEmpty()) {
-                            catchemallLines = List.of(Text.literal("You are not tracking any generation for Catch 'em All mode.").formatted(Formatting.YELLOW));
+                            catchemallLines = new ArrayList<>(List.of(Text.literal("You are not tracking any generation for Catch 'em All mode.").formatted(Formatting.YELLOW)));
                         } else {
                             catchemallLines = new ArrayList<>();
                             catchemallLines.add(Text.literal("You are currently tracking the following generations:").formatted(Formatting.YELLOW));
@@ -656,10 +670,12 @@ public class PokeNotifier implements ModInitializer {
             context.server().execute(() -> {
                 if (player.hasPermissionLevel(2) && List.of("modrinth", "curseforge", "none").contains(source)) {
                     ConfigManager.getServerConfig().update_checker_source = source;
+                    // FIX: Send response to GUI
+                    List<Text> lines = new ArrayList<>(List.of(Text.literal("Update check source set to: ").formatted(Formatting.GREEN)
+                            .append(Text.literal(source).formatted(Formatting.GOLD))));
+                    ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
                     ConfigManager.saveServerConfigToFile();
-                    player.sendMessage(Text.literal("Update check source set to: ").formatted(Formatting.GREEN)
-                            .append(Text.literal(source).formatted(Formatting.GOLD)), false);
-                    // Give the player immediate feedback on the update status.
+                    // FIX: Restore the immediate update check after changing the source.
                     UpdateChecker.checkForUpdates(player);
                 }
             });
