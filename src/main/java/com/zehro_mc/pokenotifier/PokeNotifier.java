@@ -307,20 +307,22 @@ public class PokeNotifier implements ModInitializer {
                             .executes(context -> {
                                 GameProfile profile = GameProfileArgumentType.getProfileArgument(context, "player").iterator().next();
                                 ServerPlayerEntity targetPlayer = context.getSource().getServer().getPlayerManager().getPlayer(profile.getId());
+                                ServerPlayerEntity adminPlayer = context.getSource().getPlayer();
+
                                 if (targetPlayer == null) {
-                                    context.getSource().sendError(Text.literal("Player " + profile.getName() + " is not online."));
+                                    if (adminPlayer != null) ServerPlayNetworking.send(adminPlayer, new GuiResponsePayload(List.of(Text.literal("Player " + profile.getName() + " is not online.").formatted(Formatting.RED))));
                                     return 0;
                                 }
 
                                 PlayerCatchProgress progress = ConfigManager.getPlayerCatchProgress(targetPlayer.getUuid());
                                 if (progress.active_generations.isEmpty()) {
-                                    context.getSource().sendError(Text.literal("Player " + profile.getName() + " does not have Catch 'em All mode active.").formatted(Formatting.RED));
+                                    if (adminPlayer != null) ServerPlayNetworking.send(adminPlayer, new GuiResponsePayload(List.of(Text.literal("Player " + profile.getName() + " does not have Catch 'em All mode active.").formatted(Formatting.RED))));
                                     return 0;
                                 }
                                 String genName = progress.active_generations.iterator().next();
                                 GenerationData genData = ConfigManager.getGenerationData(genName);
                                 if (genData == null) {
-                                    context.getSource().sendError(Text.literal("Internal error: Could not find data for generation '" + genName + "'."));
+                                    if (adminPlayer != null) ServerPlayNetworking.send(adminPlayer, new GuiResponsePayload(List.of(Text.literal("Internal error: Could not find data for generation '" + genName + "'.").formatted(Formatting.RED))));
                                     return 0;
                                 }
 
@@ -329,17 +331,17 @@ public class PokeNotifier implements ModInitializer {
                                 File backupFile = new File(ConfigManager.CATCH_PROGRESS_DIR, targetPlayer.getUuid().toString() + ".json.bak");
                                 try {
                                     if (progressFile.exists() && !backupFile.exists()) {
-                                        Files.copy(progressFile.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                                        context.getSource().sendFeedback(() -> Text.literal("Backup of original progress created.").formatted(Formatting.YELLOW), false);
+                                        Files.copy(progressFile.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);                                        if (adminPlayer != null) ServerPlayNetworking.send(adminPlayer, new GuiResponsePayload(List.of(Text.literal("Backup of original progress created.").formatted(Formatting.YELLOW))));
                                     }
                                 } catch (IOException e) {
                                     LOGGER.error("Failed to create backup for " + profile.getName(), e);
                                 }
 
-                                context.getSource().sendFeedback(() -> Text.literal("WARNING: This command modifies player data directly. Use with caution.").formatted(Formatting.RED), false);
                                 String missingPokemon = autocompleteGenerationForPlayer(targetPlayer, genName, genData);
-                                context.getSource().sendFeedback(() -> Text.literal("Autocompleted " + formatGenName(genName) + " for player " + targetPlayer.getName().getString()).formatted(Formatting.GREEN), true);
-                                context.getSource().sendFeedback(() -> Text.literal("To complete the list, capture: ").append(Text.literal(missingPokemon).formatted(Formatting.GOLD)).append(". Use '/pokenotifier test spawn " + missingPokemon + "' to test.").formatted(Formatting.AQUA), false);
+                                List<Text> response = new ArrayList<>();
+                                response.add(Text.literal("Autocompleted " + formatGenName(genName) + " for player " + targetPlayer.getName().getString()).formatted(Formatting.GREEN));
+                                response.add(Text.literal("To complete the list, capture: ").append(Text.literal(missingPokemon).formatted(Formatting.GOLD)).append(". Use '/pokenotifier test spawn " + missingPokemon + "' to test.").formatted(Formatting.AQUA));
+                                if (adminPlayer != null) ServerPlayNetworking.send(adminPlayer, new GuiResponsePayload(response));
                                 return 1;
                             })
                     ).build();
@@ -351,18 +353,18 @@ public class PokeNotifier implements ModInitializer {
                             .suggests((context, builder) -> CommandSource.suggestMatching(context.getSource().getServer().getPlayerNames(), builder))
                             .executes(context -> {
                                 GameProfile profile = GameProfileArgumentType.getProfileArgument(context, "player").iterator().next();
-                                ServerPlayerEntity targetPlayer = context.getSource().getServer().getPlayerManager().getPlayer(profile.getId());
+                                ServerPlayerEntity targetPlayer = context.getSource().getServer().getPlayerManager().getPlayer(profile.getId());                                ServerPlayerEntity adminPlayer = context.getSource().getPlayer();
 
                                 if (targetPlayer == null) {
-                                    context.getSource().sendError(Text.literal("Player " + profile.getName() + " is not online."));
+                                    if (adminPlayer != null) ServerPlayNetworking.send(adminPlayer, new GuiResponsePayload(List.of(Text.literal("Player " + profile.getName() + " is not online.").formatted(Formatting.RED))));
                                     return 0;
                                 }
 
                                 boolean success = rollbackPlayerProgress(targetPlayer);
                                 if (success) {
-                                    context.getSource().sendFeedback(() -> Text.literal("Successfully rolled back progress for " + profile.getName()).formatted(Formatting.GREEN), true);
+                                    if (adminPlayer != null) ServerPlayNetworking.send(adminPlayer, new GuiResponsePayload(List.of(Text.literal("Successfully rolled back progress for " + profile.getName()).formatted(Formatting.GREEN))));
                                 } else {
-                                    context.getSource().sendError(Text.literal("No backup file found for " + profile.getName() + "."));
+                                    if (adminPlayer != null) ServerPlayNetworking.send(adminPlayer, new GuiResponsePayload(List.of(Text.literal("No backup file found for " + profile.getName() + ".").formatted(Formatting.RED))));
                                 }
                                 return success ? 1 : 0;
                             })).build();
@@ -727,8 +729,9 @@ public class PokeNotifier implements ModInitializer {
 
     private int executeTestSpawn(ServerPlayerEntity player, String pokemonName, boolean isShiny) {
         // The test spawn command should only work if test_mode is enabled.
-        if (!ConfigManager.getServerConfig().enable_test_mode) {
-            player.sendMessage(Text.literal("Test Mode is disabled. Please enable it first with '/pokenotifier test_mode enable'.").formatted(Formatting.RED), false);
+        if (!ConfigManager.getServerConfig().enable_test_mode) {            
+            // FIX: Send error to GUI
+            ServerPlayNetworking.send(player, new GuiResponsePayload(List.of(Text.literal("Test Mode is disabled. Enable it in Server Control.").formatted(Formatting.RED))));
             return 0;
         }
 
@@ -737,7 +740,7 @@ public class PokeNotifier implements ModInitializer {
 
         // Strict validation: the name must exist in Cobblemon's official list.
         if (PokeNotifierApi.getAllPokemonNames().noneMatch(name -> name.equals(finalPokemonName))) {
-            player.sendMessage(Text.literal("Error: Pokémon '").append(Text.literal(finalPokemonName).formatted(Formatting.GOLD)).append("' is not a valid Pokémon name.").formatted(Formatting.RED), false);
+            ServerPlayNetworking.send(player, new GuiResponsePayload(List.of(Text.literal("Error: Pokémon '").append(Text.literal(finalPokemonName).formatted(Formatting.GOLD)).append("' is not a valid Pokémon name.").formatted(Formatting.RED))));
             return 0;
         }
 
@@ -758,10 +761,10 @@ public class PokeNotifier implements ModInitializer {
             // Manually trigger our own notification event, as world.spawnEntity does not.
             RarePokemonNotifier.onPokemonSpawn(pokemonEntity);
 
-            player.sendMessage(Text.literal("Spawned a " + (isShiny ? "Shiny " : "") + finalPokemonName + ".").formatted(Formatting.GREEN), false);
+            ServerPlayNetworking.send(player, new GuiResponsePayload(List.of(Text.literal("Spawned a " + (isShiny ? "Shiny " : "") + finalPokemonName + ".").formatted(Formatting.GREEN))));
             return 1;
         } catch (Exception e) {
-            player.sendMessage(Text.literal("Error: Pokémon '" + finalPokemonName + "' not found.").formatted(Formatting.RED), false);
+            ServerPlayNetworking.send(player, new GuiResponsePayload(List.of(Text.literal("Error: Pokémon '" + finalPokemonName + "' not found.").formatted(Formatting.RED))));
             return 0;
         }
     }

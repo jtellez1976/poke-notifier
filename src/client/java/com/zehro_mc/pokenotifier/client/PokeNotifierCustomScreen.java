@@ -51,6 +51,10 @@ public class PokeNotifierCustomScreen extends Screen {
         // This is safe because the server sends an AdminStatusPayload right before opening the GUI.
         super(Text.literal(PokeNotifierClient.isPlayerAdmin ? "Poke Notifier Configurations (Admin)" : "Poke Notifier Configurations (User)"));
         this.parent = parent;
+        // FIX: Set the default main category for admins.
+        if (PokeNotifierClient.isPlayerAdmin) {
+            this.currentMainCategory = MainCategory.ADMIN_TOOLS;
+        }
     }
 
     @Override
@@ -63,12 +67,12 @@ public class PokeNotifierCustomScreen extends Screen {
 
     private void buildLayout() {
         int panelWidth = 420;
-        int panelHeight = 260; // FIX: Increased height
+        int panelHeight = 260;
         int panelX = (this.width - panelWidth) / 2;
         int panelY = (this.height - panelHeight) / 2;
 
         // --- Main Tabs (Top) ---
-        int tabY = panelY + 25; // FIX: Moved tabs down
+        int tabY = panelY + 25;
         int tabWidth = 100;
         ButtonWidget userTab = ButtonWidget.builder(Text.literal("User Tools"), b -> {
             this.currentMainCategory = MainCategory.USER_TOOLS;
@@ -212,13 +216,11 @@ public class PokeNotifierCustomScreen extends Screen {
         addDrawableChild(createActionButton("Version", "pnc version", x, y + 25, width));
         addDrawableChild(createActionButton("Status", "pnc status", x, y + 50, width));
 
-        // FIX: Add a label and simplify the cycling button text
-        addDrawableChild(ButtonWidget.builder(Text.literal("Update Source:"), b -> {}).dimensions(x, y + 85, width, 10).build()).active = false;
 
         addDrawableChild(CyclingButtonWidget.<String>builder(this::capitalize)
                 .values("modrinth", "curseforge", "none")
                 .initially(serverConfig.update_checker_source)
-                .build(x, y + 100, width, 20, Text.empty(), (button, value) -> {
+                .build(x, y + 105, width, 20, Text.empty(), (button, value) -> { // FIX: Adjusted Y position
                     executeCommand("pnc update " + value);
                 }));
     }
@@ -361,7 +363,7 @@ public class PokeNotifierCustomScreen extends Screen {
         context.drawCenteredTextWithShadow(this.textRenderer, this.title, this.width / 2, panelY + 10, 0xFFFFFF);
 
         if (currentMainCategory == MainCategory.USER_TOOLS && currentUserSubCategory == UserSubCategory.INFO) {
-            context.drawTextWithShadow(this.textRenderer, "Update Source:", panelX + 140, panelY + 60 + 90, 0xFFFFFF);
+            context.drawTextWithShadow(this.textRenderer, "Update Source:", panelX + 140, panelY + 60 + 92, 0xFFFFFF);
         }
 
         if (this.pokemonNameField != null && this.pokemonNameField.isVisible()) {
