@@ -49,6 +49,7 @@ public class ClientCommands {
 
         // --- FIX: Create a client-side command to handle the update source selection ---
         // This command is what the clickable text will now execute.
+        // It's hidden because it's only meant to be called by the GUI.
         pncCommand.then(ClientCommandManager.literal("update")
                 .then(ClientCommandManager.argument("source", StringArgumentType.string())
                         .suggests((context, builder) -> CommandSource.suggestMatching(Stream.of("modrinth", "curseforge", "none"), builder))
@@ -59,16 +60,19 @@ public class ClientCommands {
                             context.getSource().sendFeedback(Text.literal("Setting update source to: ").formatted(Formatting.YELLOW)
                                     .append(Text.literal(source).formatted(Formatting.GOLD)));
                             return 1;
-                        }))
+                        })).requires(source -> false) // Hide from chat suggestions
         );
 
         // --- Alerts Subcommand ---
+        // Hidden because it's managed by the GUI.
         var alertsNode = ClientCommandManager.literal("alerts")
+                .requires(source -> false)
                 .then(buildCommandToggle("sound", "Alert Sounds", (config, enabled) -> config.alert_sounds_enabled = enabled))
                 .then(buildCommandToggle("toast", "HUD (Toast) alerts", (config, enabled) -> config.alert_toast_enabled = enabled))
                 .then(buildCommandToggle("chat", "Chat alerts", (config, enabled) -> config.alert_chat_enabled = enabled));
 
         pncCommand.then(ClientCommandManager.literal("silent")
+                .requires(source -> false) // Hide from chat
                 .then(ClientCommandManager.literal("ON").executes(context -> {
                     ConfigClient config = ConfigManager.getClientConfig();
                     config.alert_sounds_enabled = false;
@@ -96,7 +100,9 @@ public class ClientCommands {
                 CommandSource.suggestMatching(PokeNotifierApi.getAllPokemonNames(), builder);
 
         // --- Custom Catch Subcommand ---
+        // Hidden because it's managed by the GUI.
         var customcatchNode = ClientCommandManager.literal("customcatch")
+                .requires(source -> false)
                 .then(ClientCommandManager.literal("add") // /pnc list add <pokemon>
                         .then(ClientCommandManager.argument("pokemon", StringArgumentType.greedyString())
                                 .suggests(pokemonSuggestionProvider)
@@ -146,7 +152,9 @@ public class ClientCommands {
                     return builder.build();
                 });
 
+        // Hidden because it's managed by the GUI.
         var catchemallCommand = ClientCommandManager.literal("catchemall")
+                .requires(source -> false)
                 .then(ClientCommandManager.literal("enable")
                         .then(ClientCommandManager.argument("generation", StringArgumentType.string())
                                 .suggests(generationSuggestionProvider)
@@ -172,7 +180,9 @@ public class ClientCommands {
                             return 1;
                         }));
 
+        // Hidden because it's managed by the GUI.
         pncCommand.then(ClientCommandManager.literal("version")
+                .requires(source -> false)
                 .executes(context -> {
                     String modVersion = FabricLoader.getInstance()
                             .getModContainer(PokeNotifier.MOD_ID)
@@ -189,7 +199,9 @@ public class ClientCommands {
                     return 1;
                 }));
 
+        // Hidden because it's managed by the GUI.
         pncCommand.then(ClientCommandManager.literal("status")
+                .requires(source -> false)
                 .executes(context -> {
                     ConfigClient config = ConfigManager.getClientConfig();
                     List<Text> statusLines = new ArrayList<>();
@@ -211,7 +223,9 @@ public class ClientCommands {
                 }));
 
         // --- Help Command ---
+        // Hidden because it's managed by the GUI.
         pncCommand.then(ClientCommandManager.literal("help")
+                .requires(source -> false)
                 .executes(context -> {
                     List<Text> helpLines = new ArrayList<>();
                     helpLines.add(Text.literal("--- Poke Notifier Help (v" + getModVersion() + ") ---").formatted(Formatting.GOLD));
@@ -241,6 +255,7 @@ public class ClientCommands {
 
         // --- NEW: Internal command for the GUI to set text field values ---
         var internalCommand = ClientCommandManager.literal("internal")
+                .requires(source -> false) // Hide from chat
                 .then(ClientCommandManager.literal("set_gui_text")
                         .then(ClientCommandManager.argument("text", StringArgumentType.greedyString())
                                 .executes(context -> {

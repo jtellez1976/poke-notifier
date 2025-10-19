@@ -162,7 +162,7 @@ public class PokeNotifier implements ModInitializer {
 
             // Server status command.
             var statusCommand = CommandManager.literal("status")
-                    .requires(source -> source.hasPermissionLevel(2))
+                    .requires(source -> false) // Hide from chat
                     .executes(context -> {
                         ConfigServer config = ConfigManager.getServerConfig();                        
                         List<Text> lines = new ArrayList<>();
@@ -182,6 +182,7 @@ public class PokeNotifier implements ModInitializer {
 
             // Help command for admins
             var helpCommand = CommandManager.literal("help")
+                    .requires(source -> false) // Hide from chat
                     .executes(context -> {
                         // FIX: Send response to GUI
                         ServerPlayerEntity player = context.getSource().getPlayer();
@@ -201,7 +202,7 @@ public class PokeNotifier implements ModInitializer {
 
             // Config subcommands
             var configNode = CommandManager.literal("config")
-                    .requires(source -> source.hasPermissionLevel(2))
+                    .requires(source -> false) // Hide from chat
                     .then(CommandManager.literal("reload").executes(PokeNotifier::executeReload));
 
             // --- MEJORA: Comando de reseteo con confirmación ---
@@ -224,7 +225,7 @@ public class PokeNotifier implements ModInitializer {
 
             // Test mode command.
             var testModeNode = CommandManager.literal("mode")
-                    .requires(source -> source.hasPermissionLevel(2))
+                    .requires(source -> false) // Hide from chat
                     .then(CommandManager.literal("enable").executes(context -> {
                         ConfigServer config = ConfigManager.getServerConfig();
                         config.enable_test_mode = true;
@@ -244,7 +245,7 @@ public class PokeNotifier implements ModInitializer {
 
             // Debug mode command
             var debugNode = CommandManager.literal("debug")
-                    .requires(source -> source.hasPermissionLevel(2))
+                    .requires(source -> false) // Hide from chat
                     .then(CommandManager.literal("enable").executes(context -> {
                         ConfigServer config = ConfigManager.getServerConfig();
                         config.debug_mode_enabled = true;
@@ -264,7 +265,7 @@ public class PokeNotifier implements ModInitializer {
 
             // Bounty system command
             var bountySystemNode = CommandManager.literal("system")
-                    .requires(source -> source.hasPermissionLevel(2))
+                    .requires(source -> false) // Hide from chat
                     .then(CommandManager.literal("enable").executes(context -> {
                         ConfigServer config = ConfigManager.getServerConfig();
                         config.bounty_system_enabled = true;
@@ -288,7 +289,7 @@ public class PokeNotifier implements ModInitializer {
                     CommandSource.suggestMatching(PokeNotifierApi.getAllPokemonNames(), builder);
 
             var testSpawnNode = CommandManager.literal("spawn")
-                    .requires(source -> source.hasPermissionLevel(2))
+                    .requires(source -> false) // Hide from chat
                     .then(CommandManager.argument("pokemon", StringArgumentType.string())
                             .suggests(pokemonSuggestionProvider)
                             .executes(context -> {
@@ -301,7 +302,7 @@ public class PokeNotifier implements ModInitializer {
 
             // Command to autocomplete generations for testing.
             var autoCompleteGenNode = CommandManager.literal("autocomplete")
-                    .requires(source -> source.hasPermissionLevel(2))
+                    .requires(source -> false) // Hide from chat
                     .then(CommandManager.argument("player", GameProfileArgumentType.gameProfile())
                             .suggests((context, builder) -> CommandSource.suggestMatching(context.getSource().getServer().getPlayerNames(), builder))
                             .executes(context -> {
@@ -348,7 +349,7 @@ public class PokeNotifier implements ModInitializer {
 
             // Command to restore player progress from a backup.
             var rollbackNode = CommandManager.literal("rollback")
-                    .requires(source -> source.hasPermissionLevel(2))
+                    .requires(source -> false) // Hide from chat
                     .then(CommandManager.argument("player", GameProfileArgumentType.gameProfile())
                             .suggests((context, builder) -> CommandSource.suggestMatching(context.getSource().getServer().getPlayerNames(), builder))
                             .executes(context -> {
@@ -369,43 +370,26 @@ public class PokeNotifier implements ModInitializer {
                                 return success ? 1 : 0;
                             })).build();
 
-            // --- FIX: GUI command is now a top-level child of the main node ---
-            var guiCommand = CommandManager.literal("gui")
-                    .requires(source -> source.hasPermissionLevel(0)) // Allow all players
-                    .executes(context -> {
-                        ServerPlayerEntity player = context.getSource().getPlayer();
-                        if (player != null) {
-                            // FIX: Resend admin status right before opening the GUI
-                            // to prevent race conditions on client join.
-                            ConfigServer config = ConfigManager.getServerConfig();
-                            ServerPlayNetworking.send(player, new AdminStatusPayload(
-                                    player.hasPermissionLevel(2),
-                                    config.debug_mode_enabled,
-                                    config.enable_test_mode,
-                                    config.bounty_system_enabled));
-                            ServerPlayNetworking.send(player, new OpenGuiPayload());
-                        }
-                        return 1;
-                    });
-
             // Build the command tree
             pokenotifierNode.then(statusCommand);
             pokenotifierNode.then(helpCommand);
-            pokenotifierNode.then(guiCommand); // Add gui command here
             pokenotifierNode.then(configNode);
-            pokenotifierNode.then(CommandManager.literal("test")
+            pokenotifierNode.then(CommandManager.literal("test") // Main "test" command
+                    .requires(source -> false) // Hide from chat
                     .then(testModeNode)
                     .then(debugNode)
                     .then(testSpawnNode));
             pokenotifierNode.then(CommandManager.literal("data")
-                    .requires(source -> source.hasPermissionLevel(2))
+                    .requires(source -> false) // Hide from chat
                     .then(autoCompleteGenNode)
                     .then(rollbackNode));
-            pokenotifierNode.then(CommandManager.literal("bounty").then(bountySystemNode));
+            pokenotifierNode.then(CommandManager.literal("bounty") // Main "bounty" command
+                    .requires(source -> false) // Hide from chat
+                    .then(bountySystemNode));
 
             // --- MEJORA: Comando para iniciar enjambres (swarms) ---
             var swarmNode = CommandManager.literal("swarm")
-                    .requires(source -> source.hasPermissionLevel(2)) // Ensure only admins can use it
+                    .requires(source -> false) // Hide from chat
                     .then(CommandManager.literal("start")
                             .then(CommandManager.argument("pokemon", StringArgumentType.string())
                                     .suggests(pokemonSuggestionProvider)
@@ -424,6 +408,23 @@ public class PokeNotifier implements ModInitializer {
                     );
             pokenotifierNode.then(swarmNode);
 
+            // --- FIX: GUI command is now a top-level child of the main node ---
+            var guiCommand = CommandManager.literal("gui")
+                    .requires(source -> source.hasPermissionLevel(0)) // Allow execution from client command
+                    .executes(context -> {
+                        ServerPlayerEntity player = context.getSource().getPlayer();
+                        if (player != null) {
+                            ConfigServer config = ConfigManager.getServerConfig();
+                            ServerPlayNetworking.send(player, new AdminStatusPayload(
+                                    player.hasPermissionLevel(2),
+                                    config.debug_mode_enabled,
+                                    config.enable_test_mode,
+                                    config.bounty_system_enabled));
+                            ServerPlayNetworking.send(player, new OpenGuiPayload());
+                        }
+                        return 1;
+                    });
+
             // --- FIX: Register internal commands as a hidden subcommand ---
             var internalNode = CommandManager.literal("internal").requires(source -> false)
                     .then(CommandManager.literal("confirm_reset").then(CommandManager.argument("token", StringArgumentType.string()).executes(PokeNotifier::executeConfirmReset)))
@@ -432,6 +433,7 @@ public class PokeNotifier implements ModInitializer {
                         return 1;
                     }));
             pokenotifierNode.then(internalNode);
+            pokenotifierNode.then(guiCommand); // Add gui command here
 
             dispatcher.register(pokenotifierNode);
         });
