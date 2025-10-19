@@ -77,9 +77,8 @@ public class PokeNotifierClient implements ClientModInitializer {
         // --- FIX: Open the GUI via a server-sent packet ---
         ClientPlayNetworking.registerGlobalReceiver(OpenGuiPayload.ID, (payload, context) -> {
             context.client().execute(() -> {
-                // We can now safely re-enable Cloth Config and our proper GUI
-                context.client().setScreen(new SimpleGuiScreen());
-            });
+                // Pass null as the parent to avoid lifecycle conflicts with the chat screen
+                context.client().setScreen(new PokeNotifierCustomScreen(null));});
         });
 
         // Receive debug mode status from the server.
