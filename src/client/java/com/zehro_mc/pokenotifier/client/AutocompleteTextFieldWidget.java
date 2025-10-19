@@ -32,10 +32,22 @@ public class AutocompleteTextFieldWidget extends TextFieldWidget {
         this.setChangedListener(this::onTextUpdate);
     }
 
+    @Override
+    public void setFocused(boolean focused) {
+        super.setFocused(focused);
+        if (focused && this.getText().isEmpty()) {
+            // FIX: Show all suggestions when the empty field is focused.
+            this.currentSuggestions = suggestionProvider.get().stream().limit(5).toList();
+        } else if (!focused) {
+            this.currentSuggestions = null;
+        }
+    }
+
     private void onTextUpdate(String text) {
         // This method is now called automatically whenever the text changes.
         if (text == null || text.isEmpty()) {
-            currentSuggestions = null;
+            // If focused, show all suggestions. Otherwise, clear them.
+            currentSuggestions = isFocused() ? suggestionProvider.get().stream().limit(5).toList() : null;
         } else {
             currentSuggestions = suggestionProvider.get().stream()
                     .filter(s -> s.toLowerCase().startsWith(text.toLowerCase()))

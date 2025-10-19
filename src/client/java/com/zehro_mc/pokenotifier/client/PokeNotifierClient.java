@@ -45,6 +45,12 @@ public class PokeNotifierClient implements ClientModInitializer {
     public static int catchCaughtCount = 0;
     public static int catchTotalCount = 0;
     public static int customHuntListSize = 0; // NEW: Track the size of the hunt list
+    public static boolean isPlayerAdmin = false; // NEW: Track if the player is an admin
+    
+    // --- NEW: Synced server settings for GUI ---
+    public static boolean isServerDebugMode = false;
+    public static boolean isServerTestMode = false;
+    public static boolean isServerBountySystemEnabled = false;
 
     @Override
     public void onInitializeClient() {
@@ -88,6 +94,16 @@ public class PokeNotifierClient implements ClientModInitializer {
                 if (context.client().currentScreen instanceof PokeNotifierCustomScreen screen) {
                     screen.displayResponse(payload.lines());
                 }
+            });
+        });
+
+        // --- NEW: Receive admin status from the server ---
+        ClientPlayNetworking.registerGlobalReceiver(AdminStatusPayload.ID, (payload, context) -> {
+            context.client().execute(() -> {
+                isPlayerAdmin = payload.isPlayerAdmin();
+                isServerDebugMode = payload.isDebugMode();
+                isServerTestMode = payload.isTestMode();
+                isServerBountySystemEnabled = payload.isBountySystemEnabled();
             });
         });
 
