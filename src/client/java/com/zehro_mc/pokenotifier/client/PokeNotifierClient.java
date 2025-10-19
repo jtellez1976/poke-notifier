@@ -44,6 +44,7 @@ public class PokeNotifierClient implements ClientModInitializer {
     public static String currentCatchEmAllGeneration = "none";
     public static int catchCaughtCount = 0;
     public static int catchTotalCount = 0;
+    public static int customHuntListSize = 0; // NEW: Track the size of the hunt list
 
     @Override
     public void onInitializeClient() {
@@ -79,6 +80,15 @@ public class PokeNotifierClient implements ClientModInitializer {
             context.client().execute(() -> {
                 // Pass null as the parent to avoid lifecycle conflicts with the chat screen
                 context.client().setScreen(new PokeNotifierCustomScreen(null));});
+        });
+
+        // --- NEW: Receive text responses for the GUI ---
+        ClientPlayNetworking.registerGlobalReceiver(GuiResponsePayload.ID, (payload, context) -> {
+            context.client().execute(() -> {
+                if (context.client().currentScreen instanceof PokeNotifierCustomScreen screen) {
+                    screen.displayResponse(payload.lines());
+                }
+            });
         });
 
         // Receive debug mode status from the server.
@@ -196,6 +206,7 @@ public class PokeNotifierClient implements ClientModInitializer {
                 currentCatchEmAllGeneration = payload.generationName();
                 catchCaughtCount = payload.caughtCount();
                 catchTotalCount = payload.totalCount();
+                customHuntListSize = payload.customHuntListSize();
 
                 // If a generation was just activated, send a reminder message to the player.
                 if ("none".equals(previousGeneration) && !"none".equals(currentCatchEmAllGeneration)) {

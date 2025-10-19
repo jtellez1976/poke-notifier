@@ -552,10 +552,13 @@ public class PokeNotifier implements ModInitializer {
 
                     case LIST:
                         if (playerConfig.tracked_pokemon.isEmpty()) {
-                            player.sendMessage(Text.literal("Your custom tracking list is empty.").formatted(Formatting.YELLOW), false);
+                            List<Text> lines = List.of(Text.literal("Your custom tracking list is empty.").formatted(Formatting.YELLOW));
+                            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
                         } else {
-                            player.sendMessage(Text.literal("Your custom tracking list:").formatted(Formatting.YELLOW), false);
-                            playerConfig.tracked_pokemon.forEach(name -> player.sendMessage(Text.literal("- " + name).formatted(Formatting.GOLD), false));
+                            List<Text> lines = new ArrayList<>();
+                            lines.add(Text.literal("Your custom tracking list:").formatted(Formatting.YELLOW));
+                            playerConfig.tracked_pokemon.forEach(name -> lines.add(Text.literal("- " + name).formatted(Formatting.GOLD)));
+                            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
                         }
                         break;
 
@@ -563,9 +566,11 @@ public class PokeNotifier implements ModInitializer {
                         if (!playerConfig.tracked_pokemon.isEmpty()) {
                             playerConfig.tracked_pokemon.clear();
                             ConfigManager.savePlayerConfig(player.getUuid(), playerConfig);
-                            player.sendMessage(Text.literal("Your custom tracking list has been cleared.").formatted(Formatting.GREEN), false);
+                            List<Text> lines = List.of(Text.literal("Your custom tracking list has been cleared.").formatted(Formatting.GREEN));
+                            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
                         } else {
-                            player.sendMessage(Text.literal("Your custom tracking list was already empty.").formatted(Formatting.YELLOW), false);
+                            List<Text> lines = List.of(Text.literal("Your custom tracking list was already empty.").formatted(Formatting.YELLOW));
+                            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
                         }
                         break;
                 }
@@ -584,19 +589,22 @@ public class PokeNotifier implements ModInitializer {
                     case ENABLE:
                         GenerationData genData = ConfigManager.getGenerationData(genName);
                         if (genData == null) {
-                            player.sendMessage(Text.literal("Error: Generation '" + genName + "' not found.").formatted(Formatting.RED), false);
+                            List<Text> lines = List.of(Text.literal("Error: Generation '" + genName + "' not found.").formatted(Formatting.RED));
+                            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
                             return;
                         }
                         // Allow only one active generation at a time.
                         if (progress.active_generations.contains(genName)) {
                             String regionName = formatRegionName(genData.region);
-                            ServerPlayNetworking.send(player, new ModeStatusPayload("Already Tracking: " + regionName, true));
+                            List<Text> lines = List.of(Text.literal("Already tracking " + regionName + ".").formatted(Formatting.YELLOW));
+                            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
                             return;
                         }
 
                         if (!progress.active_generations.isEmpty()) {
                             String oldGen = progress.active_generations.iterator().next();
-                            player.sendMessage(Text.literal("Stopped tracking " + formatGenName(oldGen) + ".").formatted(Formatting.YELLOW), false);
+                            // This message can stay in chat as it's a side-effect of a new action
+                            player.sendMessage(Text.literal("Stopped tracking " + formatGenName(oldGen) + ".").formatted(Formatting.YELLOW));
                         }
                         progress.active_generations.clear();
                         progress.active_generations.add(genName);
@@ -604,30 +612,37 @@ public class PokeNotifier implements ModInitializer {
                         String regionName = formatRegionName(genData.region);
 
                         ServerPlayNetworking.send(player, new ModeStatusPayload("Tracking: " + regionName, true));
+                        List<Text> lines = List.of(Text.literal("Now tracking: " + regionName).formatted(Formatting.GREEN));
+                        ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
                         PokeNotifierServerUtils.sendCatchProgressUpdate(player);
                         break;
 
                     case DISABLE:
                         if (progress.active_generations.remove(genName)) {
                             ConfigManager.savePlayerCatchProgress(player.getUuid(), progress);
-                            ServerPlayNetworking.send(player, new ModeStatusPayload("Tracking Disabled", false));
+                            List<Text> disableLines = List.of(Text.literal("Tracking disabled for " + formatGenName(genName)).formatted(Formatting.YELLOW));
+                            ServerPlayNetworking.send(player, new GuiResponsePayload(disableLines));
                             PokeNotifierServerUtils.sendCatchProgressUpdate(player); // Update to hide the HUD
                         } else {
-                            ServerPlayNetworking.send(player, new ModeStatusPayload("Was not tracking", false));
+                            List<Text> notTrackingLines = List.of(Text.literal("You were not tracking " + formatGenName(genName) + ".").formatted(Formatting.RED));
+                            ServerPlayNetworking.send(player, new GuiResponsePayload(notTrackingLines));
                         }
                         break;
 
                     case LIST:
+                        List<Text> catchemallLines; // Use a unique name to avoid scope conflicts
                         if (progress.active_generations.isEmpty()) {
-                            player.sendMessage(Text.literal("You are not tracking any generation for Catch 'em All mode.").formatted(Formatting.YELLOW), false);
+                            catchemallLines = List.of(Text.literal("You are not tracking any generation for Catch 'em All mode.").formatted(Formatting.YELLOW));
                         } else {
-                            player.sendMessage(Text.literal("You are currently tracking the following generations:").formatted(Formatting.YELLOW), false);
+                            catchemallLines = new ArrayList<>();
+                            catchemallLines.add(Text.literal("You are currently tracking the following generations:").formatted(Formatting.YELLOW));
                             progress.active_generations.forEach(gen -> {
                                 GenerationData data = ConfigManager.getGenerationData(gen);
                                 String regionNameForList = data != null ? formatRegionName(data.region) : "Unknown";
-                                player.sendMessage(Text.literal("- " + formatGenName(gen) + " (" + regionNameForList + ")").formatted(Formatting.GOLD), false);
+                                catchemallLines.add(Text.literal("- " + formatGenName(gen) + " (" + regionNameForList + ")").formatted(Formatting.GOLD));
                             });
                         }
+                        ServerPlayNetworking.send(player, new GuiResponsePayload(catchemallLines));
                         break;
                 }
             });

@@ -17,11 +17,16 @@ import net.minecraft.util.Identifier;
 /**
  * An S2C payload that sends "Catch 'em All" progress to the client for HUD rendering.
  */
-public record CatchProgressPayload(String generationName, int caughtCount, int totalCount) implements CustomPayload {
+public record CatchProgressPayload(
+        String generationName,
+        int caughtCount,
+        int totalCount,
+        int customHuntListSize // NEW: Sync the size of the custom hunt list
+) implements CustomPayload {
     public static final Id<CatchProgressPayload> ID = new Id<>(Identifier.of(PokeNotifier.MOD_ID, "catch_progress_payload"));
     public static final PacketCodec<RegistryByteBuf, CatchProgressPayload> CODEC = PacketCodec.of(
-            (value, buf) -> buf.writeString(value.generationName).writeInt(value.caughtCount).writeInt(value.totalCount),
-            buf -> new CatchProgressPayload(buf.readString(), buf.readInt(), buf.readInt())
+            (value, buf) -> buf.writeString(value.generationName).writeInt(value.caughtCount).writeInt(value.totalCount).writeInt(value.customHuntListSize),
+            buf -> new CatchProgressPayload(buf.readString(), buf.readInt(), buf.readInt(), buf.readInt())
     );
 
     @Override

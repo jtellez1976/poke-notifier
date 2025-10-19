@@ -29,13 +29,21 @@ public class PokeNotifierServerUtils {
     public static void sendCatchProgressUpdate(ServerPlayerEntity player) {
         PlayerCatchProgress progress = ConfigManager.getPlayerCatchProgress(player.getUuid());
         if (progress.active_generations.isEmpty()) {
-            ServerPlayNetworking.send(player, new CatchProgressPayload("none", 0, 0));
+            // FIX: Provide all 4 required arguments to the constructor.
+            int customHuntListSize = ConfigManager.getPlayerConfig(player.getUuid()).tracked_pokemon.size();
+            ServerPlayNetworking.send(player, new CatchProgressPayload("none", 0, 0, customHuntListSize));
         } else {
             String activeGen = progress.active_generations.iterator().next();
             GenerationData genData = ConfigManager.getGenerationData(activeGen);
             int caughtCount = progress.caught_pokemon.getOrDefault(activeGen, Set.of()).size();
             int totalCount = genData != null ? genData.pokemon.size() : 0;
-            ServerPlayNetworking.send(player, new CatchProgressPayload(activeGen, caughtCount, totalCount));
+            int customHuntListSize = ConfigManager.getPlayerConfig(player.getUuid()).tracked_pokemon.size();
+
+            ServerPlayNetworking.send(player, new CatchProgressPayload(
+                    activeGen,
+                    caughtCount,
+                    totalCount,
+                    customHuntListSize));
         }
     }
 }

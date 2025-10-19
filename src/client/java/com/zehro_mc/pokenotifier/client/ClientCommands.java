@@ -35,6 +35,9 @@ import net.minecraft.util.Formatting;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
+import java.util.ArrayList;
+import java.util.List;
+
 
 /**
  * Registers and handles all client-side commands, which start with /pnc.
@@ -177,39 +180,52 @@ public class ClientCommands {
                             .map(meta -> meta.getVersion().getFriendlyString())
                             .orElse("Unknown");
 
-                    context.getSource().sendFeedback(Text.literal("Poke Notifier ver. " + modVersion).formatted(Formatting.AQUA));
+                    List<Text> lines = List.of(Text.literal("Poke Notifier ver. " + modVersion).formatted(Formatting.AQUA));
+                    if (MinecraftClient.getInstance().currentScreen instanceof PokeNotifierCustomScreen screen) {
+                        screen.displayResponse(lines);
+                    } else {
+                        lines.forEach(context.getSource()::sendFeedback);
+                    }
                     return 1;
                 }));
 
         pncCommand.then(ClientCommandManager.literal("status")
                 .executes(context -> {
                     ConfigClient config = ConfigManager.getClientConfig();
-                    context.getSource().sendFeedback(Text.literal("--- Poke Notifier Status ---").formatted(Formatting.GOLD));
-                    sendStatusLine(context.getSource(), "Searching", config.searching_enabled);
-                    sendStatusLine(context.getSource(), "Silent Mode", config.silent_mode_enabled);
-                    context.getSource().sendFeedback(Text.literal("----------------------------").formatted(Formatting.GOLD));
-                    sendStatusLine(context.getSource(), "  Alert Sounds", config.alert_sounds_enabled);
-                    sendStatusLine(context.getSource(), "  Chat Alerts", config.alert_chat_enabled);
-                    sendStatusLine(context.getSource(), "  Toast Alerts (HUD)", config.alert_toast_enabled);
+                    List<Text> statusLines = new ArrayList<>();
+                    statusLines.add(Text.literal("--- Poke Notifier Status ---").formatted(Formatting.GOLD));
+                    statusLines.add(createStatusLine("Searching", config.searching_enabled));
+                    statusLines.add(createStatusLine("Silent Mode", config.silent_mode_enabled));
+                    statusLines.add(Text.literal("----------------------------").formatted(Formatting.GOLD));
+                    statusLines.add(createStatusLine("  Alert Sounds", config.alert_sounds_enabled));
+                    statusLines.add(createStatusLine("  Chat Alerts", config.alert_chat_enabled));
+                    statusLines.add(createStatusLine("  Toast Alerts (HUD)", config.alert_toast_enabled));
+
+                    // Instead of sending to chat, update the GUI if it's open
+                    if (MinecraftClient.getInstance().currentScreen instanceof PokeNotifierCustomScreen screen) {
+                        screen.displayResponse(statusLines);
+                    } else {
+                        statusLines.forEach(context.getSource()::sendFeedback);
+                    }
                     return 1;
                 }));
 
         // --- Help Command ---
         pncCommand.then(ClientCommandManager.literal("help")
                 .executes(context -> {
-                    FabricClientCommandSource source = context.getSource();
-                    source.sendFeedback(Text.literal("--- Poke Notifier Help (v" + getModVersion() + ") ---").formatted(Formatting.GOLD));
-                    source.sendFeedback(Text.literal("/pnc status").formatted(Formatting.AQUA).append(Text.literal(" - Shows your current settings.").formatted(Formatting.GRAY)));
-                    source.sendFeedback(Text.literal("/pnc silent <on|off>").formatted(Formatting.AQUA).append(Text.literal(" - Master switch for all alerts.").formatted(Formatting.GRAY)));
-                    source.sendFeedback(Text.literal(" "));
-                    source.sendFeedback(Text.literal("Alerts: /pnc alerts <chat|toast|sound> <on|off>").formatted(Formatting.YELLOW));
-                    source.sendFeedback(Text.literal("Example: /pnc alerts chat on").formatted(Formatting.DARK_GRAY));
-                    source.sendFeedback(Text.literal(" "));
-                    source.sendFeedback(Text.literal("Custom Catch: /pnc customcatch <add|remove|view|clear> [pokemon]").formatted(Formatting.YELLOW));
-                    source.sendFeedback(Text.literal("Example: /pnc customcatch add pikachu").formatted(Formatting.DARK_GRAY));
-                    source.sendFeedback(Text.literal(" "));
-                    source.sendFeedback(Text.literal("Catch 'em All: /pnc catchemall <enable|disable|status> [gen]").formatted(Formatting.YELLOW));
-                    source.sendFeedback(Text.literal("Example: /pnc catchemall enable gen1").formatted(Formatting.DARK_GRAY));
+                    List<Text> helpLines = new ArrayList<>();
+                    helpLines.add(Text.literal("--- Poke Notifier Help (v" + getModVersion() + ") ---").formatted(Formatting.GOLD));
+                    helpLines.add(Text.literal("/pnc status").formatted(Formatting.AQUA).append(Text.literal(" - Shows your current settings.").formatted(Formatting.GRAY)));
+                    helpLines.add(Text.literal("/pnc silent <on|off>").formatted(Formatting.AQUA).append(Text.literal(" - Master switch for all alerts.").formatted(Formatting.GRAY)));
+                    helpLines.add(Text.literal(" "));
+                    helpLines.add(Text.literal("Custom Catch: /pnc customcatch <add|remove|view|clear> [pokemon]").formatted(Formatting.YELLOW));
+                    helpLines.add(Text.literal("Catch 'em All: /pnc catchemall <enable|disable|status> [gen]").formatted(Formatting.YELLOW));
+
+                    if (MinecraftClient.getInstance().currentScreen instanceof PokeNotifierCustomScreen screen) {
+                        screen.displayResponse(helpLines);
+                    } else {
+                        helpLines.forEach(context.getSource()::sendFeedback);
+                    }
 
                     return 1;
                 }));
@@ -258,14 +274,14 @@ public class ClientCommands {
                         }));
     }
 
-    private static void sendStatusLine(FabricClientCommandSource source, String label, boolean isEnabled) {
+    private static MutableText createStatusLine(String label, boolean isEnabled) {
         MutableText message = Text.literal(label + " = ").formatted(Formatting.WHITE);
         if (isEnabled) {
             message.append(Text.literal("ON").formatted(Formatting.GREEN));
         } else {
             message.append(Text.literal("OFF").formatted(Formatting.RED));
         }
-        source.sendFeedback(message);
+        return message;
     }
 
     @FunctionalInterface
