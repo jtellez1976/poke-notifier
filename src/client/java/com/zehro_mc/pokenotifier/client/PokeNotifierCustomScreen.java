@@ -372,16 +372,19 @@ public class PokeNotifierCustomScreen extends Screen {
 
         // Only show Update Source selector for admins or in singleplayer
         if (PokeNotifierClient.isPlayerAdmin || MinecraftClient.getInstance().isInSingleplayer()) {
+            // FIX: Use client-side cached value instead of server config that might not be synced
+            String currentSource = PokeNotifierClient.currentUpdateSource != null ? PokeNotifierClient.currentUpdateSource : "unknown";
             addDrawableChild(CyclingButtonWidget.<String>builder(value -> Text.literal(value.substring(0, 1).toUpperCase() + value.substring(1)).formatted(Formatting.GOLD))
                     .values("modrinth", "curseforge", "none")
-                    .initially(serverConfig.update_checker_source)
+                    .initially(currentSource)
                     .build(x, y + 80, width, 20, Text.empty(), (button, value) -> {
                         com.zehro_mc.pokenotifier.networking.UpdateSourcePayload payload = 
                             new com.zehro_mc.pokenotifier.networking.UpdateSourcePayload(value);
                         net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+                        // Update client cache immediately for visual feedback
+                        PokeNotifierClient.currentUpdateSource = value;
                         displayResponse(List.of(Text.literal("Setting update source to: ").formatted(Formatting.YELLOW)
-                                .append(Text.literal(value).formatted(Formatting.GOLD)),
-                                Text.literal("Note: Update source commands are deprecated. Use this GUI instead.").formatted(Formatting.GRAY)));
+                                .append(Text.literal(value).formatted(Formatting.GOLD))));
                     }));
         } else {
             // Show message for non-admin users
@@ -850,16 +853,40 @@ public class PokeNotifierCustomScreen extends Screen {
                     // Handle click events in the response text
                     try {
                         if (line.getStyle().getClickEvent() != null) {
-                            this.handleTextClick(line.getStyle());
-                            return true;
+                            var clickEvent = line.getStyle().getClickEvent();
+                            if (clickEvent.getAction() == net.minecraft.text.ClickEvent.Action.SUGGEST_COMMAND && 
+                                clickEvent.getValue().startsWith("remove:")) {
+                                String pokemonName = clickEvent.getValue().substring(7); // Remove "remove:" prefix
+                                com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload payload = 
+                                    new com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload(
+                                        com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload.Action.REMOVE, pokemonName);
+                                net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+                                displayResponse(List.of(Text.literal("Removing ").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append(" from your custom list...").formatted(Formatting.YELLOW)));
+                                return true;
+                            } else {
+                                this.handleTextClick(line.getStyle());
+                                return true;
+                            }
                         }
                         
                         // Check for click events in sibling components
                         if (line instanceof net.minecraft.text.MutableText mutableText) {
                             for (var sibling : mutableText.getSiblings()) {
                                 if (sibling.getStyle().getClickEvent() != null) {
-                                    this.handleTextClick(sibling.getStyle());
-                                    return true;
+                                    var clickEvent = sibling.getStyle().getClickEvent();
+                                    if (clickEvent.getAction() == net.minecraft.text.ClickEvent.Action.SUGGEST_COMMAND && 
+                                        clickEvent.getValue().startsWith("remove:")) {
+                                        String pokemonName = clickEvent.getValue().substring(7);
+                                        com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload payload = 
+                                            new com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload(
+                                                com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload.Action.REMOVE, pokemonName);
+                                        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+                                        displayResponse(List.of(Text.literal("Removing ").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append(" from your custom list...").formatted(Formatting.YELLOW)));
+                                        return true;
+                                    } else {
+                                        this.handleTextClick(sibling.getStyle());
+                                        return true;
+                                    }
                                 }
                             }
                         }

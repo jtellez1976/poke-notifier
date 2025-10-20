@@ -54,6 +54,7 @@ public class PokeNotifierClient implements ClientModInitializer {
     public static boolean isServerBountySystemEnabled = false;
     public static boolean isGlobalHuntSystemEnabled = true; // NEW: Track Global Hunt system state
     public static String lastGlobalHuntWinner = ""; // NEW: Track last Global Hunt winner
+    public static String currentUpdateSource = null; // NEW: Track current update source
 
     @Override
     public void onInitializeClient() {
@@ -108,6 +109,13 @@ public class PokeNotifierClient implements ClientModInitializer {
                 isServerTestMode = payload.isTestMode();
                 isServerBountySystemEnabled = payload.isBountySystemEnabled();
                 isGlobalHuntSystemEnabled = payload.isGlobalHuntSystemEnabled();
+            });
+        });
+        
+        // --- NEW: Receive update source sync from the server ---
+        ClientPlayNetworking.registerGlobalReceiver(UpdateSourceSyncPayload.ID, (payload, context) -> {
+            context.client().execute(() -> {
+                currentUpdateSource = payload.source();
             });
         });
         

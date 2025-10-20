@@ -174,7 +174,7 @@ public class PokeNotifier implements ModInitializer {
             LOGGER.info("   Bounty System: {}", config.bounty_system_enabled ? "[ON]" : "[OFF]");
             LOGGER.info("   Swarm System: {}", config.swarm_system_enabled ? "[ON]" : "[OFF]");
             LOGGER.info("   Global Hunt: {}", GlobalHuntManager.getInstance().getConfig().isEnabled() ? "[ON]" : "[OFF]");
-            LOGGER.info("   Update Source: {}", config.update_checker_source.equals("unknown") ? "[NOT CONFIGURED]" : "[" + config.update_checker_source.toUpperCase() + "]");
+            LOGGER.info("   Update Source: {} (raw: '{}')", config.update_checker_source.equals("unknown") ? "[NOT CONFIGURED]" : "[" + config.update_checker_source.toUpperCase() + "]", config.update_checker_source);
         });
         ServerLifecycleEvents.SERVER_STARTING.register(server -> {
             // Clear the notified admin list on each server start.
@@ -187,8 +187,10 @@ public class PokeNotifier implements ModInitializer {
         });
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            // --- Command Refactoring ---
-            // All commands are now registered here for better organization.
+            // Use the new command registry system
+            com.zehro_mc.pokenotifier.commands.CommandRegistry.registerCommands(dispatcher, registryAccess, environment);
+            
+            // --- TEMPORARY: Keep existing commands until fully migrated ---
             var pokenotifierNode = CommandManager.literal("pokenotifier");
 
             // Server status command.
@@ -439,24 +441,6 @@ public class PokeNotifier implements ModInitializer {
                     );
             pokenotifierNode.then(swarmNode);
 
-            // --- FIX: GUI command is now a top-level child of the main node ---
-            var guiCommand = CommandManager.literal("gui")
-                    .requires(source -> source.hasPermissionLevel(0)) // Allow execution from client command
-                    .executes(context -> {
-                        ServerPlayerEntity player = context.getSource().getPlayer();
-                        if (player != null) {
-                            ConfigServer config = ConfigManager.getServerConfig();
-                            ServerPlayNetworking.send(player, new AdminStatusPayload(
-                                    player.hasPermissionLevel(2),
-                                    config.debug_mode_enabled,
-                                    config.enable_test_mode,
-                                    config.bounty_system_enabled,
-                                    GlobalHuntManager.getInstance().getConfig().isEnabled()));
-                            ServerPlayNetworking.send(player, new OpenGuiPayload());
-                        }
-                        return 1;
-                    });
-
             // --- FIX: Register internal commands as a hidden subcommand ---
             var internalNode = CommandManager.literal("internal").requires(source -> false)
                     .then(CommandManager.literal("confirm_reset").then(CommandManager.argument("token", StringArgumentType.string()).executes(PokeNotifier::executeConfirmReset)))
@@ -465,7 +449,6 @@ public class PokeNotifier implements ModInitializer {
                         return 1;
                     }));
             pokenotifierNode.then(internalNode);
-            pokenotifierNode.then(guiCommand); // Add gui command here
 
             dispatcher.register(pokenotifierNode);
         });
@@ -523,6 +506,9 @@ public class PokeNotifier implements ModInitializer {
                     config.enable_test_mode,
                     config.bounty_system_enabled,
                     GlobalHuntManager.getInstance().getConfig().isEnabled()));
+            
+            // --- NEW: Sync update source with client ---
+            ServerPlayNetworking.send(player, new UpdateSourceSyncPayload(config.update_checker_source));
 
             PlayerRankManager.onPlayerJoin(player);
         });
@@ -1035,6 +1021,12 @@ public class PokeNotifier implements ModInitializer {
                             .append(Text.literal(source).formatted(Formatting.GOLD))));
                     ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
                     ConfigManager.saveServerConfigToFile();
+                    
+                    // FIX: Sync the new value with all online players
+                    for (ServerPlayerEntity onlinePlayer : context.server().getPlayerManager().getPlayerList()) {
+                        ServerPlayNetworking.send(onlinePlayer, new UpdateSourceSyncPayload(source));
+                    }
+                    
                     // FIX: Restore the immediate update check after changing the source.
                     UpdateChecker.checkForUpdates(player);
                 }
@@ -1055,10 +1047,11 @@ public class PokeNotifier implements ModInitializer {
             List<Text> lines = new ArrayList<>();
             lines.add(Text.literal("Your custom tracking list:").formatted(Formatting.YELLOW));
             playerConfig.tracked_pokemon.stream().sorted().forEach(name -> {
-                Text pokemonText = Text.literal("• " + name).formatted(Formatting.GOLD);
-                Text removeButton = Text.literal(" [X]").formatted(Formatting.RED, Formatting.BOLD)
-                        .styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pnc customcatch remove " + name)));
-                lines.add(pokemonText.copy().append(removeButton));
+                Text pokemonText = Text.literal("• " + name + " [X]").formatted(Formatting.GOLD)
+                        .styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(
+                                net.minecraft.text.ClickEvent.Action.SUGGEST_COMMAND, 
+                                "remove:" + name)));
+                lines.add(pokemonText);
             });
             ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
         }
