@@ -246,6 +246,10 @@ public class PokeNotifierCustomScreen extends Screen {
                         com.zehro_mc.pokenotifier.networking.CatchemallUpdatePayload.Action.ENABLE, gen);
                 net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
                 displayResponse(List.of(Text.literal("Requesting to track " + formatGenName(gen) + "...").formatted(Formatting.YELLOW)));
+                
+                // Update the current generation immediately for visual feedback
+                PokeNotifierClient.currentCatchEmAllGeneration = gen;
+                this.clearAndInit(); // Refresh the GUI to update button colors
             }).dimensions(buttonX, buttonY, buttonWidth, buttonHeight).build();
 
             if (gen.equals(PokeNotifierClient.currentCatchEmAllGeneration)) {
@@ -279,43 +283,53 @@ public class PokeNotifierCustomScreen extends Screen {
     }
 
     private void buildInfoPanel(int x, int y, int width) {
-        // Help button
+        // Help button - client-side only, no admin required
         addDrawableChild(ButtonWidget.builder(Text.literal("Help"), b -> {
-            com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
-                new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
-                    com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.HELP, "");
-            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
-            displayResponse(List.of(Text.literal("Requesting help information...").formatted(Formatting.YELLOW)));
+            List<Text> helpLines = new ArrayList<>();
+            helpLines.add(Text.literal("--- Poke Notifier Help ---").formatted(Formatting.GOLD));
+            helpLines.add(Text.literal("Use /pnc gui to access all mod settings.").formatted(Formatting.WHITE));
+            helpLines.add(Text.literal("Notifications: Configure chat, sound, and HUD alerts").formatted(Formatting.AQUA));
+            helpLines.add(Text.literal("Custom Hunt: Track specific Pokémon you want to find").formatted(Formatting.AQUA));
+            helpLines.add(Text.literal("Catch 'em All: Complete Pokédex by generation").formatted(Formatting.AQUA));
+            displayResponse(helpLines);
         }).dimensions(x, y, width, 20).build());
         
-        // Version button
+        // Version button - client-side only, no admin required
         addDrawableChild(ButtonWidget.builder(Text.literal("Version"), b -> {
-            com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
-                new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
-                    com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.VERSION, "");
-            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
-            displayResponse(List.of(Text.literal("Requesting version information...").formatted(Formatting.YELLOW)));
+            String modVersion = net.fabricmc.loader.api.FabricLoader.getInstance()
+                    .getModContainer("poke-notifier")
+                    .map(container -> container.getMetadata().getVersion().getFriendlyString())
+                    .orElse("Unknown");
+            List<Text> lines = new ArrayList<>(List.of(Text.literal("Poke Notifier ver. " + modVersion).formatted(Formatting.AQUA)));
+            displayResponse(lines);
         }).dimensions(x, y + 25, width, 20).build());
         
-        // Status button
+        // Status button - client-side only, no admin required
         addDrawableChild(ButtonWidget.builder(Text.literal("Status"), b -> {
-            com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
-                new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
-                    com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.STATUS, "");
-            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
-            displayResponse(List.of(Text.literal("Requesting status information...").formatted(Formatting.YELLOW)));
+            List<Text> lines = new ArrayList<>();
+            lines.add(Text.literal("--- Poke Notifier Client Status ---").formatted(Formatting.GOLD));
+            lines.add(createClientStatusLine("Searching", clientConfig.searching_enabled));
+            lines.add(createClientStatusLine("Silent Mode", clientConfig.silent_mode_enabled));
+            lines.add(Text.literal("----------------------------").formatted(Formatting.GOLD));
+            lines.add(createClientStatusLine("  Alert Sounds", clientConfig.alert_sounds_enabled));
+            lines.add(createClientStatusLine("  Chat Alerts", clientConfig.alert_chat_enabled));
+            lines.add(createClientStatusLine("  Toast Alerts (HUD)", clientConfig.alert_toast_enabled));
+            displayResponse(lines);
         }).dimensions(x, y + 50, width, 20).build());
 
-        addDrawableChild(CyclingButtonWidget.<String>builder(this::capitalize)
-                .values("modrinth", "curseforge", "none")
-                .initially(serverConfig.update_checker_source)
-                .build(x, y + 105, width, 20, Text.empty(), (button, value) -> {
-                    com.zehro_mc.pokenotifier.networking.UpdateSourcePayload payload = 
-                        new com.zehro_mc.pokenotifier.networking.UpdateSourcePayload(value);
-                    net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
-                    displayResponse(List.of(Text.literal("Setting update source to: ").formatted(Formatting.YELLOW)
-                            .append(Text.literal(value).formatted(Formatting.GOLD))));
-                }));
+        // Only show Update Source selector for admins or in singleplayer
+        if (PokeNotifierClient.isPlayerAdmin || MinecraftClient.getInstance().isInSingleplayer()) {
+            addDrawableChild(CyclingButtonWidget.<String>builder(value -> Text.literal(value.substring(0, 1).toUpperCase() + value.substring(1)).formatted(Formatting.GOLD))
+                    .values("modrinth", "curseforge", "none")
+                    .initially(serverConfig.update_checker_source)
+                    .build(x, y + 105, width, 20, Text.empty(), (button, value) -> {
+                        com.zehro_mc.pokenotifier.networking.UpdateSourcePayload payload = 
+                            new com.zehro_mc.pokenotifier.networking.UpdateSourcePayload(value);
+                        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+                        displayResponse(List.of(Text.literal("Setting update source to: ").formatted(Formatting.YELLOW)
+                                .append(Text.literal(value).formatted(Formatting.GOLD))));
+                    }));
+        }
     }
 
     // --- ADMIN PANEL BUILDERS ---
@@ -329,6 +343,11 @@ public class PokeNotifierCustomScreen extends Screen {
                     com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.TOGGLE_DEBUG_MODE, "");
             net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
             displayResponse(List.of(Text.literal("Toggling debug mode...").formatted(Formatting.YELLOW)));
+            
+            // Immediate visual feedback
+            PokeNotifierClient.isServerDebugMode = !PokeNotifierClient.isServerDebugMode;
+            Text newText = Text.literal("Debug Mode: ").append(PokeNotifierClient.isServerDebugMode ? Text.literal("ON").formatted(Formatting.GREEN) : Text.literal("OFF").formatted(Formatting.RED));
+            b.setMessage(newText);
         }).dimensions(x, y, width, 20).build());
         
         // Test Mode toggle
@@ -339,6 +358,11 @@ public class PokeNotifierCustomScreen extends Screen {
                     com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.TOGGLE_TEST_MODE, "");
             net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
             displayResponse(List.of(Text.literal("Toggling test mode...").formatted(Formatting.YELLOW)));
+            
+            // Immediate visual feedback
+            PokeNotifierClient.isServerTestMode = !PokeNotifierClient.isServerTestMode;
+            Text newText = Text.literal("Test Mode: ").append(PokeNotifierClient.isServerTestMode ? Text.literal("ON").formatted(Formatting.GREEN) : Text.literal("OFF").formatted(Formatting.RED));
+            b.setMessage(newText);
         }).dimensions(x, y + 25, width, 20).build());
 
         // Server Status button
@@ -382,6 +406,11 @@ public class PokeNotifierCustomScreen extends Screen {
                     com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.TOGGLE_BOUNTY_SYSTEM, "");
             net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
             displayResponse(List.of(Text.literal("Toggling bounty system...").formatted(Formatting.YELLOW)));
+            
+            // Immediate visual feedback
+            PokeNotifierClient.isServerBountySystemEnabled = !PokeNotifierClient.isServerBountySystemEnabled;
+            Text newText = Text.literal("Bounty System: ").append(PokeNotifierClient.isServerBountySystemEnabled ? Text.literal("ON").formatted(Formatting.GREEN) : Text.literal("OFF").formatted(Formatting.RED));
+            b.setMessage(newText);
         }).dimensions(x, y, width, 20).build());
         
         this.pokemonNameField = new AutocompleteTextFieldWidget(this.textRenderer, x, y + 35, width, 20, Text.literal(""), () -> PokeNotifierApi.getAllPokemonNames().toList());
@@ -518,6 +547,16 @@ public class PokeNotifierCustomScreen extends Screen {
         String capitalized = str.substring(0, 1).toUpperCase() + str.substring(1);
         return Text.literal(capitalized).formatted(Formatting.GOLD);
     }
+    
+    private Text createClientStatusLine(String label, boolean isEnabled) {
+        Text message = Text.literal(label + " = ").formatted(Formatting.WHITE);
+        if (isEnabled) {
+            message = message.copy().append(Text.literal("ON").formatted(Formatting.GREEN));
+        } else {
+            message = message.copy().append(Text.literal("OFF").formatted(Formatting.RED));
+        }
+        return message;
+    }
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
@@ -535,7 +574,8 @@ public class PokeNotifierCustomScreen extends Screen {
 
         context.drawCenteredTextWithShadow(this.textRenderer, this.title, this.width / 2, panelY + 10, 0xFFFFFF);
 
-        if (currentMainCategory == MainCategory.USER_TOOLS && currentUserSubCategory == UserSubCategory.INFO) {
+        if (currentMainCategory == MainCategory.USER_TOOLS && currentUserSubCategory == UserSubCategory.INFO && 
+            (PokeNotifierClient.isPlayerAdmin || MinecraftClient.getInstance().isInSingleplayer())) {
             context.drawTextWithShadow(this.textRenderer, "Update Source:", panelX + 140, panelY + 60 + 92, 0xFFFFFF);
         }
 

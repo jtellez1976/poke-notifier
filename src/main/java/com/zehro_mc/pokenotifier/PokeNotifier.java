@@ -619,8 +619,14 @@ public class PokeNotifier implements ModInitializer {
             ServerPlayerEntity player = context.player();
             
             context.server().execute(() -> {
-                // Verify admin permissions
-                if (!player.hasPermissionLevel(2)) {
+                // Check if command requires admin permissions
+                boolean requiresAdmin = switch (payload.action()) {
+                    case HELP, VERSION, STATUS -> false; // These are informational and don't require admin
+                    default -> true; // All other commands require admin
+                };
+                
+                // Verify admin permissions for admin-only commands
+                if (requiresAdmin && !player.hasPermissionLevel(2)) {
                     List<Text> errorLines = new ArrayList<>(List.of(Text.literal("You don't have permission to use admin commands.").formatted(Formatting.RED)));
                     ServerPlayNetworking.send(player, new GuiResponsePayload(errorLines));
                     return;
