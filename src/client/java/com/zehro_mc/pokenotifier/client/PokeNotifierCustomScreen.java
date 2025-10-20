@@ -69,19 +69,21 @@ public class PokeNotifierCustomScreen extends Screen {
     }
 
     private void buildLayout() {
-        // Use expanded centered panel design
-        int panelWidth = 600;
-        int panelHeight = 320;
+        // Compact centered panel design
+        int panelWidth = 420;
+        int panelHeight = 260;
         int panelX = (this.width - panelWidth) / 2;
         int panelY = (this.height - panelHeight) / 2;
 
         // --- Main Tabs (Top) ---
         int tabY = panelY + 25;
-        int tabWidth = PokeNotifierClient.isPlayerAdmin ? 90 : 120;
+        int tabWidth = PokeNotifierClient.isPlayerAdmin ? 70 : 100;
         ButtonWidget userTab = ButtonWidget.builder(Text.literal("User Tools"), b -> {
             this.currentMainCategory = MainCategory.USER_TOOLS;
             this.clearAndInit();
-        }).dimensions(panelX + 5, tabY, tabWidth, 20).build();
+        }).dimensions(panelX + 5, tabY, tabWidth, 20)
+        .tooltip(net.minecraft.client.gui.tooltip.Tooltip.of(Text.literal("Configure personal settings and notifications")))
+        .build();
         userTab.active = this.currentMainCategory != MainCategory.USER_TOOLS;
         addDrawableChild(userTab);
 
@@ -89,14 +91,18 @@ public class PokeNotifierCustomScreen extends Screen {
             ButtonWidget eventsTab = ButtonWidget.builder(Text.literal("🎪 Events"), b -> {
                 this.currentMainCategory = MainCategory.EVENTS;
                 this.clearAndInit();
-            }).dimensions(panelX + 10 + tabWidth, tabY, tabWidth, 20).build();
+            }).dimensions(panelX + 10 + tabWidth, tabY, tabWidth, 20)
+            .tooltip(net.minecraft.client.gui.tooltip.Tooltip.of(Text.literal("Manage server events and systems")))
+            .build();
             eventsTab.active = this.currentMainCategory != MainCategory.EVENTS;
             addDrawableChild(eventsTab);
 
             ButtonWidget adminTab = ButtonWidget.builder(Text.literal("👑 Admin"), b -> {
                 this.currentMainCategory = MainCategory.ADMIN_TOOLS;
                 this.clearAndInit();
-            }).dimensions(panelX + 15 + tabWidth * 2, tabY, tabWidth, 20).build();
+            }).dimensions(panelX + 15 + tabWidth * 2, tabY, tabWidth, 20)
+            .tooltip(net.minecraft.client.gui.tooltip.Tooltip.of(Text.literal("Server administration and testing tools")))
+            .build();
             adminTab.active = this.currentMainCategory != MainCategory.ADMIN_TOOLS;
             addDrawableChild(adminTab);
         }
@@ -112,24 +118,24 @@ public class PokeNotifierCustomScreen extends Screen {
 
         // Close Button
         addDrawableChild(ButtonWidget.builder(Text.literal("Close"), button -> this.close())
-                .dimensions(panelX + (panelWidth - 100) / 2, panelY + panelHeight - 35, 100, 20)
+                .dimensions(panelX + (panelWidth - 80) / 2, panelY + panelHeight - 28, 80, 18)
                 .build());
     }
 
     // --- USER TOOLS LAYOUT ---
     private void buildUserToolsLayout(int panelX, int panelY, int panelWidth, int panelHeight) {
         int navX = panelX + 10;
-        int navY = panelY + 60;
-        int navWidth = 110;
+        int navY = panelY + 55;
+        int navWidth = 100;
 
         addDrawableChild(createSubNavButton(navX, navY, navWidth, "🔔 Notifications", UserSubCategory.NOTIFICATIONS, currentUserSubCategory));
-        addDrawableChild(createSubNavButton(navX, navY + 25, navWidth, "🎯 Custom Hunt", UserSubCategory.CUSTOM_HUNT, currentUserSubCategory));
-        addDrawableChild(createSubNavButton(navX, navY + 50, navWidth, "🏆 Catch 'em All", UserSubCategory.CATCH_EM_ALL, currentUserSubCategory));
-        addDrawableChild(createSubNavButton(navX, navY + 75, navWidth, "ℹ️ Info & Help", UserSubCategory.INFO, currentUserSubCategory));
+        addDrawableChild(createSubNavButton(navX, navY + 22, navWidth, "🎯 Custom Hunt", UserSubCategory.CUSTOM_HUNT, currentUserSubCategory));
+        addDrawableChild(createSubNavButton(navX, navY + 44, navWidth, "🏆 Catch 'em All", UserSubCategory.CATCH_EM_ALL, currentUserSubCategory));
+        addDrawableChild(createSubNavButton(navX, navY + 66, navWidth, "ℹ️ Info & Help", UserSubCategory.INFO, currentUserSubCategory));
 
-        int contentX = panelX + navWidth + 30;
-        int contentY = panelY + 60;
-        int contentWidth = panelWidth - navWidth - 50;
+        int contentX = panelX + navWidth + 20;
+        int contentY = panelY + 55;
+        int contentWidth = panelWidth - navWidth - 35;
 
         switch (currentUserSubCategory) {
             case NOTIFICATIONS -> buildNotificationsPanel(contentX, contentY, contentWidth);
@@ -143,19 +149,19 @@ public class PokeNotifierCustomScreen extends Screen {
     private void buildEventsLayout(int panelX, int panelY, int panelWidth, int panelHeight) {
         // Left navigation panel for events
         int navX = panelX + 10;
-        int navY = panelY + 60;
-        int navWidth = 150;
+        int navY = panelY + 55;
+        int navWidth = 120;
         
         // Event navigation buttons
         addDrawableChild(createEventNavButton(navX, navY, navWidth, "🌍 Global Hunt", EventSubCategory.GLOBAL_HUNT, PokeNotifierClient.isGlobalHuntSystemEnabled));
-        addDrawableChild(createEventNavButton(navX, navY + 25, navWidth, "💰 Bounty System", EventSubCategory.BOUNTY_SYSTEM, PokeNotifierClient.isServerBountySystemEnabled));
-        addDrawableChild(createEventNavButton(navX, navY + 50, navWidth, "🌪️ Swarm Events", EventSubCategory.SWARM_EVENTS, false));
-        addDrawableChild(createEventNavButton(navX, navY + 75, navWidth, "⚔️ Rival Battles", EventSubCategory.RIVAL_BATTLES, true));
+        addDrawableChild(createEventNavButton(navX, navY + 22, navWidth, "💰 Bounty System", EventSubCategory.BOUNTY_SYSTEM, PokeNotifierClient.isServerBountySystemEnabled));
+        addDrawableChild(createEventNavButton(navX, navY + 44, navWidth, "🌪️ Swarm Events", EventSubCategory.SWARM_EVENTS, false));
+        addDrawableChild(createEventNavButton(navX, navY + 66, navWidth, "⚔️ Rival Battles", EventSubCategory.RIVAL_BATTLES, true));
         
         // Right details panel
-        int detailsX = panelX + navWidth + 30;
-        int detailsY = panelY + 60;
-        int detailsWidth = panelWidth - navWidth - 50;
+        int detailsX = panelX + navWidth + 20;
+        int detailsY = panelY + 55;
+        int detailsWidth = panelWidth - navWidth - 35;
         
         // Build details panel based on selected event
         switch (currentEventSubCategory) {
@@ -174,7 +180,7 @@ public class PokeNotifierCustomScreen extends Screen {
         ButtonWidget button = ButtonWidget.builder(buttonText, b -> {
             this.currentEventSubCategory = category;
             this.clearAndInit();
-        }).dimensions(x, y, width, 20).build();
+        }).dimensions(x, y, width, 18).build();
         
         button.active = !category.equals(currentEventSubCategory);
         return button;
@@ -183,16 +189,16 @@ public class PokeNotifierCustomScreen extends Screen {
     // --- ADMIN TOOLS LAYOUT ---
     private void buildAdminToolsLayout(int panelX, int panelY, int panelWidth, int panelHeight) {
         int navX = panelX + 10;
-        int navY = panelY + 60;
-        int navWidth = 130;
+        int navY = panelY + 55;
+        int navWidth = 110;
 
         addDrawableChild(createSubNavButton(navX, navY, navWidth, "⚙️ Server Control", AdminSubCategory.SERVER_CONTROL, currentAdminSubCategory));
-        addDrawableChild(createSubNavButton(navX, navY + 25, navWidth, "👤 Player Data", AdminSubCategory.PLAYER_DATA, currentAdminSubCategory));
-        addDrawableChild(createSubNavButton(navX, navY + 50, navWidth, "🔬 Testing", AdminSubCategory.TESTING, currentAdminSubCategory));
+        addDrawableChild(createSubNavButton(navX, navY + 22, navWidth, "👤 Player Data", AdminSubCategory.PLAYER_DATA, currentAdminSubCategory));
+        addDrawableChild(createSubNavButton(navX, navY + 44, navWidth, "🔬 Testing", AdminSubCategory.TESTING, currentAdminSubCategory));
 
         int contentX = panelX + navWidth + 20;
-        int contentY = panelY + 60;
-        int contentWidth = panelWidth - navWidth - 40;
+        int contentY = panelY + 55;
+        int contentWidth = panelWidth - navWidth - 35;
 
         switch (currentAdminSubCategory) {
             case SERVER_CONTROL -> buildServerControlPanel(contentX, contentY, contentWidth);
@@ -202,14 +208,35 @@ public class PokeNotifierCustomScreen extends Screen {
     }
 
     private <T extends Enum<T>> ButtonWidget createSubNavButton(int x, int y, int width, String text, T category, T current) {
+        String tooltip = getTooltipForCategory(category);
         ButtonWidget button = ButtonWidget.builder(Text.literal(text), b -> {
             if (category instanceof UserSubCategory) this.currentUserSubCategory = (UserSubCategory) category;
             if (category instanceof EventSubCategory) this.currentEventSubCategory = (EventSubCategory) category;
             if (category instanceof AdminSubCategory) this.currentAdminSubCategory = (AdminSubCategory) category;
             this.clearAndInit();
-        }).dimensions(x, y, width, 20).build();
+        }).dimensions(x, y, width, 18)
+        .tooltip(net.minecraft.client.gui.tooltip.Tooltip.of(Text.literal(tooltip)))
+        .build();
         button.active = !category.equals(current);
         return button;
+    }
+    
+    private <T extends Enum<T>> String getTooltipForCategory(T category) {
+        if (category instanceof UserSubCategory) {
+            return switch ((UserSubCategory) category) {
+                case NOTIFICATIONS -> "Configure chat, sound, and HUD alerts";
+                case CUSTOM_HUNT -> "Manage your personal Pokémon hunt list";
+                case CATCH_EM_ALL -> "Track Pokédex completion by generation";
+                case INFO -> "View help, version, and mod information";
+            };
+        } else if (category instanceof AdminSubCategory) {
+            return switch ((AdminSubCategory) category) {
+                case SERVER_CONTROL -> "Toggle server modes and reload configs";
+                case PLAYER_DATA -> "Manage player progress and backups";
+                case TESTING -> "Spawn test Pokémon for debugging";
+            };
+        }
+        return "";
     }
 
     // --- USER PANEL BUILDERS ---
@@ -259,7 +286,9 @@ public class PokeNotifierCustomScreen extends Screen {
                 displayResponse(List.of(Text.literal("Request sent to add ").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append(" to your custom list.").formatted(Formatting.YELLOW)));
                 this.pokemonNameField.setText("");
             }
-        }).dimensions(x, y + 25, width, 20).build());
+        }).dimensions(x, y + 25, width, 20)
+        .tooltip(net.minecraft.client.gui.tooltip.Tooltip.of(Text.literal("Add the entered Pokémon to your hunt list")))
+        .build());
 
         // Clear List button
         addDrawableChild(ButtonWidget.builder(Text.literal("🗑️ Clear List"), b -> {
@@ -268,7 +297,9 @@ public class PokeNotifierCustomScreen extends Screen {
                     com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload.Action.CLEAR, "");
             net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
             displayResponse(List.of(Text.literal("Request sent to clear your custom list.").formatted(Formatting.YELLOW)));
-        }).dimensions(x, y + 50, width, 20).build());
+        }).dimensions(x, y + 50, width, 20)
+        .tooltip(net.minecraft.client.gui.tooltip.Tooltip.of(Text.literal("Remove all Pokémon from your hunt list")))
+        .build());
         
         // View List button
         addDrawableChild(ButtonWidget.builder(Text.literal("📋 View List"), b -> {
@@ -371,13 +402,13 @@ public class PokeNotifierCustomScreen extends Screen {
         }).dimensions(x, y + 50, width, 20).build());
 
         // Only show Update Source selector for admins or in singleplayer
-        if (PokeNotifierClient.isPlayerAdmin || MinecraftClient.getInstance().isInSingleplayer()) {
+        if (PokeNotifierClient.isPlayerAdmin || (MinecraftClient.getInstance().isInSingleplayer() && MinecraftClient.getInstance().getServer() != null)) {
             // FIX: Use client-side cached value instead of server config that might not be synced
             String currentSource = PokeNotifierClient.currentUpdateSource != null ? PokeNotifierClient.currentUpdateSource : "unknown";
             addDrawableChild(CyclingButtonWidget.<String>builder(value -> Text.literal(value.substring(0, 1).toUpperCase() + value.substring(1)).formatted(Formatting.GOLD))
                     .values("modrinth", "curseforge", "none")
                     .initially(currentSource)
-                    .build(x, y + 80, width, 20, Text.empty(), (button, value) -> {
+                    .build(x, y + 80, width, 20, Text.literal("Update Source"), (button, value) -> {
                         com.zehro_mc.pokenotifier.networking.UpdateSourcePayload payload = 
                             new com.zehro_mc.pokenotifier.networking.UpdateSourcePayload(value);
                         net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
@@ -709,7 +740,7 @@ public class PokeNotifierCustomScreen extends Screen {
             button.setMessage(Text.literal(label + ": ").append(newValue ? Text.literal("ON").formatted(Formatting.GREEN) : Text.literal("OFF").formatted(Formatting.RED)));
             // FIX: Display feedback for user toggles
             displayResponse(List.of(Text.literal("Settings updated.").formatted(Formatting.GREEN)));
-        }).dimensions(x, y, width, 20).build();
+        }).dimensions(x, y, width, 18).build();
     }
 
 
@@ -756,8 +787,8 @@ public class PokeNotifierCustomScreen extends Screen {
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         this.renderBackground(context, mouseX, mouseY, delta);
 
-        int panelWidth = 600;
-        int panelHeight = 320;
+        int panelWidth = 420;
+        int panelHeight = 260;
         int panelX = (this.width - panelWidth) / 2;
         int panelY = (this.height - panelHeight) / 2;
         
@@ -766,18 +797,14 @@ public class PokeNotifierCustomScreen extends Screen {
         context.drawBorder(panelX, panelY, panelWidth, panelHeight, 0xFF888888);
         
         // Draw separator line below title
-        context.fill(panelX, panelY + 50, panelX + panelWidth, panelY + 51, 0xFF888888);
+        context.fill(panelX, panelY + 48, panelX + panelWidth, panelY + 49, 0xFF888888);
 
         super.render(context, mouseX, mouseY, delta);
 
         // Draw title centered
         context.drawCenteredTextWithShadow(this.textRenderer, this.title, this.width / 2, panelY + 10, 0xFFFFFF);
 
-        // Draw update source label for info panel
-        if (currentMainCategory == MainCategory.USER_TOOLS && currentUserSubCategory == UserSubCategory.INFO && 
-            (PokeNotifierClient.isPlayerAdmin || MinecraftClient.getInstance().isInSingleplayer())) {
-            context.drawTextWithShadow(this.textRenderer, "Update Source:", panelX + 140, panelY + 200, 0xFFFFFF);
-        }
+
 
         if (this.pokemonNameField != null && this.pokemonNameField.isVisible()) {
             this.pokemonNameField.renderSuggestions(context, mouseX, mouseY);

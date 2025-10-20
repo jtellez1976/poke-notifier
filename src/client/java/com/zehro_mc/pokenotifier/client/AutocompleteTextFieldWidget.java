@@ -37,7 +37,7 @@ public class AutocompleteTextFieldWidget extends TextFieldWidget {
         super.setFocused(focused);
         if (focused && this.getText().isEmpty()) {
             // FIX: Show all suggestions when the empty field is focused.
-            this.currentSuggestions = suggestionProvider.get().stream().limit(5).toList();
+            this.currentSuggestions = suggestionProvider.get().stream().limit(3).toList();
         } else if (!focused) {
             this.currentSuggestions = null;
         }
@@ -47,11 +47,11 @@ public class AutocompleteTextFieldWidget extends TextFieldWidget {
         // This method is now called automatically whenever the text changes.
         if (text == null || text.isEmpty()) {
             // If focused, show all suggestions. Otherwise, clear them.
-            currentSuggestions = isFocused() ? suggestionProvider.get().stream().limit(5).toList() : null;
+            currentSuggestions = isFocused() ? suggestionProvider.get().stream().limit(3).toList() : null;
         } else {
             currentSuggestions = suggestionProvider.get().stream()
                     .filter(s -> s.toLowerCase().startsWith(text.toLowerCase()))
-                    .limit(5) // Limit to 5 suggestions
+                    .limit(3)
                     .toList();
         }
     }
@@ -69,21 +69,22 @@ public class AutocompleteTextFieldWidget extends TextFieldWidget {
      */
     public void renderSuggestions(DrawContext context, int mouseX, int mouseY) {
         if (isFocused() && this.visible && currentSuggestions != null && !currentSuggestions.isEmpty()) {
-            int boxX = getX() + getWidth() + 4; // Position to the right
-            int boxY = getY();
+            int boxX = getX(); // Position below the text field
+            int boxY = getY() + getHeight() + 2;
             int boxWidth = getWidth();
-            int boxHeight = currentSuggestions.size() * (MinecraftClient.getInstance().textRenderer.fontHeight + 2) + 4;
+            int maxSuggestions = Math.min(3, currentSuggestions.size());
+            int boxHeight = maxSuggestions * (MinecraftClient.getInstance().textRenderer.fontHeight + 1) + 3;
 
             context.fill(boxX, boxY, boxX + boxWidth, boxY + boxHeight, 0xE0000000); // Darker background
 
-            for (int i = 0; i < currentSuggestions.size(); i++) {
+            for (int i = 0; i < maxSuggestions; i++) {
                 String suggestion = currentSuggestions.get(i);
-                int suggestionY = boxY + 2 + i * (MinecraftClient.getInstance().textRenderer.fontHeight + 2);
-                boolean isHovered = mouseX >= boxX && mouseX < boxX + boxWidth && mouseY >= suggestionY && mouseY < suggestionY + MinecraftClient.getInstance().textRenderer.fontHeight + 2;
+                int suggestionY = boxY + 1 + i * (MinecraftClient.getInstance().textRenderer.fontHeight + 1);
+                boolean isHovered = mouseX >= boxX && mouseX < boxX + boxWidth && mouseY >= suggestionY && mouseY < suggestionY + MinecraftClient.getInstance().textRenderer.fontHeight + 1;
 
-                if (isHovered) context.fill(boxX, suggestionY - 1, boxX + boxWidth, suggestionY + MinecraftClient.getInstance().textRenderer.fontHeight + 1, 0x55FFFFFF);
+                if (isHovered) context.fill(boxX, suggestionY, boxX + boxWidth, suggestionY + MinecraftClient.getInstance().textRenderer.fontHeight, 0x55FFFFFF);
 
-                context.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, suggestion, boxX + 4, suggestionY + 2, 0xFFFFFF);
+                context.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, suggestion, boxX + 3, suggestionY + 1, 0xFFFFFF);
             }
         }
     }
@@ -91,11 +92,12 @@ public class AutocompleteTextFieldWidget extends TextFieldWidget {
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (isFocused() && currentSuggestions != null && !currentSuggestions.isEmpty()) {
-            int boxX = getX() + getWidth() + 4;
-            int boxY = getY();
-            for (int i = 0; i < currentSuggestions.size(); i++) {
-                int suggestionY = boxY + 2 + i * (MinecraftClient.getInstance().textRenderer.fontHeight + 2);
-                if (mouseX >= boxX && mouseX < boxX + getWidth() && mouseY >= suggestionY && mouseY < suggestionY + MinecraftClient.getInstance().textRenderer.fontHeight + 2) {
+            int boxX = getX();
+            int boxY = getY() + getHeight() + 2;
+            int maxSuggestions = Math.min(3, currentSuggestions.size());
+            for (int i = 0; i < maxSuggestions; i++) {
+                int suggestionY = boxY + 1 + i * (MinecraftClient.getInstance().textRenderer.fontHeight + 1);
+                if (mouseX >= boxX && mouseX < boxX + getWidth() && mouseY >= suggestionY && mouseY < suggestionY + MinecraftClient.getInstance().textRenderer.fontHeight + 1) {
                     setText(currentSuggestions.get(i));
                     currentSuggestions = null;
                     return true;
