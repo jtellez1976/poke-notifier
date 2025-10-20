@@ -24,6 +24,7 @@ public class PokeNotifierPayloads {
         PayloadTypeRegistry.playC2S().register(CustomListUpdatePayload.ID, CustomListUpdatePayload.CODEC);
         PayloadTypeRegistry.playC2S().register(CatchemallUpdatePayload.ID, CatchemallUpdatePayload.CODEC);
         PayloadTypeRegistry.playC2S().register(UpdateSourcePayload.ID, UpdateSourcePayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(AdminCommandPayload.ID, AdminCommandPayload.PACKET_CODEC);
 
         PokeNotifier.LOGGER.info("[Networking] All Poke Notifier payloads registered successfully.");
     }

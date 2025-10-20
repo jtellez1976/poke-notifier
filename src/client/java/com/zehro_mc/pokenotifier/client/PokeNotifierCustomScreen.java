@@ -195,10 +195,36 @@ public class PokeNotifierCustomScreen extends Screen {
         this.pokemonNameField.setPlaceholder(Text.literal("e.g., Pikachu"));
         addDrawableChild(this.pokemonNameField);
 
-        addDrawableChild(createActionButton("➕ Add", "pnc customcatch add", x, y + 25, width));
+        // Add button
+        addDrawableChild(ButtonWidget.builder(Text.literal("➕ Add"), b -> {
+            String pokemonName = this.pokemonNameField.getText().trim();
+            if (!pokemonName.isEmpty()) {
+                com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload payload = 
+                    new com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload(
+                        com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload.Action.ADD, pokemonName);
+                net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+                displayResponse(List.of(Text.literal("Request sent to add ").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append(" to your custom list.").formatted(Formatting.YELLOW)));
+                this.pokemonNameField.setText("");
+            }
+        }).dimensions(x, y + 25, width, 20).build());
 
-        addDrawableChild(createActionButton("🗑️ Clear List", "pnc customcatch clear", x, y + 50, width));
-        addDrawableChild(createActionButton("📋 View List", "pnc customcatch view", x, y + 75, width));
+        // Clear List button
+        addDrawableChild(ButtonWidget.builder(Text.literal("🗑️ Clear List"), b -> {
+            com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload payload = 
+                new com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload(
+                    com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload.Action.CLEAR, "");
+            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+            displayResponse(List.of(Text.literal("Request sent to clear your custom list.").formatted(Formatting.YELLOW)));
+        }).dimensions(x, y + 50, width, 20).build());
+        
+        // View List button
+        addDrawableChild(ButtonWidget.builder(Text.literal("📋 View List"), b -> {
+            com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload payload = 
+                new com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload(
+                    com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload.Action.LIST, "");
+            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+            displayResponse(List.of(Text.literal("Requesting your custom list from the server...").formatted(Formatting.YELLOW)));
+        }).dimensions(x, y + 75, width, 20).build());
     }
 
     private void buildCatchEmAllPanel(int x, int y, int width) {
@@ -213,9 +239,14 @@ public class PokeNotifierCustomScreen extends Screen {
             int buttonX = x + col * (buttonWidth + 5);
             int buttonY = y + row * (buttonHeight + 5);
 
-            ButtonWidget button = ButtonWidget.builder(Text.literal(getGenerationDisplayName(gen)), b -> executeCommand("pnc catchemall enable " + gen))
-                    .dimensions(buttonX, buttonY, buttonWidth, buttonHeight)
-                    .build();
+            ButtonWidget button = ButtonWidget.builder(Text.literal(getGenerationDisplayName(gen)), b -> {
+                // Use networking payload instead of command
+                com.zehro_mc.pokenotifier.networking.CatchemallUpdatePayload payload = 
+                    new com.zehro_mc.pokenotifier.networking.CatchemallUpdatePayload(
+                        com.zehro_mc.pokenotifier.networking.CatchemallUpdatePayload.Action.ENABLE, gen);
+                net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+                displayResponse(List.of(Text.literal("Requesting to track " + formatGenName(gen) + "...").formatted(Formatting.YELLOW)));
+            }).dimensions(buttonX, buttonY, buttonWidth, buttonHeight).build();
 
             if (gen.equals(PokeNotifierClient.currentCatchEmAllGeneration)) {
                 button.setMessage(Text.literal(getGenerationDisplayName(gen)).formatted(Formatting.GOLD, Formatting.UNDERLINE));
@@ -224,48 +255,153 @@ public class PokeNotifierCustomScreen extends Screen {
         }
 
         int statusY = y + 5 * (buttonHeight + 5);
-        addDrawableChild(createActionButton("⏹️ Stop Tracking", "pnc catchemall disable " + PokeNotifierClient.currentCatchEmAllGeneration, x, statusY, width));
-        addDrawableChild(createActionButton("📊 View Status", "pnc catchemall status", x, statusY + 25, width));
+        
+        // Stop Tracking button
+        addDrawableChild(ButtonWidget.builder(Text.literal("⏹️ Stop Tracking"), b -> {
+            if (PokeNotifierClient.currentCatchEmAllGeneration != null && !"none".equals(PokeNotifierClient.currentCatchEmAllGeneration)) {
+                com.zehro_mc.pokenotifier.networking.CatchemallUpdatePayload payload = 
+                    new com.zehro_mc.pokenotifier.networking.CatchemallUpdatePayload(
+                        com.zehro_mc.pokenotifier.networking.CatchemallUpdatePayload.Action.DISABLE, 
+                        PokeNotifierClient.currentCatchEmAllGeneration);
+                net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+                displayResponse(List.of(Text.literal("Requesting to disable tracking...").formatted(Formatting.YELLOW)));
+            }
+        }).dimensions(x, statusY, width, 20).build());
+        
+        // View Status button
+        addDrawableChild(ButtonWidget.builder(Text.literal("📊 View Status"), b -> {
+            com.zehro_mc.pokenotifier.networking.CatchemallUpdatePayload payload = 
+                new com.zehro_mc.pokenotifier.networking.CatchemallUpdatePayload(
+                    com.zehro_mc.pokenotifier.networking.CatchemallUpdatePayload.Action.LIST, "");
+            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+            displayResponse(List.of(Text.literal("Requesting your active Catch 'em All modes...").formatted(Formatting.YELLOW)));
+        }).dimensions(x, statusY + 25, width, 20).build());
     }
 
     private void buildInfoPanel(int x, int y, int width) {
-        addDrawableChild(createActionButton("Help", "pnc help", x, y, width));
-        addDrawableChild(createActionButton("Version", "pnc version", x, y + 25, width));
-        addDrawableChild(createActionButton("Status", "pnc status", x, y + 50, width));
-
+        // Help button
+        addDrawableChild(ButtonWidget.builder(Text.literal("Help"), b -> {
+            com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
+                new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
+                    com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.HELP, "");
+            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+            displayResponse(List.of(Text.literal("Requesting help information...").formatted(Formatting.YELLOW)));
+        }).dimensions(x, y, width, 20).build());
+        
+        // Version button
+        addDrawableChild(ButtonWidget.builder(Text.literal("Version"), b -> {
+            com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
+                new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
+                    com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.VERSION, "");
+            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+            displayResponse(List.of(Text.literal("Requesting version information...").formatted(Formatting.YELLOW)));
+        }).dimensions(x, y + 25, width, 20).build());
+        
+        // Status button
+        addDrawableChild(ButtonWidget.builder(Text.literal("Status"), b -> {
+            com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
+                new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
+                    com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.STATUS, "");
+            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+            displayResponse(List.of(Text.literal("Requesting status information...").formatted(Formatting.YELLOW)));
+        }).dimensions(x, y + 50, width, 20).build());
 
         addDrawableChild(CyclingButtonWidget.<String>builder(this::capitalize)
                 .values("modrinth", "curseforge", "none")
                 .initially(serverConfig.update_checker_source)
-                .build(x, y + 105, width, 20, Text.empty(), (button, value) -> { // FIX: Adjusted Y position
-                    executeCommand("pnc update " + value);
+                .build(x, y + 105, width, 20, Text.empty(), (button, value) -> {
+                    com.zehro_mc.pokenotifier.networking.UpdateSourcePayload payload = 
+                        new com.zehro_mc.pokenotifier.networking.UpdateSourcePayload(value);
+                    net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+                    displayResponse(List.of(Text.literal("Setting update source to: ").formatted(Formatting.YELLOW)
+                            .append(Text.literal(value).formatted(Formatting.GOLD))));
                 }));
     }
 
     // --- ADMIN PANEL BUILDERS ---
 
     private void buildServerControlPanel(int x, int y, int width) {
-        addDrawableChild(createAdminToggleButton("Debug Mode", PokeNotifierClient.isServerDebugMode, "pokenotifier test debug", x, y, width));
-        addDrawableChild(createAdminToggleButton("Test Mode", PokeNotifierClient.isServerTestMode, "pokenotifier test mode", x, y + 25, width));
+        // Debug Mode toggle
+        Text debugModeText = Text.literal("Debug Mode: ").append(PokeNotifierClient.isServerDebugMode ? Text.literal("ON").formatted(Formatting.GREEN) : Text.literal("OFF").formatted(Formatting.RED));
+        addDrawableChild(ButtonWidget.builder(debugModeText, b -> {
+            com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
+                new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
+                    com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.TOGGLE_DEBUG_MODE, "");
+            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+            displayResponse(List.of(Text.literal("Toggling debug mode...").formatted(Formatting.YELLOW)));
+        }).dimensions(x, y, width, 20).build());
+        
+        // Test Mode toggle
+        Text testModeText = Text.literal("Test Mode: ").append(PokeNotifierClient.isServerTestMode ? Text.literal("ON").formatted(Formatting.GREEN) : Text.literal("OFF").formatted(Formatting.RED));
+        addDrawableChild(ButtonWidget.builder(testModeText, b -> {
+            com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
+                new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
+                    com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.TOGGLE_TEST_MODE, "");
+            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+            displayResponse(List.of(Text.literal("Toggling test mode...").formatted(Formatting.YELLOW)));
+        }).dimensions(x, y + 25, width, 20).build());
 
-        addDrawableChild(createActionButton("Server Status", "pokenotifier status", x, y + 60, width));
-        addDrawableChild(createActionButton("Reload Configs", "pokenotifier config reload", x, y + 85, width));
+        // Server Status button
+        addDrawableChild(ButtonWidget.builder(Text.literal("Server Status"), b -> {
+            com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
+                new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
+                    com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.SERVER_STATUS, "");
+            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+            displayResponse(List.of(Text.literal("Requesting server status...").formatted(Formatting.YELLOW)));
+        }).dimensions(x, y + 60, width, 20).build());
+        
+        // Reload Configs button
+        addDrawableChild(ButtonWidget.builder(Text.literal("Reload Configs"), b -> {
+            com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
+                new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
+                    com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.RELOAD_CONFIG, "");
+            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+            displayResponse(List.of(Text.literal("Reloading configurations...").formatted(Formatting.YELLOW)));
+        }).dimensions(x, y + 85, width, 20).build());
 
+        // Reset All Configs button with confirmation
         addDrawableChild(ButtonWidget.builder(Text.literal("Reset All Configs"), b -> {
             this.client.setScreen(new ConfirmScreen(confirmed -> {
-                if (confirmed) executeCommand("pokenotifier config reset");
+                if (confirmed) {
+                    com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
+                        new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
+                            com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.RESET_CONFIG, "");
+                    net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+                }
                 this.client.setScreen(this);
             }, Text.literal("Confirm Reset"), Text.literal("This will reset ALL configs. Are you sure?")));
         }).dimensions(x, y + 110, width, 20).build());
     }
 
     private void buildEventManagementPanel(int x, int y, int width) {
-        addDrawableChild(createAdminToggleButton("Bounty System", PokeNotifierClient.isServerBountySystemEnabled, "pokenotifier bounty system", x, y, width));
+        // Bounty System toggle
+        Text bountySystemText = Text.literal("Bounty System: ").append(PokeNotifierClient.isServerBountySystemEnabled ? Text.literal("ON").formatted(Formatting.GREEN) : Text.literal("OFF").formatted(Formatting.RED));
+        addDrawableChild(ButtonWidget.builder(bountySystemText, b -> {
+            com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
+                new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
+                    com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.TOGGLE_BOUNTY_SYSTEM, "");
+            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+            displayResponse(List.of(Text.literal("Toggling bounty system...").formatted(Formatting.YELLOW)));
+        }).dimensions(x, y, width, 20).build());
+        
         this.pokemonNameField = new AutocompleteTextFieldWidget(this.textRenderer, x, y + 35, width, 20, Text.literal(""), () -> PokeNotifierApi.getAllPokemonNames().toList());
         this.pokemonNameField.setPlaceholder(Text.literal("Pokémon for Swarm"));
         addDrawableChild(this.pokemonNameField);
 
-        addDrawableChild(createActionButton("Start Manual Swarm", "pokenotifier swarm start", x, y + 60, width));
+        // Start Manual Swarm button
+        addDrawableChild(ButtonWidget.builder(Text.literal("Start Manual Swarm"), b -> {
+            String pokemonName = this.pokemonNameField.getText().trim();
+            if (!pokemonName.isEmpty()) {
+                com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
+                    new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
+                        com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.START_SWARM, pokemonName);
+                net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+                displayResponse(List.of(Text.literal("Starting swarm of ").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append("...").formatted(Formatting.YELLOW)));
+                this.pokemonNameField.setText("");
+            } else {
+                displayResponse(List.of(Text.literal("Please enter a Pokémon name first.").formatted(Formatting.RED)));
+            }
+        }).dimensions(x, y + 60, width, 20).build());
     }
 
     private void buildPlayerDataPanel(int x, int y, int width) {
@@ -274,24 +410,40 @@ public class PokeNotifierCustomScreen extends Screen {
         this.playerNameField.setPlaceholder(Text.literal("Player Name"));
         addDrawableChild(this.playerNameField);
 
+        // Autocomplete Gen button
         ButtonWidget autocompleteButton = ButtonWidget.builder(Text.literal("Autocomplete Gen"), b -> {
-            String playerName = this.playerNameField.getText();
+            String playerName = this.playerNameField.getText().trim();
             if (!playerName.isEmpty()) {
                 this.client.setScreen(new ConfirmScreen(confirmed -> {
-                    if (confirmed) executeCommand("pokenotifier data autocomplete " + playerName);
+                    if (confirmed) {
+                        com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
+                            new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
+                                com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.AUTOCOMPLETE_PLAYER, playerName);
+                        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+                    }
                     this.client.setScreen(this);
                 }, Text.literal("Confirm Autocomplete"), Text.literal("Complete current gen for " + playerName + "?")));
+            } else {
+                displayResponse(List.of(Text.literal("Please enter a player name first.").formatted(Formatting.RED)));
             }
         }).dimensions(x, y + 25, width, 20).build();
         addDrawableChild(autocompleteButton);
 
+        // Rollback Progress button
         ButtonWidget rollbackButton = ButtonWidget.builder(Text.literal("Rollback Progress"), b -> {
-            String playerName = this.playerNameField.getText();
+            String playerName = this.playerNameField.getText().trim();
             if (!playerName.isEmpty()) {
                 this.client.setScreen(new ConfirmScreen(confirmed -> {
-                    if (confirmed) executeCommand("pokenotifier data rollback " + playerName);
+                    if (confirmed) {
+                        com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
+                            new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
+                                com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.ROLLBACK_PLAYER, playerName);
+                        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+                    }
                     this.client.setScreen(this);
                 }, Text.literal("Confirm Rollback"), Text.literal("Restore progress backup for " + playerName + "?")));
+            } else {
+                displayResponse(List.of(Text.literal("Please enter a player name first.").formatted(Formatting.RED)));
             }
         }).dimensions(x, y + 50, width, 20).build();
         addDrawableChild(rollbackButton);
@@ -305,19 +457,24 @@ public class PokeNotifierCustomScreen extends Screen {
         this.shinyCheckbox = CheckboxWidget.builder(Text.literal("Shiny"), this.textRenderer).pos(x, y + 25).checked(false).build();
         addDrawableChild(this.shinyCheckbox);
 
-        addDrawableChild(createActionButton("Spawn Test Pokémon", "pokenotifier test spawn", x, y + 50, width));
+        // Spawn Test Pokémon button
+        addDrawableChild(ButtonWidget.builder(Text.literal("Spawn Test Pokémon"), b -> {
+            String pokemonName = this.pokemonNameField.getText().trim();
+            if (!pokemonName.isEmpty()) {
+                String parameter = pokemonName + (this.shinyCheckbox.isChecked() ? " shiny" : "");
+                com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
+                    new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
+                        com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.SPAWN_POKEMON, parameter);
+                net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+                displayResponse(List.of(Text.literal("Spawning ").append(this.shinyCheckbox.isChecked() ? Text.literal("Shiny ").formatted(Formatting.GOLD) : Text.literal("")).append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append("...").formatted(Formatting.YELLOW)));
+                this.pokemonNameField.setText("");
+            } else {
+                displayResponse(List.of(Text.literal("Please enter a Pokémon name first.").formatted(Formatting.RED)));
+            }
+        }).dimensions(x, y + 50, width, 20).build());
     }
 
-    private ButtonWidget createAdminToggleButton(String label, boolean currentValue, String commandBase, int x, int y, int width) {
-        Text message = Text.literal(label + ": ").append(currentValue ? Text.literal("ON").formatted(Formatting.GREEN) : Text.literal("OFF").formatted(Formatting.RED));
-        return ButtonWidget.builder(message, button -> {
-            boolean newValue = !currentValue;
-            executeCommand(commandBase + (newValue ? " enable" : " disable"));
-            // The server will handle the config change, but we update the button for instant feedback.
-            // Note: This is an optimistic update. The true state will be reflected on next screen open.
-            button.setMessage(Text.literal(label + ": ").append(newValue ? Text.literal("ON").formatted(Formatting.GREEN) : Text.literal("OFF").formatted(Formatting.RED)));
-        }).dimensions(x, y, width, 20).build();
-    }
+
 
     // --- HELPER METHODS ---
 
@@ -332,35 +489,7 @@ public class PokeNotifierCustomScreen extends Screen {
         }).dimensions(x, y, width, 20).build();
     }
 
-    private ButtonWidget createActionButton(String text, String command, int x, int y, int width) {
-        return ButtonWidget.builder(Text.literal(text), button -> {
-            // FIX: Refactored command execution logic to be simpler and more reliable.
-            String finalCommand = command;
 
-            // Check if the command needs a pokemon name and the corresponding field is visible
-            if ((command.contains("customcatch add") || command.contains("customcatch remove") || command.contains("swarm start") || command.contains("test spawn")) && this.pokemonNameField != null && this.pokemonNameField.isVisible()) {
-                String pokemonName = this.pokemonNameField.getText().trim();
-                if (!pokemonName.isEmpty()) { // Only append if there's text
-                    finalCommand += " " + pokemonName;
-                }
-            // Check if the command needs a player name and the corresponding field is visible
-            } else if ((command.contains("data autocomplete") || command.contains("data rollback")) && this.playerNameField != null && this.playerNameField.isVisible()) {
-                String playerName = this.playerNameField.getText().trim();
-                if (!playerName.isEmpty()) { // Only append if there's text
-                    finalCommand += " " + playerName;
-                }
-            }
-            
-            executeCommand(finalCommand);
-
-            // FIX: Clear the text field after adding or removing a Pokémon from the custom hunt.
-            if (command.contains("customcatch add") || command.contains("customcatch remove")) {
-                if (this.pokemonNameField != null) {
-                    this.pokemonNameField.setText("");
-                }
-            }
-        }).dimensions(x, y, width, 20).build();
-    }
 
     private String getGenerationDisplayName(String gen) {
         return switch (gen) {
@@ -375,6 +504,11 @@ public class PokeNotifierCustomScreen extends Screen {
             case "gen9" -> "[Gen 9] Paldea";
             default -> "Unknown";
         };
+    }
+    
+    private String formatGenName(String genName) {
+        if (genName == null || !genName.toLowerCase().startsWith("gen")) return genName;
+        return "Gen" + genName.substring(3);
     }
 
     private Text capitalize(String str) {

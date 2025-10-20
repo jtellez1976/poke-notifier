@@ -614,6 +614,226 @@ public class PokeNotifier implements ModInitializer {
             });
         });
 
+        // Handle admin commands from the client.
+        ServerPlayNetworking.registerGlobalReceiver(AdminCommandPayload.ID, (payload, context) -> {
+            ServerPlayerEntity player = context.player();
+            
+            context.server().execute(() -> {
+                // Verify admin permissions
+                if (!player.hasPermissionLevel(2)) {
+                    List<Text> errorLines = new ArrayList<>(List.of(Text.literal("You don't have permission to use admin commands.").formatted(Formatting.RED)));
+                    ServerPlayNetworking.send(player, new GuiResponsePayload(errorLines));
+                    return;
+                }
+                
+                switch (payload.action()) {
+                    case TOGGLE_DEBUG_MODE -> {
+                        ConfigServer config = ConfigManager.getServerConfig();
+                        config.debug_mode_enabled = !config.debug_mode_enabled;
+                        ConfigManager.saveServerConfigToFile();
+                        List<Text> lines = new ArrayList<>(List.of(Text.literal("Debug mode ").append(config.debug_mode_enabled ? Text.literal("enabled").formatted(Formatting.GREEN) : Text.literal("disabled").formatted(Formatting.RED))));
+                        ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                    }
+                    case TOGGLE_TEST_MODE -> {
+                        ConfigServer config = ConfigManager.getServerConfig();
+                        config.enable_test_mode = !config.enable_test_mode;
+                        ConfigManager.saveServerConfigToFile();
+                        List<Text> lines = new ArrayList<>(List.of(Text.literal("Test mode ").append(config.enable_test_mode ? Text.literal("enabled").formatted(Formatting.GREEN) : Text.literal("disabled").formatted(Formatting.RED))));
+                        ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                    }
+                    case TOGGLE_BOUNTY_SYSTEM -> {
+                        ConfigServer config = ConfigManager.getServerConfig();
+                        config.bounty_system_enabled = !config.bounty_system_enabled;
+                        ConfigManager.saveServerConfigToFile();
+                        List<Text> lines = new ArrayList<>(List.of(Text.literal("Bounty system ").append(config.bounty_system_enabled ? Text.literal("enabled").formatted(Formatting.GREEN) : Text.literal("disabled").formatted(Formatting.RED))));
+                        ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                        if (!config.bounty_system_enabled) {
+                            clearActiveBounty(false);
+                        }
+                    }
+                    case SERVER_STATUS -> {
+                        ConfigServer config = ConfigManager.getServerConfig();
+                        List<Text> lines = new ArrayList<>();
+                        lines.add(Text.literal("--- Poke Notifier Server Status ---").formatted(Formatting.GOLD));
+                        lines.add(createServerStatusLine("Debug Mode", config.debug_mode_enabled));
+                        lines.add(createServerStatusLine("Bounty System", config.bounty_system_enabled));
+                        if (config.bounty_system_enabled) {
+                            String currentBounty = getActiveBounty();
+                            MutableText bountyStatus = Text.literal("  Current Bounty = ").formatted(Formatting.WHITE);
+                            bountyStatus.append(currentBounty == null ? Text.literal("None").formatted(Formatting.GRAY) : Text.literal(currentBounty).formatted(Formatting.GOLD));
+                            lines.add(bountyStatus);
+                        }
+                        lines.add(createServerStatusLine("Test Mode", config.enable_test_mode));
+                        ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                    }
+                    case RELOAD_CONFIG -> {
+                        try {
+                            ConfigManager.loadConfig();
+                            List<Text> lines = new ArrayList<>(List.of(Text.literal("Poke Notifier configurations reloaded successfully.").formatted(Formatting.GREEN)));
+                            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                        } catch (ConfigManager.ConfigReadException e) {
+                            LOGGER.error("Failed to reload Poke Notifier configuration: {}", e.getMessage());
+                            List<Text> lines = new ArrayList<>(List.of(Text.literal("Error reloading configs: " + e.getMessage()).formatted(Formatting.RED)));
+                            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                        }
+                    }
+                    case RESET_CONFIG -> {
+                        try {
+                            ConfigManager.resetToDefault();
+                            List<Text> lines = new ArrayList<>(List.of(Text.literal("All Poke Notifier configurations have been reset to default.").formatted(Formatting.GREEN)));
+                            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                        } catch (Exception e) {
+                            LOGGER.error("Failed to generate new default configurations.", e);
+                            List<Text> lines = new ArrayList<>(List.of(Text.literal("Failed to generate new configs. Check server logs.").formatted(Formatting.RED)));
+                            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                        }
+                    }
+                    case START_SWARM -> {
+                        String pokemonName = payload.parameter().trim();
+                        if (!pokemonName.isEmpty()) {
+                            boolean success = executeSwarmStart(player, pokemonName);
+                            if (success) {
+                                List<Text> lines = new ArrayList<>(List.of(Text.literal("Attempting to start a swarm of ").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append("...").formatted(Formatting.GREEN)));
+                                ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                            }
+                        }
+                    }
+                    case AUTOCOMPLETE_PLAYER -> {
+                        String playerName = payload.parameter().trim();
+                        ServerPlayerEntity targetPlayer = context.server().getPlayerManager().getPlayer(playerName);
+                        if (targetPlayer == null) {
+                            List<Text> lines = new ArrayList<>(List.of(Text.literal("Player " + playerName + " is not online.").formatted(Formatting.RED)));
+                            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                            return;
+                        }
+                        
+                        PlayerCatchProgress progress = ConfigManager.getPlayerCatchProgress(targetPlayer.getUuid());
+                        if (progress.active_generations.isEmpty()) {
+                            List<Text> lines = new ArrayList<>(List.of(Text.literal("Player " + playerName + " does not have Catch 'em All mode active.").formatted(Formatting.RED)));
+                            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                            return;
+                        }
+                        
+                        String genName = progress.active_generations.iterator().next();
+                        GenerationData genData = ConfigManager.getGenerationData(genName);
+                        if (genData == null) {
+                            List<Text> lines = new ArrayList<>(List.of(Text.literal("Internal error: Could not find data for generation '" + genName + "'.").formatted(Formatting.RED)));
+                            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                            return;
+                        }
+                        
+                        // Create backup
+                        File progressFile = new File(ConfigManager.CATCH_PROGRESS_DIR, targetPlayer.getUuid().toString() + ".json");
+                        File backupFile = new File(ConfigManager.CATCH_PROGRESS_DIR, targetPlayer.getUuid().toString() + ".json.bak");
+                        try {
+                            if (progressFile.exists() && !backupFile.exists()) {
+                                Files.copy(progressFile.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                            }
+                        } catch (IOException e) {
+                            LOGGER.error("Failed to create backup for " + playerName, e);
+                        }
+                        
+                        String missingPokemon = autocompleteGenerationForPlayer(targetPlayer, genName, genData);
+                        List<Text> response = new ArrayList<>();
+                        response.add(Text.literal("Autocompleted " + formatGenName(genName) + " for player " + targetPlayer.getName().getString()).formatted(Formatting.GREEN));
+                        response.add(Text.literal("To complete the list, capture: ").append(Text.literal(missingPokemon).formatted(Formatting.GOLD)).formatted(Formatting.AQUA));
+                        ServerPlayNetworking.send(player, new GuiResponsePayload(response));
+                    }
+                    case ROLLBACK_PLAYER -> {
+                        String playerName = payload.parameter().trim();
+                        ServerPlayerEntity targetPlayer = context.server().getPlayerManager().getPlayer(playerName);
+                        if (targetPlayer == null) {
+                            List<Text> lines = new ArrayList<>(List.of(Text.literal("Player " + playerName + " is not online.").formatted(Formatting.RED)));
+                            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                            return;
+                        }
+                        
+                        boolean success = rollbackPlayerProgress(targetPlayer);
+                        if (success) {
+                            List<Text> lines = new ArrayList<>(List.of(Text.literal("Successfully rolled back progress for " + playerName).formatted(Formatting.GREEN)));
+                            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                        } else {
+                            List<Text> lines = new ArrayList<>(List.of(Text.literal("No backup file found for " + playerName + ".").formatted(Formatting.RED)));
+                            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                        }
+                    }
+                    case SPAWN_POKEMON -> {
+                        String[] parts = payload.parameter().trim().split(" ");
+                        String pokemonName = parts[0];
+                        boolean isShiny = parts.length > 1 && "shiny".equals(parts[1]);
+                        
+                        if (!ConfigManager.getServerConfig().enable_test_mode) {
+                            List<Text> lines = new ArrayList<>(List.of(Text.literal("Test Mode is disabled. Enable it in Server Control.").formatted(Formatting.RED)));
+                            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                            return;
+                        }
+                        
+                        // Execute test spawn logic inline since method is not static
+                        ServerWorld world = player.getServerWorld();
+                        
+                        // Strict validation: the name must exist in Cobblemon's official list.
+                        if (PokeNotifierApi.getAllPokemonNames().noneMatch(name -> name.equals(pokemonName.toLowerCase()))) {
+                            List<Text> lines = new ArrayList<>(List.of(Text.literal("Error: Pokémon '" + pokemonName + "' is not a valid Pokémon name.").formatted(Formatting.RED)));
+                            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                            return;
+                        }
+                        
+                        try {
+                            PokemonProperties props = PokemonProperties.Companion.parse(pokemonName.toLowerCase());
+                            if (isShiny) {
+                                props.setShiny(true);
+                            }
+                            
+                            PokemonEntity pokemonEntity = props.createEntity(world);
+                            pokemonEntity.refreshPositionAndAngles(player.getX(), player.getY(), player.getZ(), player.getYaw(), player.getPitch());
+                            
+                            // Add a custom NBT tag to identify this as a test spawn.
+                            pokemonEntity.getPokemon().getPersistentData().putBoolean("pokenotifier_test_spawn", true);
+                            
+                            world.spawnEntity(pokemonEntity);
+                            
+                            // Manually trigger our own notification event, as world.spawnEntity does not.
+                            RarePokemonNotifier.onPokemonSpawn(pokemonEntity);
+                            
+                            List<Text> lines = new ArrayList<>(List.of(Text.literal("Spawned a " + (isShiny ? "Shiny " : "") + pokemonName + ".").formatted(Formatting.GREEN)));
+                            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                        } catch (Exception e) {
+                            List<Text> lines = new ArrayList<>(List.of(Text.literal("Error: Pokémon '" + pokemonName + "' not found.").formatted(Formatting.RED)));
+                            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                        }
+                    }
+                    case HELP -> {
+                        List<Text> lines = new ArrayList<>();
+                        lines.add(Text.literal("--- Poke Notifier Admin Help ---").formatted(Formatting.GOLD));
+                        lines.add(Text.literal("Use the GUI to manage all mod settings.").formatted(Formatting.WHITE));
+                        lines.add(Text.literal("Server Control: Toggle debug/test modes, reload configs").formatted(Formatting.AQUA));
+                        lines.add(Text.literal("Event Management: Control bounty system and swarms").formatted(Formatting.AQUA));
+                        lines.add(Text.literal("Player Data: Manage player progress and backups").formatted(Formatting.AQUA));
+                        lines.add(Text.literal("Testing: Spawn Pokémon for testing purposes").formatted(Formatting.AQUA));
+                        ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                    }
+                    case VERSION -> {
+                        String modVersion = FabricLoader.getInstance()
+                                .getModContainer(MOD_ID)
+                                .map(ModContainer::getMetadata)
+                                .map(meta -> meta.getVersion().getFriendlyString())
+                                .orElse("Unknown");
+                        List<Text> lines = new ArrayList<>(List.of(Text.literal("Poke Notifier ver. " + modVersion).formatted(Formatting.AQUA)));
+                        ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                    }
+                    case STATUS -> {
+                        ConfigServer config = ConfigManager.getServerConfig();
+                        List<Text> lines = new ArrayList<>();
+                        lines.add(Text.literal("--- Poke Notifier Server Status ---").formatted(Formatting.GOLD));
+                        lines.add(createServerStatusLine("Debug Mode", config.debug_mode_enabled));
+                        lines.add(createServerStatusLine("Bounty System", config.bounty_system_enabled));
+                        lines.add(createServerStatusLine("Test Mode", config.enable_test_mode));
+                        ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                    }
+                }
+            });
+        });
+
         // Handle "Catch 'em All" mode updates from the client.
         ServerPlayNetworking.registerGlobalReceiver(CatchemallUpdatePayload.ID, (payload, context) -> {
             ServerPlayerEntity player = context.player();
