@@ -162,10 +162,31 @@ public class PokeNotifierCustomScreen extends Screen {
     // --- USER PANEL BUILDERS ---
 
     private void buildNotificationsPanel(int x, int y, int width) {
+        // Create buttons for Chat, Sound, and HUD alerts
         addDrawableChild(createToggleButton("Chat Alerts", clientConfig.alert_chat_enabled, newValue -> clientConfig.alert_chat_enabled = newValue, x, y, width));
         addDrawableChild(createToggleButton("Sound Alerts", clientConfig.alert_sounds_enabled, newValue -> clientConfig.alert_sounds_enabled = newValue, x, y + 25, width));
         addDrawableChild(createToggleButton("HUD Alerts", clientConfig.alert_toast_enabled, newValue -> clientConfig.alert_toast_enabled = newValue, x, y + 50, width));
-        addDrawableChild(createToggleButton("Silent Mode", clientConfig.silent_mode_enabled, newValue -> clientConfig.silent_mode_enabled = newValue, x, y + 85, width));
+
+        // Create the Silent Mode button with improved logic
+        Text silentModeText = Text.literal("Silent Mode: ").append(clientConfig.silent_mode_enabled ? Text.literal("ON").formatted(Formatting.GREEN) : Text.literal("OFF").formatted(Formatting.RED));
+        addDrawableChild(ButtonWidget.builder(silentModeText, button -> {
+            clientConfig.silent_mode_enabled = !clientConfig.silent_mode_enabled;
+            if (clientConfig.silent_mode_enabled) {
+                // When silent mode is turned ON, turn off all other alerts
+                clientConfig.alert_chat_enabled = false;
+                clientConfig.alert_sounds_enabled = false;
+                clientConfig.alert_toast_enabled = false;
+            } else {
+                // FIX: When silent mode is turned OFF, re-enable all other alerts
+                clientConfig.alert_chat_enabled = true;
+                clientConfig.alert_sounds_enabled = true;
+                clientConfig.alert_toast_enabled = true;
+            }
+            // Re-initialize the screen to update all button states
+            this.clearAndInit();
+            displayResponse(List.of(Text.literal("Settings updated.").formatted(Formatting.GREEN)));
+        }).dimensions(x, y + 85, width, 20).build());
+
         addDrawableChild(createToggleButton("Searching", clientConfig.searching_enabled, newValue -> clientConfig.searching_enabled = newValue, x, y + 110, width));
     }
 
@@ -310,6 +331,8 @@ public class PokeNotifierCustomScreen extends Screen {
             boolean newValue = !currentValue;
             configUpdater.accept(newValue);
             button.setMessage(Text.literal(label + ": ").append(newValue ? Text.literal("ON").formatted(Formatting.GREEN) : Text.literal("OFF").formatted(Formatting.RED)));
+            // FIX: Display feedback for user toggles
+            displayResponse(List.of(Text.literal("Settings updated.").formatted(Formatting.GREEN)));
         }).dimensions(x, y, width, 20).build();
     }
 
