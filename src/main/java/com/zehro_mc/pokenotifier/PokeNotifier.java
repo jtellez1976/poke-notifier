@@ -30,6 +30,7 @@ import com.zehro_mc.pokenotifier.util.PokeNotifierServerUtils;
 import com.zehro_mc.pokenotifier.util.PlayerRankManager;
 import com.zehro_mc.pokenotifier.util.UpdateChecker;
 import com.zehro_mc.pokenotifier.util.RarityUtil;
+import com.zehro_mc.pokenotifier.globalhunt.GlobalHuntManager;
 import kotlin.Unit;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.loader.api.FabricLoader;
@@ -148,12 +149,20 @@ public class PokeNotifier implements ModInitializer {
         LOGGER.info("| Phase 4/5: Registering Commands & Listeners...   |");
         registerServerPacketReceivers();
 
-        ServerLifecycleEvents.SERVER_STARTED.register(startedServer -> server = startedServer);
+        ServerLifecycleEvents.SERVER_STARTED.register(startedServer -> {
+            server = startedServer;
+            // Initialize Global Hunt Manager
+            GlobalHuntManager.getInstance().initialize(startedServer);
+        });
         ServerLifecycleEvents.SERVER_STARTING.register(server -> {
             // Clear the notified admin list on each server start.
             NOTIFIED_UP_TO_DATE_ADMINS.clear();
         });
-        ServerLifecycleEvents.SERVER_STOPPING.register(stoppingServer -> server = null);
+        ServerLifecycleEvents.SERVER_STOPPING.register(stoppingServer -> {
+            // Shutdown Global Hunt Manager
+            GlobalHuntManager.getInstance().shutdown();
+            server = null;
+        });
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             // --- Command Refactoring ---
@@ -419,7 +428,8 @@ public class PokeNotifier implements ModInitializer {
                                     player.hasPermissionLevel(2),
                                     config.debug_mode_enabled,
                                     config.enable_test_mode,
-                                    config.bounty_system_enabled));
+                                    config.bounty_system_enabled,
+                                    GlobalHuntManager.getInstance().getConfig().isEnabled()));
                             ServerPlayNetworking.send(player, new OpenGuiPayload());
                         }
                         return 1;
@@ -486,7 +496,8 @@ public class PokeNotifier implements ModInitializer {
                     player.hasPermissionLevel(2),
                     config.debug_mode_enabled,
                     config.enable_test_mode,
-                    config.bounty_system_enabled));
+                    config.bounty_system_enabled,
+                    GlobalHuntManager.getInstance().getConfig().isEnabled()));
 
             PlayerRankManager.onPlayerJoin(player);
         });
@@ -500,6 +511,16 @@ public class PokeNotifier implements ModInitializer {
             TRACKED_POKEMON.keySet().removeIf(entity -> entity.getPokemon().getUuid().equals(event.getPokemon().getUuid()));
             CaptureListener.onPokemonCaptured(event);
             PokeNotifierServerUtils.sendCatchProgressUpdate(event.getPlayer());
+            
+            // Check if this capture is part of a Global Hunt
+            if (GlobalHuntManager.getInstance().hasActiveEvent()) {
+                var activeEvent = GlobalHuntManager.getInstance().getCurrentEvent();
+                if (activeEvent.getSpawnedPokemon() != null && 
+                    activeEvent.getSpawnedPokemon().getPokemon().getUuid().equals(event.getPokemon().getUuid())) {
+                    activeEvent.onPokemonCaptured(event.getPlayer().getName().getString());
+                }
+            }
+            
             return Unit.INSTANCE;
         });
 
@@ -703,6 +724,68 @@ public class PokeNotifier implements ModInitializer {
                                 ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
                             }
                         }
+                    }
+                    case START_GLOBAL_HUNT -> {
+                        String[] parts = payload.parameter().trim().split(" ");
+                        if (parts.length >= 1) {
+                            String pokemonName = parts[0];
+                            boolean isShiny = parts.length > 1 && "shiny".equals(parts[1]);
+                            
+                            if (GlobalHuntManager.getInstance().hasActiveEvent()) {
+                                List<Text> lines = new ArrayList<>(List.of(Text.literal("A Global Hunt is already active!").formatted(Formatting.RED)));
+                                ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                                return;
+                            }
+                            
+                            // Generate random coordinates near the player
+                            ServerWorld world = player.getServerWorld();
+                            BlockPos coordinates = generateRandomCoordinatesNearPlayer(world, player);
+                            
+                            if (coordinates != null) {
+                                GlobalHuntManager.getInstance().startManualEvent(world, coordinates, pokemonName, isShiny);
+                                List<Text> lines = new ArrayList<>(List.of(Text.literal("Started Global Hunt for ").append(Text.literal((isShiny ? "Shiny " : "") + pokemonName).formatted(Formatting.GOLD)).formatted(Formatting.GREEN)));
+                                ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                            } else {
+                                List<Text> lines = new ArrayList<>(List.of(Text.literal("Failed to find valid coordinates for Global Hunt").formatted(Formatting.RED)));
+                                ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                            }
+                        }
+                    }
+                    case CANCEL_GLOBAL_HUNT -> {
+                        if (GlobalHuntManager.getInstance().hasActiveEvent()) {
+                            GlobalHuntManager.getInstance().getCurrentEvent().cancel();
+                            List<Text> lines = new ArrayList<>(List.of(Text.literal("Global Hunt cancelled by admin").formatted(Formatting.YELLOW)));
+                            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                            
+                            // Notify all players
+                            Text announcement = Text.literal("The Global Hunt has been cancelled by an administrator.").formatted(Formatting.YELLOW);
+                            context.server().getPlayerManager().broadcast(announcement, false);
+                        } else {
+                            List<Text> lines = new ArrayList<>(List.of(Text.literal("No active Global Hunt to cancel").formatted(Formatting.RED)));
+                            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                        }
+                    }
+                    case TOGGLE_GLOBAL_HUNT_SYSTEM -> {
+                        boolean enabled = GlobalHuntManager.getInstance().getConfig().isEnabled();
+                        GlobalHuntManager.getInstance().getConfig().setEnabled(!enabled);
+                        List<Text> lines = new ArrayList<>(List.of(Text.literal("Global Hunt system ").append((!enabled) ? Text.literal("enabled").formatted(Formatting.GREEN) : Text.literal("disabled").formatted(Formatting.RED))));
+                        ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                    }
+                    case GLOBAL_HUNT_STATUS -> {
+                        List<Text> lines = new ArrayList<>();
+                        lines.add(Text.literal("--- Global Hunt Status ---").formatted(Formatting.GOLD));
+                        lines.add(Text.literal("System: ").append(GlobalHuntManager.getInstance().getConfig().isEnabled() ? Text.literal("Enabled").formatted(Formatting.GREEN) : Text.literal("Disabled").formatted(Formatting.RED)));
+                        
+                        if (GlobalHuntManager.getInstance().hasActiveEvent()) {
+                            var event = GlobalHuntManager.getInstance().getCurrentEvent();
+                            lines.add(Text.literal("Active Event: ").append(Text.literal((event.isShiny() ? "Shiny " : "") + event.getPokemonName()).formatted(Formatting.GOLD)));
+                            lines.add(Text.literal("Location: ").append(Text.literal(event.getCoordinates().getX() + ", " + event.getCoordinates().getY() + ", " + event.getCoordinates().getZ()).formatted(Formatting.AQUA)));
+                            lines.add(Text.literal("World: ").append(Text.literal(event.getWorld().getRegistryKey().getValue().toString()).formatted(Formatting.AQUA)));
+                        } else {
+                            lines.add(Text.literal("Active Event: None").formatted(Formatting.GRAY));
+                        }
+                        
+                        ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
                     }
                     case AUTOCOMPLETE_PLAYER -> {
                         String playerName = payload.parameter().trim();
@@ -1289,6 +1372,53 @@ public class PokeNotifier implements ModInitializer {
                 startRandomSwarm(server, null);
             }
         }
+    }
+
+    private static BlockPos generateRandomCoordinates(ServerWorld world) {
+        Random random = new Random();
+        int maxDistance = 1000; // For automatic events
+        
+        for (int attempts = 0; attempts < 20; attempts++) {
+            int x = random.nextInt(maxDistance * 2) - maxDistance;
+            int z = random.nextInt(maxDistance * 2) - maxDistance;
+            int y = world.getTopY(Heightmap.Type.WORLD_SURFACE, x, z);
+            
+            BlockPos pos = new BlockPos(x, y, z);
+            
+            if (y >= world.getBottomY() + 10 && y <= world.getTopY() - 10) {
+                return pos;
+            }
+        }
+        
+        // Fallback: spawn near world spawn
+        BlockPos spawn = world.getSpawnPos();
+        int x = spawn.getX() + random.nextInt(200) - 100;
+        int z = spawn.getZ() + random.nextInt(200) - 100;
+        int y = world.getTopY(Heightmap.Type.WORLD_SURFACE, x, z);
+        return new BlockPos(x, y, z);
+    }
+    
+    private static BlockPos generateRandomCoordinatesNearPlayer(ServerWorld world, ServerPlayerEntity player) {
+        Random random = new Random();
+        int maxDistance = 500; // Closer for manual events
+        
+        for (int attempts = 0; attempts < 15; attempts++) {
+            int x = (int) player.getX() + random.nextInt(maxDistance * 2) - maxDistance;
+            int z = (int) player.getZ() + random.nextInt(maxDistance * 2) - maxDistance;
+            int y = world.getTopY(Heightmap.Type.WORLD_SURFACE, x, z);
+            
+            BlockPos pos = new BlockPos(x, y, z);
+            
+            if (y >= world.getBottomY() + 10 && y <= world.getTopY() - 10) {
+                return pos;
+            }
+        }
+        
+        // Fallback: spawn near player
+        int x = (int) player.getX() + random.nextInt(200) - 100;
+        int z = (int) player.getZ() + random.nextInt(200) - 100;
+        int y = world.getTopY(Heightmap.Type.WORLD_SURFACE, x, z);
+        return new BlockPos(x, y, z);
     }
 
     private static void startRandomSwarm(MinecraftServer server, String forcedPokemonName) {

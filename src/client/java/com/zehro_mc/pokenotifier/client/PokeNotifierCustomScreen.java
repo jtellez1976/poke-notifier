@@ -411,14 +411,32 @@ public class PokeNotifierCustomScreen extends Screen {
             PokeNotifierClient.isServerBountySystemEnabled = !PokeNotifierClient.isServerBountySystemEnabled;
             Text newText = Text.literal("Bounty System: ").append(PokeNotifierClient.isServerBountySystemEnabled ? Text.literal("ON").formatted(Formatting.GREEN) : Text.literal("OFF").formatted(Formatting.RED));
             b.setMessage(newText);
-        }).dimensions(x, y, width, 20).build());
+        }).dimensions(x, y, width / 2 - 2, 20).build());
         
-        this.pokemonNameField = new AutocompleteTextFieldWidget(this.textRenderer, x, y + 35, width, 20, Text.literal(""), () -> PokeNotifierApi.getAllPokemonNames().toList());
-        this.pokemonNameField.setPlaceholder(Text.literal("Pokémon for Swarm"));
+        // Global Hunt System toggle
+        Text globalHuntText = Text.literal("Global Hunt: ").append(PokeNotifierClient.isGlobalHuntSystemEnabled ? Text.literal("ON").formatted(Formatting.GREEN) : Text.literal("OFF").formatted(Formatting.RED));
+        addDrawableChild(ButtonWidget.builder(globalHuntText, b -> {
+            com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
+                new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
+                    com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.TOGGLE_GLOBAL_HUNT_SYSTEM, "");
+            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+            displayResponse(List.of(Text.literal("Toggling Global Hunt system...").formatted(Formatting.YELLOW)));
+            
+            // Immediate visual feedback
+            PokeNotifierClient.isGlobalHuntSystemEnabled = !PokeNotifierClient.isGlobalHuntSystemEnabled;
+            Text newText = Text.literal("Global Hunt: ").append(PokeNotifierClient.isGlobalHuntSystemEnabled ? Text.literal("ON").formatted(Formatting.GREEN) : Text.literal("OFF").formatted(Formatting.RED));
+            b.setMessage(newText);
+        }).dimensions(x + width / 2 + 2, y, width / 2 - 2, 20).build());
+        
+        this.pokemonNameField = new AutocompleteTextFieldWidget(this.textRenderer, x, y + 30, width, 20, Text.literal(""), () -> PokeNotifierApi.getAllPokemonNames().toList());
+        this.pokemonNameField.setPlaceholder(Text.literal("Pokémon Name"));
         addDrawableChild(this.pokemonNameField);
+        
+        this.shinyCheckbox = CheckboxWidget.builder(Text.literal("Shiny"), this.textRenderer).pos(x, y + 55).checked(false).build();
+        addDrawableChild(this.shinyCheckbox);
 
         // Start Manual Swarm button
-        addDrawableChild(ButtonWidget.builder(Text.literal("Start Manual Swarm"), b -> {
+        addDrawableChild(ButtonWidget.builder(Text.literal("Start Swarm"), b -> {
             String pokemonName = this.pokemonNameField.getText().trim();
             if (!pokemonName.isEmpty()) {
                 com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
@@ -430,7 +448,40 @@ public class PokeNotifierCustomScreen extends Screen {
             } else {
                 displayResponse(List.of(Text.literal("Please enter a Pokémon name first.").formatted(Formatting.RED)));
             }
-        }).dimensions(x, y + 60, width, 20).build());
+        }).dimensions(x, y + 80, width / 2 - 2, 20).build());
+        
+        // Start Global Hunt button
+        addDrawableChild(ButtonWidget.builder(Text.literal("Start Global Hunt"), b -> {
+            String pokemonName = this.pokemonNameField.getText().trim();
+            if (!pokemonName.isEmpty()) {
+                String parameter = pokemonName + (this.shinyCheckbox.isChecked() ? " shiny" : "");
+                com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
+                    new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
+                        com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.START_GLOBAL_HUNT, parameter);
+                net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+                displayResponse(List.of(Text.literal("Starting Global Hunt for ").append(Text.literal((this.shinyCheckbox.isChecked() ? "Shiny " : "") + pokemonName).formatted(Formatting.GOLD)).append("...").formatted(Formatting.YELLOW)));
+                this.pokemonNameField.setText("");
+            } else {
+                displayResponse(List.of(Text.literal("Please enter a Pokémon name first.").formatted(Formatting.RED)));
+            }
+        }).dimensions(x + width / 2 + 2, y + 80, width / 2 - 2, 20).build());
+        
+        // Global Hunt Status and Cancel buttons
+        addDrawableChild(ButtonWidget.builder(Text.literal("Global Hunt Status"), b -> {
+            com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
+                new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
+                    com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.GLOBAL_HUNT_STATUS, "");
+            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+            displayResponse(List.of(Text.literal("Requesting Global Hunt status...").formatted(Formatting.YELLOW)));
+        }).dimensions(x, y + 105, width / 2 - 2, 20).build());
+        
+        addDrawableChild(ButtonWidget.builder(Text.literal("Cancel Global Hunt"), b -> {
+            com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
+                new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
+                    com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.CANCEL_GLOBAL_HUNT, "");
+            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+            displayResponse(List.of(Text.literal("Cancelling active Global Hunt...").formatted(Formatting.YELLOW)));
+        }).dimensions(x + width / 2 + 2, y + 105, width / 2 - 2, 20).build());
     }
 
     private void buildPlayerDataPanel(int x, int y, int width) {

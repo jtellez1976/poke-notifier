@@ -18,7 +18,8 @@ public record AdminStatusPayload(
     boolean isPlayerAdmin,
     boolean isDebugMode,
     boolean isTestMode,
-    boolean isBountySystemEnabled
+    boolean isBountySystemEnabled,
+    boolean isGlobalHuntSystemEnabled
 ) implements CustomPayload {
     public static final Id<AdminStatusPayload> ID = new Id<>(Identifier.of(PokeNotifier.MOD_ID, "admin_status_payload"));
 
@@ -26,7 +27,7 @@ public record AdminStatusPayload(
     public static final PacketCodec<RegistryByteBuf, AdminStatusPayload> CODEC = PacketCodec.of(AdminStatusPayload::write, AdminStatusPayload::new);
 
     public AdminStatusPayload(RegistryByteBuf buf) {
-        this(buf.readBoolean(), buf.readBoolean(), buf.readBoolean(), buf.readBoolean());
+        this(buf.readBoolean(), buf.readBoolean(), buf.readBoolean(), buf.readBoolean(), buf.readBoolean());
     }
 
     public void write(RegistryByteBuf buf) {
@@ -34,6 +35,7 @@ public record AdminStatusPayload(
         buf.writeBoolean(isDebugMode);
         buf.writeBoolean(isTestMode);
         buf.writeBoolean(isBountySystemEnabled);
+        buf.writeBoolean(isGlobalHuntSystemEnabled);
     }
 
     @Override

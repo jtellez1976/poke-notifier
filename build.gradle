@@ -80,3 +80,79 @@ java {
 }
 
 
+
+
+// --- Custom Task to Copy Mod to Test Environments ---
+// This task automatically deploys the compiled mod to your local test folders
+// for rapid testing during development.
+
+task copyModToClient(type: Copy) {
+	// Define the path to your client instance's mods folder.
+	def modsDir = file("C:/Users/JOHN/curseforge/minecraft/Instances/COBBLEVERSE - Pokemon Adventure [Cobblemon]/mods")
+	// Safety check: this task will only run if the target directory exists.
+	onlyIf { modsDir.exists() }
+
+	// Before copying, delete any previous versions of the mod in the target directory.
+	doFirst {
+		delete(fileTree(modsDir) {
+			include "${project.archives_base_name}-*.jar"
+		})
+	}
+	// Copy the final, remapped .jar file.
+	from remapJar.archiveFile
+	into modsDir
+}
+
+task copyModToServer(type: Copy) {
+	// Define the path to your server instance's mods folder.
+	def modsDir = file("C:/Users/JOHN/OneDrive/Escritorio/Cobbleverse-server/mods")
+	onlyIf { modsDir.exists() }
+
+	doFirst {
+		delete(fileTree(modsDir) {
+			include "${project.archives_base_name}-*.jar"
+		})
+	}
+	from remapJar.archiveFile
+	into modsDir
+}
+
+task copyModToVanillaLauncher(type: Copy) {
+	// Define the path to your vanilla launcher's mods folder for the specific profile.
+	def modsDir = file("C:/Users/JOHN/AppData/Roaming/.minecraft/versions/COBBLEVERSE - Pokemon Adventure [Cobblemon] COBBLEVERSE 1.5.6/mods")
+	onlyIf { modsDir.exists() }
+
+	doFirst {
+		delete(fileTree(modsDir) {
+			include "${project.archives_base_name}-*.jar"
+		})
+	}
+	from remapJar.archiveFile
+	into modsDir
+}
+
+// --- Custom Task to Start the Test Server ---
+// This task runs after a successful deployment to automatically start your test server.
+task startTestServer {
+	doLast {
+		// Execute the command in a doLast block to prevent Gradle from hanging.
+		exec {
+			workingDir "C:/Users/JOHN/OneDrive/Escritorio/Cobbleverse-server"
+			// Use 'start' to launch the batch file in a new, separate terminal window.
+			commandLine 'cmd', '/c', 'start', '"Poke Notifier Test Server"', 'start.bat'
+		}
+	}
+}
+
+// A container task that runs both copy tasks and then starts the server.
+task deployToTest {
+	dependsOn copyModToClient, copyModToServer, copyModToVanillaLauncher
+	// After deploying, trigger the server start.
+	finalizedBy startTestServer
+	doLast {
+		println "--> Deployed mod to client and server test environments."
+	}
+}
+
+// Make the 'build' task run our deployment task when it finishes.
+build.finalizedBy(deployToTest)

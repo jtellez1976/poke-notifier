@@ -1,0 +1,38 @@
+{
+  "enabled": true,
+  "min_interval_hours": 2,
+  "max_interval_hours": 6,
+  "event_duration_minutes": 30,
+  "max_spawn_distance": 10000,
+  "shiny_chance": 0.1,
+  "enabled_worlds": [
+    "minecraft:overworld",
+    "minecraft:the_nether",
+    "minecraft:the_end"
+  ],
+  "pokemon_pool": {
+    "mewtwo": 1,
+    "mew": 1,
+    "lugia": 2,
+    "ho-oh": 2,
+    "rayquaza": 2,
+    "dialga": 3,
+    "palkia": 3,
+    "giratina": 3,
+    "arceus": 1,
+    "reshiram": 3,
+    "zekrom": 3,
+    "kyurem": 3,
+    "celebi": 2,
+    "jirachi": 2,
+    "deoxys": 2,
+    "darkrai": 2,
+    "shaymin": 3,
+    "dragonite": 5,
+    "tyranitar": 5,
+    "salamence": 5,
+    "metagross": 5,
+    "garchomp": 5,
+    "hydreigon": 5
+  }
+}

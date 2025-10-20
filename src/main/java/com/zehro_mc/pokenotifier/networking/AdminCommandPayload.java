@@ -44,6 +44,10 @@ public record AdminCommandPayload(Action action, String parameter) implements Cu
         
         // Event Management
         START_SWARM,
+        START_GLOBAL_HUNT,
+        CANCEL_GLOBAL_HUNT,
+        TOGGLE_GLOBAL_HUNT_SYSTEM,
+        GLOBAL_HUNT_STATUS,
         
         // Player Data
         AUTOCOMPLETE_PLAYER,

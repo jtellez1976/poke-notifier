@@ -15,6 +15,7 @@ import com.zehro_mc.pokenotifier.block.entity.ModBlockEntities;
 import com.zehro_mc.pokenotifier.client.compat.AdvancementPlaquesCompat;
 import com.zehro_mc.pokenotifier.client.renderer.TrophyDisplayBlockEntityRenderer;
 import com.zehro_mc.pokenotifier.networking.*;
+import com.zehro_mc.pokenotifier.networking.GlobalHuntPayload;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
@@ -51,6 +52,7 @@ public class PokeNotifierClient implements ClientModInitializer {
     public static boolean isServerDebugMode = false;
     public static boolean isServerTestMode = false;
     public static boolean isServerBountySystemEnabled = false;
+    public static boolean isGlobalHuntSystemEnabled = true; // NEW: Track Global Hunt system state
 
     @Override
     public void onInitializeClient() {
@@ -104,6 +106,15 @@ public class PokeNotifierClient implements ClientModInitializer {
                 isServerDebugMode = payload.isDebugMode();
                 isServerTestMode = payload.isTestMode();
                 isServerBountySystemEnabled = payload.isBountySystemEnabled();
+                isGlobalHuntSystemEnabled = payload.isGlobalHuntSystemEnabled();
+            });
+        });
+        
+        // --- NEW: Receive Global Hunt events ---
+        ClientPlayNetworking.registerGlobalReceiver(GlobalHuntPayload.ID, (payload, context) -> {
+            context.client().execute(() -> {
+                // Handle Global Hunt events on client side
+                LOGGER.info("Received Global Hunt event: {} for {}", payload.action(), payload.pokemon());
             });
         });
 
