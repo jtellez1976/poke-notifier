@@ -117,46 +117,64 @@ public class PokeNotifier implements ModInitializer {
                 .map(meta -> meta.getVersion().getFriendlyString())
                 .orElse("Unknown");
 
-        LOGGER.info("+---------------------------------------------------+");
+        LOGGER.info("+===================================================+");
         LOGGER.info(createBannerLine(""));
-        LOGGER.info(createBannerLine("Initializing Poke Notifier"));
-        LOGGER.info(createBannerLine("v" + modVersion));
+        LOGGER.info(createBannerLine("POKE NOTIFIER v" + modVersion));
+        LOGGER.info(createBannerLine("The Ultimate Pokemon Tracking Experience"));
         LOGGER.info(createBannerLine(""));
-        LOGGER.info("+---------------------------------------------------+");
+        LOGGER.info("+===================================================+");
 
-        LOGGER.info("| Phase 2/5: Loading Configurations...              |");
+        LOGGER.info("[1/6] Loading Configurations...");
         try {
             ConfigManager.loadConfig();
+            LOGGER.info("      [OK] Configuration files loaded successfully");
         } catch (ConfigManager.ConfigReadException e) {
-            LOGGER.error("Failed to load Poke Notifier configuration on startup. Using default values.", e);
+            LOGGER.error("      [ERROR] Failed to load configuration. Using defaults.", e);
         }
         
         // Force creation of server config if it doesn't exist
         ConfigManager.getServerConfig();
         ConfigManager.saveConfig();
 
-        // Register networking payloads. This is called on both client and server.
+        LOGGER.info("[2/6] Initializing Network Layer...");
         PokeNotifierPayloads.register();
+        LOGGER.info("      [OK] Network payloads registered");
 
-        // Asynchronously check for updates. The checker itself will handle logging.
+        LOGGER.info("[3/6] Checking for Updates...");
         UpdateChecker.checkForUpdates(null).thenRun(() -> {
             UPDATE_CHECK_COMPLETED = true;
+            if (LATEST_VERSION_INFO != null) {
+                LOGGER.info("      [UPDATE] New version available: {}", LATEST_VERSION_INFO.version());
+            } else {
+                LOGGER.info("      [OK] Mod is up to date!");
+            }
         });
 
-        LOGGER.info("| Phase 3/5: Registering Components & Items...      |");
+        LOGGER.info("[4/6] Registering Game Components...");
         ModDataComponents.registerModDataComponents();
         ModItems.registerModItems();
         ModBlocks.registerModBlocks();
         ModBlockEntities.registerBlockEntities();
+        LOGGER.info("      [OK] Items, blocks, and components registered");
 
-        // Register server-side packet receivers.
-        LOGGER.info("| Phase 4/5: Registering Commands & Listeners...   |");
+        LOGGER.info("[5/6] Setting up Commands & Events...");
         registerServerPacketReceivers();
+        LOGGER.info("      [OK] Server packet receivers registered");
 
         ServerLifecycleEvents.SERVER_STARTED.register(startedServer -> {
             server = startedServer;
             // Initialize Global Hunt Manager
             GlobalHuntManager.getInstance().initialize(startedServer);
+            
+            // Log server configuration status
+            ConfigServer config = ConfigManager.getServerConfig();
+            LOGGER.info("Server Configuration Status:");
+            LOGGER.info("   Debug Mode: {}", config.debug_mode_enabled ? "[ON]" : "[OFF]");
+            LOGGER.info("   Test Mode: {}", config.enable_test_mode ? "[ON]" : "[OFF]");
+            LOGGER.info("   Bounty System: {}", config.bounty_system_enabled ? "[ON]" : "[OFF]");
+            LOGGER.info("   Swarm System: {}", config.swarm_system_enabled ? "[ON]" : "[OFF]");
+            LOGGER.info("   Global Hunt: {}", GlobalHuntManager.getInstance().getConfig().isEnabled() ? "[ON]" : "[OFF]");
+            LOGGER.info("   Update Source: {}", config.update_checker_source.equals("unknown") ? "[NOT CONFIGURED]" : "[" + config.update_checker_source.toUpperCase() + "]");
         });
         ServerLifecycleEvents.SERVER_STARTING.register(server -> {
             // Clear the notified admin list on each server start.
@@ -452,7 +470,12 @@ public class PokeNotifier implements ModInitializer {
             dispatcher.register(pokenotifierNode);
         });
 
-        LOGGER.info("| Phase 5/5: Subscribing to Game Events...         |");
+        LOGGER.info("[6/6] Initializing Event Systems...");
+        LOGGER.info("      [INIT] Setting up Global Hunt Manager");
+        LOGGER.info("      [INIT] Configuring Bounty System");
+        LOGGER.info("      [INIT] Enabling Swarm Events");
+        LOGGER.info("      [INIT] Activating Rival Notifications");
+        
         // On player join, perform initial syncs and check for rank effects.
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             ServerPlayerEntity player = handler.getPlayer();
@@ -567,10 +590,19 @@ public class PokeNotifier implements ModInitializer {
             tickSwarmSystem(currentServer);
         });
 
-        // --- MEJORA: Print the final success banner synchronously ---
-        LOGGER.info("+---------------------------------------------------+");
-        LOGGER.info("|         Poke Notifier successfully loaded!        |");
-        LOGGER.info("+---------------------------------------------------+");
+        // --- Enhanced Success Banner ---
+        LOGGER.info("+===================================================+");
+        LOGGER.info(createBannerLine(""));
+        LOGGER.info(createBannerLine("POKE NOTIFIER READY!"));
+        LOGGER.info(createBannerLine(""));
+        LOGGER.info(createBannerLine("Features: Notifications, Custom Hunt, Events"));
+        LOGGER.info(createBannerLine("Tracking: Catch 'em All, Rival System"));
+        LOGGER.info(createBannerLine("Events: Global Hunt, Bounty, Swarms"));
+        LOGGER.info(createBannerLine("Admin: Unified GUI, Advanced Controls"));
+        LOGGER.info(createBannerLine(""));
+        LOGGER.info(createBannerLine("Use /pnc gui to access all features!"));
+        LOGGER.info(createBannerLine(""));
+        LOGGER.info("+===================================================+");
     }
 
     /**
@@ -1337,10 +1369,16 @@ public class PokeNotifier implements ModInitializer {
      * @return A formatted string ready for logging.
      */
     private static String createBannerLine(String text) {
-        int bannerWidth = 49; // The inner width of the banner (51 total chars - 2 for '|')
+        int bannerWidth = 51; // The inner width of the banner (53 total chars - 2 for '|')
         if (text.isEmpty()) {
             return "|" + " ".repeat(bannerWidth) + "|";
         }
+        
+        // Handle text that's too long by truncating it
+        if (text.length() > bannerWidth - 2) {
+            text = text.substring(0, bannerWidth - 5) + "...";
+        }
+        
         int padding = bannerWidth - text.length();
         int leftPadding = padding / 2;
         int rightPadding = padding - leftPadding;
