@@ -53,6 +53,7 @@ public class PokeNotifierClient implements ClientModInitializer {
     public static boolean isServerTestMode = false;
     public static boolean isServerBountySystemEnabled = false;
     public static boolean isGlobalHuntSystemEnabled = true; // NEW: Track Global Hunt system state
+    public static String lastGlobalHuntWinner = ""; // NEW: Track last Global Hunt winner
 
     @Override
     public void onInitializeClient() {

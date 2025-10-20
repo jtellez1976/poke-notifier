@@ -209,6 +209,9 @@ public class GlobalHuntEvent {
     public void onPokemonCaptured(String playerName) {
         if (!isActive || isCaptured) return;
         
+        // Register the winner
+        GlobalHuntManager.getInstance().onEventWon(playerName);
+        
         isCaptured = true;
         
         // Announce winner with original format
@@ -238,6 +241,10 @@ public class GlobalHuntEvent {
         
         // Destroy the beacon when Pokemon is captured
         destroyBeacon();
+        
+        // Extract player name from the parameter if provided
+        // Notify manager of successful completion and winner
+        GlobalHuntManager.getInstance().onEventCompleted(true);
         
         // End the event
         cancel();
@@ -278,6 +285,9 @@ public class GlobalHuntEvent {
         
         // Destroy the beacon on timeout too
         destroyBeacon();
+        
+        // Notify manager of timeout
+        GlobalHuntManager.getInstance().onEventCompleted(false);
         
         // Leave the terrain as a permanent mark
         PokeNotifier.LOGGER.info("Global Hunt terrain remains as a monument at {}", coordinates);
@@ -345,6 +355,10 @@ public class GlobalHuntEvent {
             
             // Destroy beacon and end event
             destroyBeacon();
+            
+            // Notify manager of failure
+            GlobalHuntManager.getInstance().onEventCompleted(false);
+            
             cancel();
         }
     }

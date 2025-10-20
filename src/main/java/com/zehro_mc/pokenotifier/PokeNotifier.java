@@ -130,6 +130,10 @@ public class PokeNotifier implements ModInitializer {
         } catch (ConfigManager.ConfigReadException e) {
             LOGGER.error("Failed to load Poke Notifier configuration on startup. Using default values.", e);
         }
+        
+        // Force creation of server config if it doesn't exist
+        ConfigManager.getServerConfig();
+        ConfigManager.saveConfig();
 
         // Register networking payloads. This is called on both client and server.
         PokeNotifierPayloads.register();
@@ -467,13 +471,11 @@ public class PokeNotifier implements ModInitializer {
             // --- MEJORA: Check for update source configuration ---
             if (player.hasPermissionLevel(2)) {
                 if ("unknown".equalsIgnoreCase(ConfigManager.getServerConfig().update_checker_source)) {
-                    Text prompt = Text.literal("Please configure the update checker source for Poke Notifier:").formatted(Formatting.YELLOW);
-                    Text modrinthButton = Text.literal("[Modrinth]").formatted(Formatting.GREEN).styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pnc update modrinth")));
-                    Text curseforgeButton = Text.literal("[CurseForge]").formatted(Formatting.AQUA).styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pnc update curseforge")));
-                    Text disableButton = Text.literal("[Disable]").formatted(Formatting.RED).styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pnc update none")));
+                    Text prompt = Text.literal("Please configure the update source from the GUI panel:").formatted(Formatting.YELLOW);
+                    Text guiButton = Text.literal("[Open GUI]").formatted(Formatting.GREEN).styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pnc gui")));
 
                     player.sendMessage(prompt, false);
-                    player.sendMessage(Text.literal("Choose your preferred platform: ").append(modrinthButton).append(" ").append(curseforgeButton).append(" ").append(disableButton), false);
+                    player.sendMessage(Text.literal("Go to User Tools > Info & Help to configure update source: ").append(guiButton), false);
                 } else if (LATEST_VERSION_INFO != null) {
                     // --- MEJORA: Notify admin if a new version is available ---
                     Text updateMessage = Text.literal("A new version of Poke Notifier is available: ").formatted(Formatting.GREEN)
@@ -737,18 +739,12 @@ public class PokeNotifier implements ModInitializer {
                                 return;
                             }
                             
-                            // Generate random coordinates near the player
+                            // Use the new method that generates challenging coordinates automatically
                             ServerWorld world = player.getServerWorld();
-                            BlockPos coordinates = generateRandomCoordinatesNearPlayer(world, player);
                             
-                            if (coordinates != null) {
-                                GlobalHuntManager.getInstance().startManualEvent(world, coordinates, pokemonName, isShiny);
-                                List<Text> lines = new ArrayList<>(List.of(Text.literal("Started Global Hunt for ").append(Text.literal((isShiny ? "Shiny " : "") + pokemonName).formatted(Formatting.GOLD)).formatted(Formatting.GREEN)));
-                                ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
-                            } else {
-                                List<Text> lines = new ArrayList<>(List.of(Text.literal("Failed to find valid coordinates for Global Hunt").formatted(Formatting.RED)));
-                                ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
-                            }
+                            GlobalHuntManager.getInstance().startManualEvent(world, pokemonName, isShiny);
+                            List<Text> lines = new ArrayList<>(List.of(Text.literal("Started Global Hunt for ").append(Text.literal((isShiny ? "Shiny " : "") + pokemonName).formatted(Formatting.GOLD)).formatted(Formatting.GREEN)));
+                            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
                         }
                     }
                     case CANCEL_GLOBAL_HUNT -> {

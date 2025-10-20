@@ -37,13 +37,16 @@ public class PokeNotifierCustomScreen extends Screen {
     private List<Text> responseLines = new ArrayList<>();
     private int responseTimer = 0;
 
-    private enum MainCategory { USER_TOOLS, ADMIN_TOOLS }
+    private enum MainCategory { USER_TOOLS, EVENTS, ADMIN_TOOLS }
     private MainCategory currentMainCategory = MainCategory.USER_TOOLS;
 
     private enum UserSubCategory { NOTIFICATIONS, CUSTOM_HUNT, CATCH_EM_ALL, INFO }
     private UserSubCategory currentUserSubCategory = UserSubCategory.NOTIFICATIONS;
 
-    private enum AdminSubCategory { SERVER_CONTROL, EVENT_MANAGEMENT, PLAYER_DATA, TESTING }
+    private enum EventSubCategory { GLOBAL_HUNT, BOUNTY_SYSTEM, SWARM_EVENTS, RIVAL_BATTLES }
+    private EventSubCategory currentEventSubCategory = EventSubCategory.GLOBAL_HUNT;
+
+    private enum AdminSubCategory { SERVER_CONTROL, PLAYER_DATA, TESTING }
     private AdminSubCategory currentAdminSubCategory = AdminSubCategory.SERVER_CONTROL;
 
     public PokeNotifierCustomScreen(Screen parent) {
@@ -66,14 +69,15 @@ public class PokeNotifierCustomScreen extends Screen {
     }
 
     private void buildLayout() {
-        int panelWidth = 420;
-        int panelHeight = 260;
+        // Use expanded centered panel design
+        int panelWidth = 600;
+        int panelHeight = 320;
         int panelX = (this.width - panelWidth) / 2;
         int panelY = (this.height - panelHeight) / 2;
 
         // --- Main Tabs (Top) ---
         int tabY = panelY + 25;
-        int tabWidth = 100;
+        int tabWidth = PokeNotifierClient.isPlayerAdmin ? 90 : 120;
         ButtonWidget userTab = ButtonWidget.builder(Text.literal("User Tools"), b -> {
             this.currentMainCategory = MainCategory.USER_TOOLS;
             this.clearAndInit();
@@ -82,10 +86,17 @@ public class PokeNotifierCustomScreen extends Screen {
         addDrawableChild(userTab);
 
         if (PokeNotifierClient.isPlayerAdmin) {
-            ButtonWidget adminTab = ButtonWidget.builder(Text.literal("👑 Admin Tools"), b -> {
+            ButtonWidget eventsTab = ButtonWidget.builder(Text.literal("🎪 Events"), b -> {
+                this.currentMainCategory = MainCategory.EVENTS;
+                this.clearAndInit();
+            }).dimensions(panelX + 10 + tabWidth, tabY, tabWidth, 20).build();
+            eventsTab.active = this.currentMainCategory != MainCategory.EVENTS;
+            addDrawableChild(eventsTab);
+
+            ButtonWidget adminTab = ButtonWidget.builder(Text.literal("👑 Admin"), b -> {
                 this.currentMainCategory = MainCategory.ADMIN_TOOLS;
                 this.clearAndInit();
-            }).dimensions(panelX + 10 + tabWidth, tabY, tabWidth + 10, 20).build();
+            }).dimensions(panelX + 15 + tabWidth * 2, tabY, tabWidth, 20).build();
             adminTab.active = this.currentMainCategory != MainCategory.ADMIN_TOOLS;
             addDrawableChild(adminTab);
         }
@@ -93,13 +104,15 @@ public class PokeNotifierCustomScreen extends Screen {
         // --- Build Content based on Main Tab ---
         if (currentMainCategory == MainCategory.USER_TOOLS) {
             buildUserToolsLayout(panelX, panelY, panelWidth, panelHeight);
+        } else if (currentMainCategory == MainCategory.EVENTS && PokeNotifierClient.isPlayerAdmin) {
+            buildEventsLayout(panelX, panelY, panelWidth, panelHeight);
         } else if (currentMainCategory == MainCategory.ADMIN_TOOLS && PokeNotifierClient.isPlayerAdmin) {
             buildAdminToolsLayout(panelX, panelY, panelWidth, panelHeight);
         }
 
         // Close Button
         addDrawableChild(ButtonWidget.builder(Text.literal("Close"), button -> this.close())
-                .dimensions(panelX + (panelWidth - 100) / 2, panelY + panelHeight - 28, 100, 20)
+                .dimensions(panelX + (panelWidth - 100) / 2, panelY + panelHeight - 35, 100, 20)
                 .build());
     }
 
@@ -114,9 +127,9 @@ public class PokeNotifierCustomScreen extends Screen {
         addDrawableChild(createSubNavButton(navX, navY + 50, navWidth, "🏆 Catch 'em All", UserSubCategory.CATCH_EM_ALL, currentUserSubCategory));
         addDrawableChild(createSubNavButton(navX, navY + 75, navWidth, "ℹ️ Info & Help", UserSubCategory.INFO, currentUserSubCategory));
 
-        int contentX = panelX + navWidth + 20;
+        int contentX = panelX + navWidth + 30;
         int contentY = panelY + 60;
-        int contentWidth = panelWidth - navWidth - 40;
+        int contentWidth = panelWidth - navWidth - 50;
 
         switch (currentUserSubCategory) {
             case NOTIFICATIONS -> buildNotificationsPanel(contentX, contentY, contentWidth);
@@ -126,6 +139,47 @@ public class PokeNotifierCustomScreen extends Screen {
         }
     }
 
+    // --- EVENTS LAYOUT ---
+    private void buildEventsLayout(int panelX, int panelY, int panelWidth, int panelHeight) {
+        // Left navigation panel for events
+        int navX = panelX + 10;
+        int navY = panelY + 60;
+        int navWidth = 150;
+        
+        // Event navigation buttons
+        addDrawableChild(createEventNavButton(navX, navY, navWidth, "🌍 Global Hunt", EventSubCategory.GLOBAL_HUNT, PokeNotifierClient.isGlobalHuntSystemEnabled));
+        addDrawableChild(createEventNavButton(navX, navY + 25, navWidth, "💰 Bounty System", EventSubCategory.BOUNTY_SYSTEM, PokeNotifierClient.isServerBountySystemEnabled));
+        addDrawableChild(createEventNavButton(navX, navY + 50, navWidth, "🌪️ Swarm Events", EventSubCategory.SWARM_EVENTS, false));
+        addDrawableChild(createEventNavButton(navX, navY + 75, navWidth, "⚔️ Rival Battles", EventSubCategory.RIVAL_BATTLES, true));
+        
+        // Right details panel
+        int detailsX = panelX + navWidth + 30;
+        int detailsY = panelY + 60;
+        int detailsWidth = panelWidth - navWidth - 50;
+        
+        // Build details panel based on selected event
+        switch (currentEventSubCategory) {
+            case GLOBAL_HUNT -> buildGlobalHuntDetailsPanel(detailsX, detailsY, detailsWidth);
+            case BOUNTY_SYSTEM -> buildBountySystemDetailsPanel(detailsX, detailsY, detailsWidth);
+            case SWARM_EVENTS -> buildSwarmEventsDetailsPanel(detailsX, detailsY, detailsWidth);
+            case RIVAL_BATTLES -> buildRivalBattlesDetailsPanel(detailsX, detailsY, detailsWidth);
+        }
+    }
+    
+    private ButtonWidget createEventNavButton(int x, int y, int width, String text, EventSubCategory category, boolean enabled) {
+        String status = enabled ? "ON" : "OFF";
+        Text buttonText = Text.literal(text + ": " + status)
+                .formatted(enabled ? Formatting.GREEN : Formatting.RED);
+        
+        ButtonWidget button = ButtonWidget.builder(buttonText, b -> {
+            this.currentEventSubCategory = category;
+            this.clearAndInit();
+        }).dimensions(x, y, width, 20).build();
+        
+        button.active = !category.equals(currentEventSubCategory);
+        return button;
+    }
+
     // --- ADMIN TOOLS LAYOUT ---
     private void buildAdminToolsLayout(int panelX, int panelY, int panelWidth, int panelHeight) {
         int navX = panelX + 10;
@@ -133,9 +187,8 @@ public class PokeNotifierCustomScreen extends Screen {
         int navWidth = 130;
 
         addDrawableChild(createSubNavButton(navX, navY, navWidth, "⚙️ Server Control", AdminSubCategory.SERVER_CONTROL, currentAdminSubCategory));
-        addDrawableChild(createSubNavButton(navX, navY + 25, navWidth, "🎉 Event Management", AdminSubCategory.EVENT_MANAGEMENT, currentAdminSubCategory));
-        addDrawableChild(createSubNavButton(navX, navY + 50, navWidth, "👤 Player Data", AdminSubCategory.PLAYER_DATA, currentAdminSubCategory));
-        addDrawableChild(createSubNavButton(navX, navY + 75, navWidth, "🔬 Testing", AdminSubCategory.TESTING, currentAdminSubCategory));
+        addDrawableChild(createSubNavButton(navX, navY + 25, navWidth, "👤 Player Data", AdminSubCategory.PLAYER_DATA, currentAdminSubCategory));
+        addDrawableChild(createSubNavButton(navX, navY + 50, navWidth, "🔬 Testing", AdminSubCategory.TESTING, currentAdminSubCategory));
 
         int contentX = panelX + navWidth + 20;
         int contentY = panelY + 60;
@@ -143,7 +196,6 @@ public class PokeNotifierCustomScreen extends Screen {
 
         switch (currentAdminSubCategory) {
             case SERVER_CONTROL -> buildServerControlPanel(contentX, contentY, contentWidth);
-            case EVENT_MANAGEMENT -> buildEventManagementPanel(contentX, contentY, contentWidth);
             case PLAYER_DATA -> buildPlayerDataPanel(contentX, contentY, contentWidth);
             case TESTING -> buildTestingPanel(contentX, contentY, contentWidth);
         }
@@ -152,6 +204,7 @@ public class PokeNotifierCustomScreen extends Screen {
     private <T extends Enum<T>> ButtonWidget createSubNavButton(int x, int y, int width, String text, T category, T current) {
         ButtonWidget button = ButtonWidget.builder(Text.literal(text), b -> {
             if (category instanceof UserSubCategory) this.currentUserSubCategory = (UserSubCategory) category;
+            if (category instanceof EventSubCategory) this.currentEventSubCategory = (EventSubCategory) category;
             if (category instanceof AdminSubCategory) this.currentAdminSubCategory = (AdminSubCategory) category;
             this.clearAndInit();
         }).dimensions(x, y, width, 20).build();
@@ -322,13 +375,20 @@ public class PokeNotifierCustomScreen extends Screen {
             addDrawableChild(CyclingButtonWidget.<String>builder(value -> Text.literal(value.substring(0, 1).toUpperCase() + value.substring(1)).formatted(Formatting.GOLD))
                     .values("modrinth", "curseforge", "none")
                     .initially(serverConfig.update_checker_source)
-                    .build(x, y + 105, width, 20, Text.empty(), (button, value) -> {
+                    .build(x, y + 80, width, 20, Text.empty(), (button, value) -> {
                         com.zehro_mc.pokenotifier.networking.UpdateSourcePayload payload = 
                             new com.zehro_mc.pokenotifier.networking.UpdateSourcePayload(value);
                         net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
                         displayResponse(List.of(Text.literal("Setting update source to: ").formatted(Formatting.YELLOW)
-                                .append(Text.literal(value).formatted(Formatting.GOLD))));
+                                .append(Text.literal(value).formatted(Formatting.GOLD)),
+                                Text.literal("Note: Update source commands are deprecated. Use this GUI instead.").formatted(Formatting.GRAY)));
                     }));
+        } else {
+            // Show message for non-admin users
+            addDrawableChild(ButtonWidget.builder(Text.literal("Update Source: Admin Only"), b -> {
+                displayResponse(List.of(Text.literal("Only server operators can change the update source.").formatted(Formatting.RED),
+                        Text.literal("Contact an admin to modify update settings.").formatted(Formatting.GRAY)));
+            }).dimensions(x, y + 80, width, 20).build()).active = false;
         }
     }
 
@@ -395,48 +455,38 @@ public class PokeNotifierCustomScreen extends Screen {
                 this.client.setScreen(this);
             }, Text.literal("Confirm Reset"), Text.literal("This will reset ALL configs. Are you sure?")));
         }).dimensions(x, y + 110, width, 20).build());
+        
+        // Note: Event management has been moved to the Events tab
+        addDrawableChild(ButtonWidget.builder(Text.literal("Event Management"), b -> {
+            displayResponse(List.of(Text.literal("Event management has been moved to the Events tab.").formatted(Formatting.YELLOW)));
+        }).dimensions(x, y + 140, width, 20).build()).active = false;
     }
 
-    private void buildEventManagementPanel(int x, int y, int width) {
-        // Bounty System toggle
-        Text bountySystemText = Text.literal("Bounty System: ").append(PokeNotifierClient.isServerBountySystemEnabled ? Text.literal("ON").formatted(Formatting.GREEN) : Text.literal("OFF").formatted(Formatting.RED));
-        addDrawableChild(ButtonWidget.builder(bountySystemText, b -> {
+    // --- EVENT PANEL BUILDERS ---
+    
+    private void buildBountySystemDetailsPanel(int x, int y, int width) {
+        // System Toggle
+        Text bountyToggleText = Text.literal(PokeNotifierClient.isServerBountySystemEnabled ? "🟢 Disable System" : "🔴 Enable System");
+        addDrawableChild(ButtonWidget.builder(bountyToggleText, b -> {
             com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
                 new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
                     com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.TOGGLE_BOUNTY_SYSTEM, "");
             net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
             displayResponse(List.of(Text.literal("Toggling bounty system...").formatted(Formatting.YELLOW)));
             
-            // Immediate visual feedback
             PokeNotifierClient.isServerBountySystemEnabled = !PokeNotifierClient.isServerBountySystemEnabled;
-            Text newText = Text.literal("Bounty System: ").append(PokeNotifierClient.isServerBountySystemEnabled ? Text.literal("ON").formatted(Formatting.GREEN) : Text.literal("OFF").formatted(Formatting.RED));
+            Text newText = Text.literal(PokeNotifierClient.isServerBountySystemEnabled ? "🟢 Disable System" : "🔴 Enable System");
             b.setMessage(newText);
-        }).dimensions(x, y, width / 2 - 2, 20).build());
-        
-        // Global Hunt System toggle
-        Text globalHuntText = Text.literal("Global Hunt: ").append(PokeNotifierClient.isGlobalHuntSystemEnabled ? Text.literal("ON").formatted(Formatting.GREEN) : Text.literal("OFF").formatted(Formatting.RED));
-        addDrawableChild(ButtonWidget.builder(globalHuntText, b -> {
-            com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
-                new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
-                    com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.TOGGLE_GLOBAL_HUNT_SYSTEM, "");
-            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
-            displayResponse(List.of(Text.literal("Toggling Global Hunt system...").formatted(Formatting.YELLOW)));
-            
-            // Immediate visual feedback
-            PokeNotifierClient.isGlobalHuntSystemEnabled = !PokeNotifierClient.isGlobalHuntSystemEnabled;
-            Text newText = Text.literal("Global Hunt: ").append(PokeNotifierClient.isGlobalHuntSystemEnabled ? Text.literal("ON").formatted(Formatting.GREEN) : Text.literal("OFF").formatted(Formatting.RED));
-            b.setMessage(newText);
-        }).dimensions(x + width / 2 + 2, y, width / 2 - 2, 20).build());
-        
-        this.pokemonNameField = new AutocompleteTextFieldWidget(this.textRenderer, x, y + 30, width, 20, Text.literal(""), () -> PokeNotifierApi.getAllPokemonNames().toList());
-        this.pokemonNameField.setPlaceholder(Text.literal("Pokémon Name"));
+        }).dimensions(x, y, width, 20).build());
+    }
+    
+    private void buildSwarmEventsDetailsPanel(int x, int y, int width) {
+        // Swarm controls
+        this.pokemonNameField = new AutocompleteTextFieldWidget(this.textRenderer, x, y, width - 40, 20, Text.literal(""), () -> PokeNotifierApi.getAllPokemonNames().toList());
+        this.pokemonNameField.setPlaceholder(Text.literal("Pokémon Name for Swarm"));
         addDrawableChild(this.pokemonNameField);
-        
-        this.shinyCheckbox = CheckboxWidget.builder(Text.literal("Shiny"), this.textRenderer).pos(x, y + 55).checked(false).build();
-        addDrawableChild(this.shinyCheckbox);
 
-        // Start Manual Swarm button
-        addDrawableChild(ButtonWidget.builder(Text.literal("Start Swarm"), b -> {
+        addDrawableChild(ButtonWidget.builder(Text.literal("🌪️ Start Swarm"), b -> {
             String pokemonName = this.pokemonNameField.getText().trim();
             if (!pokemonName.isEmpty()) {
                 com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
@@ -448,10 +498,77 @@ public class PokeNotifierCustomScreen extends Screen {
             } else {
                 displayResponse(List.of(Text.literal("Please enter a Pokémon name first.").formatted(Formatting.RED)));
             }
-        }).dimensions(x, y + 80, width / 2 - 2, 20).build());
+        }).dimensions(x, y + 25, width, 20).build());
+    }
+    
+    private void buildRivalBattlesDetailsPanel(int x, int y, int width) {
+        // Rival system is automatically enabled, only admin can disable it
+        Text rivalSystemText = Text.literal("Rival System: ON").formatted(Formatting.GREEN);
+        addDrawableChild(ButtonWidget.builder(rivalSystemText, b -> {
+            // This system is always on, show info instead
+            displayResponse(List.of(
+                Text.literal("--- Rival System Information ---").formatted(Formatting.GOLD),
+                Text.literal("The Rival system is automatically active.").formatted(Formatting.WHITE),
+                Text.literal("When players hunt the same Pokémon and one captures it,").formatted(Formatting.AQUA),
+                Text.literal("others receive a friendly rivalry notification.").formatted(Formatting.AQUA),
+                Text.literal("Cooldown: 60 seconds between notifications").formatted(Formatting.GRAY),
+                Text.literal("Override distance: 200 blocks").formatted(Formatting.GRAY)
+            ));
+        }).dimensions(x, y, width, 20).build());
         
-        // Start Global Hunt button
-        addDrawableChild(ButtonWidget.builder(Text.literal("Start Global Hunt"), b -> {
+        // Show current settings
+        addDrawableChild(ButtonWidget.builder(Text.literal("📊 View Settings"), b -> {
+            displayResponse(List.of(
+                Text.literal("--- Rival System Settings ---").formatted(Formatting.GOLD),
+                Text.literal("Notification Cooldown: 60 seconds").formatted(Formatting.AQUA),
+                Text.literal("Override Distance: 200 blocks").formatted(Formatting.AQUA),
+                Text.literal("Status: Always Active").formatted(Formatting.GREEN),
+                Text.literal("").formatted(Formatting.WHITE),
+                Text.literal("To modify settings, edit config-server.json").formatted(Formatting.GRAY),
+                Text.literal("Then use 'Reload Configs' in Admin Tools").formatted(Formatting.GRAY)
+            ));
+        }).dimensions(x, y + 25, width, 20).build());
+    }
+    
+    private void buildGlobalHuntDetailsPanel(int x, int y, int width) {
+        int currentY = y;
+        
+        // System Toggle
+        Text systemToggleText = Text.literal(PokeNotifierClient.isGlobalHuntSystemEnabled ? "🟢 Disable System" : "🔴 Enable System");
+        addDrawableChild(ButtonWidget.builder(systemToggleText, b -> {
+            com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
+                new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
+                    com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.TOGGLE_GLOBAL_HUNT_SYSTEM, "");
+            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+            displayResponse(List.of(Text.literal("Toggling Global Hunt system...").formatted(Formatting.YELLOW)));
+            
+            PokeNotifierClient.isGlobalHuntSystemEnabled = !PokeNotifierClient.isGlobalHuntSystemEnabled;
+            Text newText = Text.literal(PokeNotifierClient.isGlobalHuntSystemEnabled ? "🟢 Disable System" : "🔴 Enable System");
+            b.setMessage(newText);
+        }).dimensions(x, currentY, width / 2 - 2, 20).build());
+        
+        // Event Status
+        addDrawableChild(ButtonWidget.builder(Text.literal("📊 Status"), b -> {
+            com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
+                new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
+                    com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.GLOBAL_HUNT_STATUS, "");
+            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+            displayResponse(List.of(Text.literal("Requesting Global Hunt status...").formatted(Formatting.YELLOW)));
+        }).dimensions(x + width / 2 + 2, currentY, width / 2 - 2, 20).build());
+        
+        currentY += 25;
+        
+        // Manual Event Controls
+        this.pokemonNameField = new AutocompleteTextFieldWidget(this.textRenderer, x, currentY, width - 40, 20, Text.literal(""), () -> PokeNotifierApi.getAllPokemonNames().toList());
+        this.pokemonNameField.setPlaceholder(Text.literal("Pokémon for Event"));
+        addDrawableChild(this.pokemonNameField);
+        
+        this.shinyCheckbox = CheckboxWidget.builder(Text.literal("✨"), this.textRenderer).pos(x + width - 35, currentY).checked(false).build();
+        addDrawableChild(this.shinyCheckbox);
+        
+        currentY += 25;
+        
+        addDrawableChild(ButtonWidget.builder(Text.literal("🚀 Start Event"), b -> {
             String pokemonName = this.pokemonNameField.getText().trim();
             if (!pokemonName.isEmpty()) {
                 String parameter = pokemonName + (this.shinyCheckbox.isChecked() ? " shiny" : "");
@@ -464,25 +581,48 @@ public class PokeNotifierCustomScreen extends Screen {
             } else {
                 displayResponse(List.of(Text.literal("Please enter a Pokémon name first.").formatted(Formatting.RED)));
             }
-        }).dimensions(x + width / 2 + 2, y + 80, width / 2 - 2, 20).build());
+        }).dimensions(x, currentY, width / 2 - 2, 20).build());
         
-        // Global Hunt Status and Cancel buttons
-        addDrawableChild(ButtonWidget.builder(Text.literal("Global Hunt Status"), b -> {
-            com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
-                new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
-                    com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.GLOBAL_HUNT_STATUS, "");
-            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
-            displayResponse(List.of(Text.literal("Requesting Global Hunt status...").formatted(Formatting.YELLOW)));
-        }).dimensions(x, y + 105, width / 2 - 2, 20).build());
-        
-        addDrawableChild(ButtonWidget.builder(Text.literal("Cancel Global Hunt"), b -> {
+        addDrawableChild(ButtonWidget.builder(Text.literal("❌ Cancel Event"), b -> {
             com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
                 new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
                     com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.CANCEL_GLOBAL_HUNT, "");
             net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
             displayResponse(List.of(Text.literal("Cancelling active Global Hunt...").formatted(Formatting.YELLOW)));
-        }).dimensions(x + width / 2 + 2, y + 105, width / 2 - 2, 20).build());
+        }).dimensions(x + width / 2 + 2, currentY, width / 2 - 2, 20).build());
+        
+        currentY += 30;
+        
+        // Statistics Section (only for Global Hunt)
+        Text statsTitle = Text.literal("📈 Global Hunt Statistics").formatted(Formatting.YELLOW);
+        addDrawableChild(ButtonWidget.builder(statsTitle, b -> {}).dimensions(x, currentY, width, 20).build()).active = false;
+        
+        currentY += 25;
+        
+        Text totalEvents = Text.literal("Total Events: Loading...").formatted(Formatting.GRAY);
+        addDrawableChild(ButtonWidget.builder(totalEvents, b -> {}).dimensions(x, currentY, width / 2, 15).build()).active = false;
+        
+        Text successRate = Text.literal("Success Rate: Loading...").formatted(Formatting.GRAY);
+        addDrawableChild(ButtonWidget.builder(successRate, b -> {}).dimensions(x + width / 2, currentY, width / 2, 15).build()).active = false;
     }
+    
+    private void openGlobalHuntSettings() {
+        displayResponse(List.of(
+            Text.literal("--- Global Hunt Configuration ---").formatted(Formatting.GOLD),
+            Text.literal("Current Settings:").formatted(Formatting.YELLOW),
+            Text.literal("• Distance: 1500-4000 blocks from players").formatted(Formatting.AQUA),
+            Text.literal("• Duration: 15 minutes per event").formatted(Formatting.AQUA),
+            Text.literal("• Dimensions: Overworld only").formatted(Formatting.AQUA),
+            Text.literal("• Auto Events: Every 2-6 hours").formatted(Formatting.AQUA),
+            Text.literal("").formatted(Formatting.WHITE),
+            Text.literal("To modify: Edit events/events_config.json").formatted(Formatting.YELLOW),
+            Text.literal("Then use 'Reload Configs' in Admin Tools").formatted(Formatting.GRAY)
+        ));
+    }
+    
+
+    
+
 
     private void buildPlayerDataPanel(int x, int y, int width) {
         this.playerNameField = new AutocompleteTextFieldWidget(this.textRenderer, x, y, width, 20, Text.literal(""),
@@ -613,21 +753,27 @@ public class PokeNotifierCustomScreen extends Screen {
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         this.renderBackground(context, mouseX, mouseY, delta);
 
-        int panelWidth = 420;
-        int panelHeight = 260;
+        int panelWidth = 600;
+        int panelHeight = 320;
         int panelX = (this.width - panelWidth) / 2;
         int panelY = (this.height - panelHeight) / 2;
+        
+        // Draw main panel background
         context.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, 0xE01A1A1A);
         context.drawBorder(panelX, panelY, panelWidth, panelHeight, 0xFF888888);
+        
+        // Draw separator line below title
         context.fill(panelX, panelY + 50, panelX + panelWidth, panelY + 51, 0xFF888888);
 
         super.render(context, mouseX, mouseY, delta);
 
+        // Draw title centered
         context.drawCenteredTextWithShadow(this.textRenderer, this.title, this.width / 2, panelY + 10, 0xFFFFFF);
 
+        // Draw update source label for info panel
         if (currentMainCategory == MainCategory.USER_TOOLS && currentUserSubCategory == UserSubCategory.INFO && 
             (PokeNotifierClient.isPlayerAdmin || MinecraftClient.getInstance().isInSingleplayer())) {
-            context.drawTextWithShadow(this.textRenderer, "Update Source:", panelX + 140, panelY + 60 + 92, 0xFFFFFF);
+            context.drawTextWithShadow(this.textRenderer, "Update Source:", panelX + 140, panelY + 200, 0xFFFFFF);
         }
 
         if (this.pokemonNameField != null && this.pokemonNameField.isVisible()) {
@@ -637,6 +783,7 @@ public class PokeNotifierCustomScreen extends Screen {
             this.playerNameField.renderSuggestions(context, mouseX, mouseY);
         }
 
+        // Draw response panel below main panel
         if (!responseLines.isEmpty()) {
             int responsePanelY = panelY + panelHeight + 5;
             int textWidth = panelWidth - 10;
@@ -644,9 +791,11 @@ public class PokeNotifierCustomScreen extends Screen {
             for (Text line : responseLines) {
                 totalTextHeight += this.textRenderer.getWrappedLinesHeight(line, textWidth);
             }
-            int responsePanelHeight = 5 + totalTextHeight;
+            int responsePanelHeight = Math.max(20, 5 + totalTextHeight);
 
             context.fill(panelX, responsePanelY, panelX + panelWidth, responsePanelY + responsePanelHeight, 0xE0000000);
+            context.drawBorder(panelX, responsePanelY, panelWidth, responsePanelHeight, 0xFF888888);
+            
             int currentTextY = responsePanelY + 4;
             for (Text line : responseLines) {
                 context.drawTextWrapped(this.textRenderer, line, panelX + 5, currentTextY, textWidth, 0xFFFFFF);
@@ -689,8 +838,8 @@ public class PokeNotifierCustomScreen extends Screen {
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0 && !responseLines.isEmpty()) {
-            int panelWidth = 420;
-            int panelHeight = 260;
+            int panelWidth = 600;
+            int panelHeight = 320;
             int panelX = (this.width - panelWidth) / 2;
             int panelY = (this.height - panelHeight) / 2;
             int responsePanelY = panelY + panelHeight + 5;
@@ -699,13 +848,23 @@ public class PokeNotifierCustomScreen extends Screen {
             for (Text line : responseLines) {
                 if (mouseY >= currentTextY && mouseY < currentTextY + this.textRenderer.fontHeight) {
                     // Handle click events in the response text
-                    if (this.handleTextClick(line.getStyle())) return true;
-                    
-                    // Check for click events in sibling components (like appended [X] buttons)
-                    if (line instanceof net.minecraft.text.MutableText mutableText) {
-                        for (var sibling : mutableText.getSiblings()) {
-                            if (this.handleTextClick(sibling.getStyle())) return true;
+                    try {
+                        if (line.getStyle().getClickEvent() != null) {
+                            this.handleTextClick(line.getStyle());
+                            return true;
                         }
+                        
+                        // Check for click events in sibling components
+                        if (line instanceof net.minecraft.text.MutableText mutableText) {
+                            for (var sibling : mutableText.getSiblings()) {
+                                if (sibling.getStyle().getClickEvent() != null) {
+                                    this.handleTextClick(sibling.getStyle());
+                                    return true;
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+                        // Ignore click handling errors
                     }
                 }
                 currentTextY += this.textRenderer.getWrappedLinesHeight(line, panelWidth - 10);
@@ -723,6 +882,12 @@ public class PokeNotifierCustomScreen extends Screen {
         if (this.pokemonNameField != null) {
             this.pokemonNameField.setText(text);
         }
+    }
+
+    @Override
+    protected void clearAndInit() {
+        this.clearChildren();
+        this.init();
     }
 
     private void executeCommand(String command) {

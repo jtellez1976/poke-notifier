@@ -19,8 +19,11 @@ public class GlobalHuntConfig {
     private int minIntervalHours = 2;
     private int maxIntervalHours = 6;
     private int eventDurationMinutes = 30;
-    private int maxSpawnDistance = 10000;
+    private int minSpawnDistance = 1500; // Minimum distance for challenge
+    private int maxSpawnDistance = 4000; // Maximum distance to keep reasonable
     private double shinyChance = 0.1; // 10% chance for shiny
+    private boolean allowDimensionSelection = true;
+    private String preferredDimension = "any"; // "overworld", "nether", "end", "any"
     
     // World configuration
     private Set<String> enabledWorlds = new HashSet<>(Arrays.asList(
@@ -136,11 +139,25 @@ public class GlobalHuntConfig {
     public int getEventDurationMinutes() { return eventDurationMinutes; }
     public void setEventDurationMinutes(int minutes) { this.eventDurationMinutes = Math.max(5, minutes); }
     
+    public int getMinSpawnDistance() { return minSpawnDistance; }
+    public void setMinSpawnDistance(int distance) { this.minSpawnDistance = Math.max(500, Math.min(distance, maxSpawnDistance - 100)); }
+    
     public int getMaxSpawnDistance() { return maxSpawnDistance; }
-    public void setMaxSpawnDistance(int distance) { this.maxSpawnDistance = Math.max(1000, distance); }
+    public void setMaxSpawnDistance(int distance) { this.maxSpawnDistance = Math.max(minSpawnDistance + 100, Math.min(distance, 10000)); }
     
     public double getShinyChance() { return shinyChance; }
     public void setShinyChance(double chance) { this.shinyChance = Math.max(0.0, Math.min(1.0, chance)); }
+    
+    public boolean isAllowDimensionSelection() { return allowDimensionSelection; }
+    public void setAllowDimensionSelection(boolean allow) { this.allowDimensionSelection = allow; }
+    
+    public String getPreferredDimension() { return preferredDimension; }
+    public void setPreferredDimension(String dimension) { 
+        if (dimension != null && (dimension.equals("overworld") || dimension.equals("nether") || 
+                                 dimension.equals("end") || dimension.equals("any"))) {
+            this.preferredDimension = dimension;
+        }
+    }
     
     public Set<String> getEnabledWorlds() { return new HashSet<>(enabledWorlds); }
     public Map<String, Integer> getPokemonPool() { return new HashMap<>(pokemonPool); }
@@ -150,13 +167,36 @@ public class GlobalHuntConfig {
         return new ArrayList<>(pokemonPool.keySet());
     }
     
+    public String getConfigSummary() {
+        return String.format("Global Hunt Config: %s | Interval: %d-%dh | Duration: %dm | Distance: %d-%d blocks | Shiny: %.1f%% | Worlds: %d",
+            enabled ? "ENABLED" : "DISABLED",
+            minIntervalHours, maxIntervalHours,
+            eventDurationMinutes,
+            minSpawnDistance, maxSpawnDistance,
+            shinyChance * 100,
+            enabledWorlds.size());
+    }
+    
+    public boolean isValidConfiguration() {
+        return minIntervalHours > 0 && 
+               maxIntervalHours >= minIntervalHours &&
+               eventDurationMinutes >= 5 &&
+               minSpawnDistance >= 500 &&
+               maxSpawnDistance > minSpawnDistance &&
+               !enabledWorlds.isEmpty() &&
+               !pokemonPool.isEmpty();
+    }
+    
     public void resetToDefaults() {
         enabled = true;
         minIntervalHours = 2;
         maxIntervalHours = 6;
         eventDurationMinutes = 30;
-        maxSpawnDistance = 10000;
+        minSpawnDistance = 1500;
+        maxSpawnDistance = 4000;
         shinyChance = 0.1;
+        allowDimensionSelection = true;
+        preferredDimension = "any";
         
         enabledWorlds.clear();
         enabledWorlds.addAll(Arrays.asList(

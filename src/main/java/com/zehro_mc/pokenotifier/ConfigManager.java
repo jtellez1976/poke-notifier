@@ -48,6 +48,7 @@ public class ConfigManager {
     private static final File CONFIG_SERVER_FILE = new File(CONFIG_DIR, "config-server.json");
     private static final File CATCHEMALL_REWARDS_FILE = new File(EVENTS_DIR, "catchemall_rewards.json"); // Moved
     private static final File BOUNTY_REWARDS_FILE = new File(EVENTS_DIR, "bounty_rewards.json"); // New
+    private static final File EVENTS_CONFIG_FILE = new File(EVENTS_DIR, "events_config.json"); // Events configuration
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
@@ -56,6 +57,7 @@ public class ConfigManager {
     private static CatchemallRewardsConfig catchemallRewardsConfig;
     private static BountyRewardsConfig bountyRewardsConfig;
     private static ConfigServer configServer;
+    private static com.zehro_mc.pokenotifier.model.EventsConfig eventsConfig;
 
     // Caches player-specific data to avoid constant file I/O.
     private static final Map<UUID, CustomListConfig> playerConfigs = new ConcurrentHashMap<>();
@@ -95,6 +97,7 @@ public class ConfigManager {
             loadConfigServer();
             loadCatchemallRewardsConfig();
             loadBountyRewardsConfig();
+            loadEventsConfig();
         }
     }
 
@@ -121,6 +124,7 @@ public class ConfigManager {
         saveServerConfigToFile();
         saveCatchemallRewardsConfig();
         saveBountyRewardsConfig();
+        saveEventsConfig();
     }
 
     public static void resetToDefault() {
@@ -129,6 +133,7 @@ public class ConfigManager {
         configPokemon = new ConfigPokemon();
         catchemallRewardsConfig = new CatchemallRewardsConfig();
         bountyRewardsConfig = new BountyRewardsConfig();
+        eventsConfig = new com.zehro_mc.pokenotifier.model.EventsConfig();
 
         if (env == EnvType.CLIENT) {
             configClient = new ConfigClient();
@@ -247,6 +252,17 @@ public class ConfigManager {
         }
     }
 
+    private static void loadEventsConfig() throws ConfigReadException {
+        eventsConfig = loadConfigFile(EVENTS_CONFIG_FILE, com.zehro_mc.pokenotifier.model.EventsConfig.class, "events/events_config.json");
+    }
+
+    private static void saveEventsConfig() {
+        if (FabricLoader.getInstance().getEnvironmentType() != EnvType.CLIENT) {
+            if (eventsConfig == null) eventsConfig = new com.zehro_mc.pokenotifier.model.EventsConfig();
+            saveConfigFile(EVENTS_CONFIG_FILE, eventsConfig, "events/events_config.json");
+        }
+    }
+
 
     public static ConfigPokemon getPokemonConfig() {
         if (configPokemon == null) {
@@ -304,6 +320,18 @@ public class ConfigManager {
             }
         }
         return bountyRewardsConfig;
+    }
+
+    public static com.zehro_mc.pokenotifier.model.EventsConfig getEventsConfig() {
+        if (eventsConfig == null) {
+            try {
+                loadEventsConfig();
+            } catch (ConfigReadException e) {
+                PokeNotifier.LOGGER.error("Initial events_config.json load failed. Using temporary default config.", e);
+                eventsConfig = new com.zehro_mc.pokenotifier.model.EventsConfig();
+            }
+        }
+        return eventsConfig;
     }
 
     public static CustomListConfig getPlayerConfig(UUID playerUuid) {
