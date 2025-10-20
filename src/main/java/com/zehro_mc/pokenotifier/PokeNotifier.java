@@ -586,9 +586,8 @@ public class PokeNotifier implements ModInitializer {
                     case REMOVE:
                         if (playerConfig.tracked_pokemon.remove(pokemonName)) {
                             ConfigManager.savePlayerConfig(player.getUuid(), playerConfig);
-                            List<Text> lines = new ArrayList<>(List.of(Text.literal("Removed '").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append("' from your custom tracking list.").formatted(Formatting.GREEN)));
-                            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
-                            PokeNotifierServerUtils.sendCatchProgressUpdate(player); // FIX: Update client state
+                            PokeNotifierServerUtils.sendCatchProgressUpdate(player);
+                            sendCustomHuntList(player); // FIX: Send the updated list directly.
                         } else {
                             List<Text> lines = new ArrayList<>(List.of(Text.literal("Pokémon '").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append("' was not on your list.").formatted(Formatting.YELLOW)));
                             ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
@@ -596,20 +595,7 @@ public class PokeNotifier implements ModInitializer {
                         break;
 
                     case LIST:
-                        if (playerConfig.tracked_pokemon.isEmpty()) {
-                            List<Text> lines = new ArrayList<>(List.of(Text.literal("Your custom tracking list is empty.").formatted(Formatting.YELLOW)));
-                            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
-                        } else {
-                            List<Text> lines = new ArrayList<>();
-                            lines.add(Text.literal("Your custom tracking list:").formatted(Formatting.YELLOW));
-                            // FIX: Make the list items clickable
-                            playerConfig.tracked_pokemon.forEach(name -> {
-                                Text clickableName = Text.literal("- " + name).formatted(Formatting.GOLD)
-                                        .styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pnc internal set_gui_text " + name)));
-                                lines.add(clickableName);
-                            });
-                            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
-                        }
+                        sendCustomHuntList(player);
                         break;
 
                     case CLEAR:
@@ -717,6 +703,28 @@ public class PokeNotifier implements ModInitializer {
                 }
             });
         });
+    }
+
+    /**
+     * Generates and sends the player's custom hunt list to them.
+     * @param player The player to send the list to.
+     */
+    private static void sendCustomHuntList(ServerPlayerEntity player) {
+        CustomListConfig playerConfig = ConfigManager.getPlayerConfig(player.getUuid());
+        if (playerConfig.tracked_pokemon.isEmpty()) {
+            List<Text> lines = new ArrayList<>(List.of(Text.literal("Your custom tracking list is empty.").formatted(Formatting.YELLOW)));
+            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+        } else {
+            List<Text> lines = new ArrayList<>();
+            lines.add(Text.literal("Your custom tracking list:").formatted(Formatting.YELLOW));
+            playerConfig.tracked_pokemon.stream().sorted().forEach(name -> {
+                Text pokemonText = Text.literal("• " + name).formatted(Formatting.GOLD);
+                Text removeButton = Text.literal(" [X]").formatted(Formatting.RED, Formatting.BOLD)
+                        .styled(style -> style.withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, "/pnc customcatch remove " + name)));
+                lines.add(pokemonText.copy().append(removeButton));
+            });
+            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+        }
     }
 
     private static MutableText createServerStatusLine(String label, boolean isEnabled) {

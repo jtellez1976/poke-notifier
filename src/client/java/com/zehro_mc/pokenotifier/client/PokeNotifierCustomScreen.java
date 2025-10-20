@@ -195,11 +195,7 @@ public class PokeNotifierCustomScreen extends Screen {
         this.pokemonNameField.setPlaceholder(Text.literal("e.g., Pikachu"));
         addDrawableChild(this.pokemonNameField);
 
-        int buttonWidth = (width - 10) / 2;
-        addDrawableChild(createActionButton("➕ Add", "pnc customcatch add", x, y + 25, buttonWidth));
-
-        ButtonWidget removeButton = createActionButton("➖ Remove", "pnc customcatch remove", x + buttonWidth + 10, y + 25, buttonWidth);
-        addDrawableChild(removeButton);
+        addDrawableChild(createActionButton("➕ Add", "pnc customcatch add", x, y + 25, width));
 
         addDrawableChild(createActionButton("🗑️ Clear List", "pnc customcatch clear", x, y + 50, width));
         addDrawableChild(createActionButton("📋 View List", "pnc customcatch view", x, y + 75, width));
@@ -356,6 +352,13 @@ public class PokeNotifierCustomScreen extends Screen {
             }
             
             executeCommand(finalCommand);
+
+            // FIX: Clear the text field after adding or removing a Pokémon from the custom hunt.
+            if (command.contains("customcatch add") || command.contains("customcatch remove")) {
+                if (this.pokemonNameField != null) {
+                    this.pokemonNameField.setText("");
+                }
+            }
         }).dimensions(x, y, width, 20).build();
     }
 
@@ -462,7 +465,7 @@ public class PokeNotifierCustomScreen extends Screen {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0 && !responseLines.isEmpty()) {
             int panelWidth = 420;
-            int panelHeight = 240;
+            int panelHeight = 260;
             int panelX = (this.width - panelWidth) / 2;
             int panelY = (this.height - panelHeight) / 2;
             int responsePanelY = panelY + panelHeight + 5;
@@ -470,7 +473,15 @@ public class PokeNotifierCustomScreen extends Screen {
 
             for (Text line : responseLines) {
                 if (mouseY >= currentTextY && mouseY < currentTextY + this.textRenderer.fontHeight) {
+                    // Handle click events in the response text
                     if (this.handleTextClick(line.getStyle())) return true;
+                    
+                    // Check for click events in sibling components (like appended [X] buttons)
+                    if (line instanceof net.minecraft.text.MutableText mutableText) {
+                        for (var sibling : mutableText.getSiblings()) {
+                            if (this.handleTextClick(sibling.getStyle())) return true;
+                        }
+                    }
                 }
                 currentTextY += this.textRenderer.getWrappedLinesHeight(line, panelWidth - 10);
             }
@@ -492,7 +503,9 @@ public class PokeNotifierCustomScreen extends Screen {
     private void executeCommand(String command) {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player != null && client.player.networkHandler != null) {
-            client.player.networkHandler.sendChatCommand(command);
+            // Remove leading slash if present since sendChatCommand adds it automatically
+            String cleanCommand = command.startsWith("/") ? command.substring(1) : command;
+            client.player.networkHandler.sendChatCommand(cleanCommand);
         }
     }
 
