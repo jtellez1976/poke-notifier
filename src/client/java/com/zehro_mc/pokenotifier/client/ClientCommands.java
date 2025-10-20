@@ -99,12 +99,12 @@ public class ClientCommands {
         SuggestionProvider<FabricClientCommandSource> pokemonSuggestionProvider = (context, builder) ->
                 CommandSource.suggestMatching(PokeNotifierApi.getAllPokemonNames(), builder);
 
-        // --- Custom Catch Subcommand ---
+        // --- Custom Catch Subcommand - HIDDEN ---
         var customcatchNode = ClientCommandManager.literal("customcatch")
-                // FIX: The parent node must be executable for its children to be found.
-                // We will hide the sub-commands individually if needed, but the parent must be valid.
+                .requires(source -> false) // Hide from chat suggestions
                 .executes(context -> 0) // Dummy executor to make the node valid.
                 .then(ClientCommandManager.literal("add")
+                        .requires(source -> false) // Hide from chat suggestions
                         .then(ClientCommandManager.argument("pokemon", StringArgumentType.greedyString())
                                 .suggests(pokemonSuggestionProvider)
                                 .executes(context -> {
@@ -113,7 +113,8 @@ public class ClientCommands {
                                     context.getSource().sendFeedback(Text.literal("Request sent to add ").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append(" to your custom list.").formatted(Formatting.YELLOW));
                                     return 1;
                                 })))
-                .then(ClientCommandManager.literal("remove") 
+                .then(ClientCommandManager.literal("remove")
+                        .requires(source -> false) // Hide from chat suggestions
                         .then(ClientCommandManager.argument("pokemon", StringArgumentType.greedyString())
                                 .suggests(pokemonSuggestionProvider)
                                 .executes(context -> {
@@ -122,13 +123,15 @@ public class ClientCommands {
                                     context.getSource().sendFeedback(Text.literal("Request sent to remove ").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append(" from your custom list.").formatted(Formatting.YELLOW));
                                     return 1;
                                 })))
-                .then(ClientCommandManager.literal("view") 
+                .then(ClientCommandManager.literal("view")
+                        .requires(source -> false) // Hide from chat suggestions
                         .executes(context -> {
                             ClientPlayNetworking.send(new CustomListUpdatePayload(CustomListUpdatePayload.Action.LIST, ""));
                             context.getSource().sendFeedback(Text.literal("Requesting your custom list from the server...").formatted(Formatting.YELLOW));
                             return 1;
                         }))
-                .then(ClientCommandManager.literal("clear") 
+                .then(ClientCommandManager.literal("clear")
+                        .requires(source -> false) // Hide from chat suggestions
                         .executes(context -> {
                             ClientPlayNetworking.send(new CustomListUpdatePayload(CustomListUpdatePayload.Action.CLEAR, ""));
                             context.getSource().sendFeedback(Text.literal("Request sent to clear your custom list.").formatted(Formatting.YELLOW));
