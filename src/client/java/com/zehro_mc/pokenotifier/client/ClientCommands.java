@@ -100,10 +100,11 @@ public class ClientCommands {
                 CommandSource.suggestMatching(PokeNotifierApi.getAllPokemonNames(), builder);
 
         // --- Custom Catch Subcommand ---
-        // Hidden because it's managed by the GUI.
         var customcatchNode = ClientCommandManager.literal("customcatch")
-                .requires(source -> false)
-                .then(ClientCommandManager.literal("add") // /pnc list add <pokemon>
+                // FIX: The parent node must be executable for its children to be found.
+                // We will hide the sub-commands individually if needed, but the parent must be valid.
+                .executes(context -> 0) // Dummy executor to make the node valid.
+                .then(ClientCommandManager.literal("add")
                         .then(ClientCommandManager.argument("pokemon", StringArgumentType.greedyString())
                                 .suggests(pokemonSuggestionProvider)
                                 .executes(context -> {
@@ -111,8 +112,8 @@ public class ClientCommands {
                                     ClientPlayNetworking.send(new CustomListUpdatePayload(CustomListUpdatePayload.Action.ADD, pokemonName));
                                     context.getSource().sendFeedback(Text.literal("Request sent to add ").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append(" to your custom list.").formatted(Formatting.YELLOW));
                                     return 1;
-                                }))) // /pnc list remove <pokemon>
-                .then(ClientCommandManager.literal("remove")
+                                })))
+                .then(ClientCommandManager.literal("remove") 
                         .then(ClientCommandManager.argument("pokemon", StringArgumentType.greedyString())
                                 .suggests(pokemonSuggestionProvider)
                                 .executes(context -> {
@@ -120,14 +121,14 @@ public class ClientCommands {
                                     ClientPlayNetworking.send(new CustomListUpdatePayload(CustomListUpdatePayload.Action.REMOVE, pokemonName));
                                     context.getSource().sendFeedback(Text.literal("Request sent to remove ").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append(" from your custom list.").formatted(Formatting.YELLOW));
                                     return 1;
-                                }))) // /pnc list view
-                .then(ClientCommandManager.literal("view")
+                                })))
+                .then(ClientCommandManager.literal("view") 
                         .executes(context -> {
                             ClientPlayNetworking.send(new CustomListUpdatePayload(CustomListUpdatePayload.Action.LIST, ""));
                             context.getSource().sendFeedback(Text.literal("Requesting your custom list from the server...").formatted(Formatting.YELLOW));
                             return 1;
-                        })) // /pnc list clear
-                .then(ClientCommandManager.literal("clear")
+                        }))
+                .then(ClientCommandManager.literal("clear") 
                         .executes(context -> {
                             ClientPlayNetworking.send(new CustomListUpdatePayload(CustomListUpdatePayload.Action.CLEAR, ""));
                             context.getSource().sendFeedback(Text.literal("Request sent to clear your custom list.").formatted(Formatting.YELLOW));

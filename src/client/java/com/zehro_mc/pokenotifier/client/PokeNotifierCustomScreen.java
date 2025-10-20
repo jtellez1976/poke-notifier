@@ -338,11 +338,24 @@ public class PokeNotifierCustomScreen extends Screen {
 
     private ButtonWidget createActionButton(String text, String command, int x, int y, int width) {
         return ButtonWidget.builder(Text.literal(text), button -> {
-            String pokemonName = (this.pokemonNameField != null) ? this.pokemonNameField.getText().trim() : "";
-            String finalCommand = command.contains("add") || command.contains("remove") || command.contains("start") || command.contains("spawn") ? command + " " + pokemonName : command;
-            if (!finalCommand.endsWith(" ") || command.contains("view") || command.contains("clear") || command.contains("status") || command.contains("disable") || command.contains("reload") || command.contains("reset") || command.contains("help") || command.contains("version")) {
-                executeCommand(finalCommand);
+            // FIX: Refactored command execution logic to be simpler and more reliable.
+            String finalCommand = command;
+
+            // Check if the command needs a pokemon name and the corresponding field is visible
+            if ((command.contains("customcatch add") || command.contains("customcatch remove") || command.contains("swarm start") || command.contains("test spawn")) && this.pokemonNameField != null && this.pokemonNameField.isVisible()) {
+                String pokemonName = this.pokemonNameField.getText().trim();
+                if (!pokemonName.isEmpty()) { // Only append if there's text
+                    finalCommand += " " + pokemonName;
+                }
+            // Check if the command needs a player name and the corresponding field is visible
+            } else if ((command.contains("data autocomplete") || command.contains("data rollback")) && this.playerNameField != null && this.playerNameField.isVisible()) {
+                String playerName = this.playerNameField.getText().trim();
+                if (!playerName.isEmpty()) { // Only append if there's text
+                    finalCommand += " " + playerName;
+                }
             }
+            
+            executeCommand(finalCommand);
         }).dimensions(x, y, width, 20).build();
     }
 
