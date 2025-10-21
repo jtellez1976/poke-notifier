@@ -397,19 +397,29 @@ public class PokeNotifierCustomScreen extends Screen {
             ConfigManager.saveClientConfigToFile();
         }
         
-        ButtonWidget autoWaypointButton = createToggleButton("Auto-Waypoint", clientConfig.auto_waypoint_enabled, newValue -> {
-            boolean currentCatchEmAllActive = PokeNotifierClient.currentCatchEmAllGeneration != null && !"none".equals(PokeNotifierClient.currentCatchEmAllGeneration);
-            if (newValue && currentCatchEmAllActive) {
-                displayResponse(List.of(
-                    Text.literal("Cannot enable Auto-Waypoint while Catch 'em All is active!").formatted(Formatting.RED),
-                    Text.literal("This would create massive waypoints. Disable Catch 'em All first.").formatted(Formatting.YELLOW)
-                ));
-                return;
-            }
-            clientConfig.auto_waypoint_enabled = newValue;
-            ConfigManager.saveClientConfigToFile();
-            this.clearAndInit();
-        }, x, currentY, width);
+        ButtonWidget autoWaypointButton = ButtonWidget.builder(
+            Text.literal("Auto-Waypoint: ").append(clientConfig.auto_waypoint_enabled ? 
+                Text.literal("ON").formatted(Formatting.GREEN) : 
+                Text.literal("OFF").formatted(Formatting.RED)), 
+            button -> {
+                boolean currentCatchEmAllActive = PokeNotifierClient.currentCatchEmAllGeneration != null && !"none".equals(PokeNotifierClient.currentCatchEmAllGeneration);
+                boolean newValue = !clientConfig.auto_waypoint_enabled;
+                
+                if (newValue && currentCatchEmAllActive) {
+                    displayResponse(List.of(
+                        Text.literal("Cannot enable Auto-Waypoint while Catch 'em All is active!").formatted(Formatting.RED),
+                        Text.literal("This would create massive waypoints. Disable Catch 'em All first.").formatted(Formatting.YELLOW)
+                    ));
+                    return; // Don't change the state
+                }
+                
+                clientConfig.auto_waypoint_enabled = newValue;
+                ConfigManager.saveClientConfigToFile();
+                button.setMessage(Text.literal("Auto-Waypoint: ").append(newValue ? 
+                    Text.literal("ON").formatted(Formatting.GREEN) : 
+                    Text.literal("OFF").formatted(Formatting.RED)));
+                displayResponse(List.of(Text.literal("Settings updated.").formatted(Formatting.GREEN)));
+            }).dimensions(x, currentY, width, 18).build();
         addDrawableChild(autoWaypointButton);
         currentY += 30;
         

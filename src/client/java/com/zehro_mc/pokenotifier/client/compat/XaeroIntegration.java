@@ -238,18 +238,19 @@ public class XaeroIntegration {
         }
         
         try {
-            MinecraftClient client = MinecraftClient.getInstance();
-            if (client.player != null) {
-                // Use the correct Xaero command format
-                String removeCommand = "xaero_waypoint_remove:" + waypointName;
-                client.player.networkHandler.sendChatCommand(removeCommand);
-                LOGGER.debug("[XAERO INTEGRATION] Sent remove command for waypoint: {}", waypointName);
+            // Try direct integration method first
+            if (XaeroWaypointIntegration.removeWaypoint(waypointName)) {
+                LOGGER.debug("[XAERO INTEGRATION] Successfully removed waypoint via integration: {}", waypointName);
                 return true;
             }
+            
+            LOGGER.warn("[XAERO INTEGRATION] Failed to remove waypoint via integration: {}", waypointName);
+            return false;
+            
         } catch (Exception e) {
-            LOGGER.warn("[XAERO INTEGRATION] Failed to remove waypoint '{}': {}", waypointName, e.getMessage());
+            LOGGER.warn("[XAERO INTEGRATION] Exception removing waypoint '{}': {}", waypointName, e.getMessage());
+            return false;
         }
-        return false;
     }
     
     /**
