@@ -36,6 +36,11 @@ public class PokeNotifierCustomScreen extends Screen {
 
     private List<Text> responseLines = new ArrayList<>();
     private int responseTimer = 0;
+    
+    // System Status side panel variables
+    private List<Text> systemStatusLines = new ArrayList<>();
+    private int systemStatusTimer = 0;
+    private int systemStatusScrollOffset = 0;
 
     private enum MainCategory { USER_TOOLS, EVENTS, ADMIN_TOOLS }
     private MainCategory currentMainCategory = MainCategory.USER_TOOLS;
@@ -46,8 +51,8 @@ public class PokeNotifierCustomScreen extends Screen {
     private enum EventSubCategory { GLOBAL_HUNT, BOUNTY_SYSTEM, SWARM_EVENTS, RIVAL_BATTLES }
     private EventSubCategory currentEventSubCategory = EventSubCategory.GLOBAL_HUNT;
 
-    private enum AdminSubCategory { SERVER_CONTROL, PLAYER_DATA, TESTING }
-    private AdminSubCategory currentAdminSubCategory = AdminSubCategory.SERVER_CONTROL;
+    private enum AdminSubCategory { SYSTEM_STATUS, SERVER_CONTROL, PLAYER_DATA, TESTING }
+    private AdminSubCategory currentAdminSubCategory = AdminSubCategory.SYSTEM_STATUS;
 
     public PokeNotifierCustomScreen(Screen parent) {
         // FIX: Title is now set dynamically in the constructor based on player role.
@@ -194,15 +199,17 @@ public class PokeNotifierCustomScreen extends Screen {
         int navY = panelY + 55;
         int navWidth = 110;
 
-        addDrawableChild(createSubNavButton(navX, navY, navWidth, "⚙️ Server Control", AdminSubCategory.SERVER_CONTROL, currentAdminSubCategory));
-        addDrawableChild(createSubNavButton(navX, navY + 22, navWidth, "👤 Player Data", AdminSubCategory.PLAYER_DATA, currentAdminSubCategory));
-        addDrawableChild(createSubNavButton(navX, navY + 44, navWidth, "🔬 Testing", AdminSubCategory.TESTING, currentAdminSubCategory));
+        addDrawableChild(createSubNavButton(navX, navY, navWidth, "📊 System Status", AdminSubCategory.SYSTEM_STATUS, currentAdminSubCategory));
+        addDrawableChild(createSubNavButton(navX, navY + 22, navWidth, "⚙️ Server Control", AdminSubCategory.SERVER_CONTROL, currentAdminSubCategory));
+        addDrawableChild(createSubNavButton(navX, navY + 44, navWidth, "👤 Player Data", AdminSubCategory.PLAYER_DATA, currentAdminSubCategory));
+        addDrawableChild(createSubNavButton(navX, navY + 66, navWidth, "🔬 Testing", AdminSubCategory.TESTING, currentAdminSubCategory));
 
         int contentX = panelX + navWidth + 20;
         int contentY = panelY + 55;
         int contentWidth = panelWidth - navWidth - 35;
 
         switch (currentAdminSubCategory) {
+            case SYSTEM_STATUS -> buildSystemStatusPanel(contentX, contentY, contentWidth);
             case SERVER_CONTROL -> buildServerControlPanel(contentX, contentY, contentWidth);
             case PLAYER_DATA -> buildPlayerDataPanel(contentX, contentY, contentWidth);
             case TESTING -> buildTestingPanel(contentX, contentY, contentWidth);
@@ -234,6 +241,7 @@ public class PokeNotifierCustomScreen extends Screen {
             };
         } else if (category instanceof AdminSubCategory) {
             return switch ((AdminSubCategory) category) {
+                case SYSTEM_STATUS -> "View status of all mod services and configurations";
                 case SERVER_CONTROL -> "Toggle server modes and reload configs";
                 case PLAYER_DATA -> "Manage player progress and backups";
                 case TESTING -> "Spawn test Pokémon for debugging";
@@ -567,6 +575,17 @@ public class PokeNotifierCustomScreen extends Screen {
     }
 
     // --- ADMIN PANEL BUILDERS ---
+
+    private void buildSystemStatusPanel(int x, int y, int width) {
+        // Refresh Status button
+        addDrawableChild(ButtonWidget.builder(Text.literal("🔄 Refresh System Status"), b -> {
+            systemStatusLines = getSystemStatusLines();
+            systemStatusTimer = 600; // Show for 30 seconds (600 ticks)
+            systemStatusScrollOffset = 0; // Reset scroll
+        }).dimensions(x, y, width, 20)
+        .tooltip(net.minecraft.client.gui.tooltip.Tooltip.of(Text.literal("Show system status in side panel for 30 seconds")))
+        .build());
+    }
 
     private void buildServerControlPanel(int x, int y, int width) {
         // Debug Mode toggle
@@ -967,6 +986,154 @@ public class PokeNotifierCustomScreen extends Screen {
         }
         return message;
     }
+    
+    
+    private Text createStatusLine(String label, boolean isEnabled) {
+        return Text.literal(label + ": ").append(isEnabled ? Text.literal("ON").formatted(Formatting.GREEN) : Text.literal("OFF").formatted(Formatting.RED));
+    }
+    
+    private List<Text> getSystemStatusLines() {
+        List<Text> lines = new ArrayList<>();
+        
+        // Header
+        lines.add(Text.literal("POKE NOTIFIER SYSTEM STATUS").formatted(Formatting.GOLD, Formatting.BOLD));
+        lines.add(Text.literal(""));
+        
+        // Core Server Services
+        lines.add(Text.literal("CORE SERVER SERVICES").formatted(Formatting.YELLOW, Formatting.UNDERLINE));
+        lines.add(createStatusLine("  Debug Mode", PokeNotifierClient.isServerDebugMode));
+        lines.add(createStatusLine("  Test Mode", PokeNotifierClient.isServerTestMode));
+        lines.add(Text.literal(""));
+        
+        // Event Systems
+        lines.add(Text.literal("EVENT SYSTEMS").formatted(Formatting.YELLOW, Formatting.UNDERLINE));
+        lines.add(createStatusLine("  Bounty System", PokeNotifierClient.isServerBountySystemEnabled));
+        lines.add(createStatusLine("  Global Hunt System", PokeNotifierClient.isGlobalHuntSystemEnabled));
+        lines.add(createStatusLine("  Swarm System", serverConfig.swarm_system_enabled));
+        lines.add(createStatusLine("  Swarm Notifications", serverConfig.swarm_notifications_enabled));
+        lines.add(Text.literal(""));
+        
+        // User Notification Services
+        lines.add(Text.literal("USER NOTIFICATION SERVICES").formatted(Formatting.YELLOW, Formatting.UNDERLINE));
+        lines.add(createStatusLine("  Chat Alerts", clientConfig.alert_chat_enabled));
+        lines.add(createStatusLine("  Sound Alerts", clientConfig.alert_sounds_enabled));
+        lines.add(createStatusLine("  HUD/Toast Alerts", clientConfig.alert_toast_enabled));
+        lines.add(createStatusLine("  Silent Mode", clientConfig.silent_mode_enabled));
+        lines.add(createStatusLine("  Searching Enabled", clientConfig.searching_enabled));
+        lines.add(Text.literal(""));
+        
+        // Map Integration
+        boolean xaeroAvailable = com.zehro_mc.pokenotifier.client.compat.XaeroIntegration.isXaeroAvailable();
+        lines.add(Text.literal("MAP INTEGRATION").formatted(Formatting.YELLOW, Formatting.UNDERLINE));
+        lines.add(createStatusLine("  Xaero's Mods Detected", xaeroAvailable));
+        lines.add(createStatusLine("  Waypoint Creation", clientConfig.create_waypoints_enabled));
+        lines.add(createStatusLine("  Auto-Waypoint", clientConfig.auto_waypoint_enabled));
+        lines.add(createStatusLine("  Auto-Remove Waypoints", clientConfig.auto_remove_waypoints));
+        if (xaeroAvailable) {
+            int trackedCount = com.zehro_mc.pokenotifier.client.compat.WaypointTracker.getTrackedWaypointCount();
+            lines.add(Text.literal("  Tracked Waypoints: " + trackedCount).formatted(Formatting.AQUA));
+        }
+        lines.add(Text.literal(""));
+        
+        // Active User Systems
+        lines.add(Text.literal("ACTIVE USER SYSTEMS").formatted(Formatting.YELLOW, Formatting.UNDERLINE));
+        boolean isCatchEmAllActive = PokeNotifierClient.currentCatchEmAllGeneration != null && !"none".equals(PokeNotifierClient.currentCatchEmAllGeneration);
+        if (isCatchEmAllActive) {
+            lines.add(Text.literal("  Catch 'em All: ").append(Text.literal("ACTIVE (" + PokeNotifierClient.currentCatchEmAllGeneration + ")").formatted(Formatting.GREEN)));
+        } else {
+            lines.add(Text.literal("  Catch 'em All: ").append(Text.literal("INACTIVE").formatted(Formatting.GRAY)));
+        }
+        
+        // Custom Hunt List Status
+        lines.add(Text.literal("  Custom Hunt List: ").append(Text.literal("CONFIGURED").formatted(Formatting.AQUA)));
+        lines.add(Text.literal(""));
+        
+        // Server Configuration Values
+        lines.add(Text.literal("SERVER CONFIGURATION").formatted(Formatting.YELLOW, Formatting.UNDERLINE));
+        lines.add(Text.literal("  Notification Distance: " + clientConfig.notification_distance + " blocks").formatted(Formatting.WHITE));
+        lines.add(Text.literal("  Glowing Duration: " + clientConfig.glowing_duration_seconds + " seconds").formatted(Formatting.WHITE));
+        lines.add(Text.literal("  Rival Cooldown: " + serverConfig.rival_notification_cooldown_seconds + " seconds").formatted(Formatting.WHITE));
+        lines.add(Text.literal("  Rival Override Distance: " + serverConfig.rival_notification_override_distance + " blocks").formatted(Formatting.WHITE));
+        lines.add(Text.literal(""));
+        
+        // Update System
+        lines.add(Text.literal("UPDATE SYSTEM").formatted(Formatting.YELLOW, Formatting.UNDERLINE));
+        String updateSource = PokeNotifierClient.currentUpdateSource != null ? PokeNotifierClient.currentUpdateSource : "unknown";
+        lines.add(Text.literal("  Update Source: " + updateSource.toUpperCase()).formatted(Formatting.WHITE));
+        lines.add(Text.literal(""));
+        
+        // Active Events (if any)
+        lines.add(Text.literal("ACTIVE EVENTS").formatted(Formatting.YELLOW, Formatting.UNDERLINE));
+        if (PokeNotifierClient.hasActiveGlobalHunt && !PokeNotifierClient.activeGlobalHuntPokemon.isEmpty()) {
+            lines.add(Text.literal("  Global Hunt: ").append(Text.literal("ACTIVE (" + PokeNotifierClient.activeGlobalHuntPokemon + ")").formatted(Formatting.GREEN)));
+        } else {
+            lines.add(Text.literal("  Global Hunt: ").append(Text.literal("NO ACTIVE EVENT").formatted(Formatting.GRAY)));
+        }
+        
+        if (serverConfig.active_bounty != null && !serverConfig.active_bounty.isEmpty()) {
+            lines.add(Text.literal("  Bounty: ").append(Text.literal("ACTIVE (" + serverConfig.active_bounty + ")").formatted(Formatting.GREEN)));
+        } else {
+            lines.add(Text.literal("  Bounty: ").append(Text.literal("NO ACTIVE BOUNTY").formatted(Formatting.GRAY)));
+        }
+        
+        return lines;
+    }
+    
+    private void renderSystemStatusSidePanel(DrawContext context, int panelX, int panelY, int panelWidth, int panelHeight) {
+        int sidePanelWidth = 250;
+        int sidePanelX = panelX + panelWidth + 10;
+        int sidePanelY = panelY;
+        int sidePanelHeight = panelHeight;
+        
+        // Draw side panel background
+        context.fill(sidePanelX, sidePanelY, sidePanelX + sidePanelWidth, sidePanelY + sidePanelHeight, 0xE01A1A1A);
+        context.drawBorder(sidePanelX, sidePanelY, sidePanelWidth, sidePanelHeight, 0xFF888888);
+        
+        // Draw title
+        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal("System Status").formatted(Formatting.GOLD), 
+            sidePanelX + sidePanelWidth / 2, sidePanelY + 8, 0xFFFFFF);
+        
+        // Draw timer indicator
+        int remainingSeconds = systemStatusTimer / 20;
+        context.drawText(this.textRenderer, Text.literal("Auto-hide: " + remainingSeconds + "s").formatted(Formatting.GRAY), 
+            sidePanelX + 5, sidePanelY + sidePanelHeight - 12, 0x80FFFFFF, false);
+        
+        // Content area
+        int contentY = sidePanelY + 25;
+        int contentHeight = sidePanelHeight - 40;
+        
+        // Enable scissor for scrolling
+        context.enableScissor(sidePanelX, contentY, sidePanelX + sidePanelWidth, contentY + contentHeight);
+        
+        int lineHeight = this.textRenderer.fontHeight + 1;
+        int startY = contentY + 5 - systemStatusScrollOffset;
+        
+        for (int i = 0; i < systemStatusLines.size(); i++) {
+            Text line = systemStatusLines.get(i);
+            int lineY = startY + (i * lineHeight);
+            
+            // Only render lines that are visible
+            if (lineY >= contentY - lineHeight && lineY <= contentY + contentHeight) {
+                context.drawText(this.textRenderer, line, sidePanelX + 5, lineY, 0xFFFFFF, false);
+            }
+        }
+        
+        context.disableScissor();
+        
+        // Draw scroll indicator if needed
+        int totalContentHeight = systemStatusLines.size() * lineHeight;
+        if (totalContentHeight > contentHeight) {
+            // Draw scrollbar
+            int scrollbarX = sidePanelX + sidePanelWidth - 8;
+            int scrollbarHeight = Math.max(20, (contentHeight * contentHeight) / totalContentHeight);
+            int scrollbarY = contentY + (systemStatusScrollOffset * (contentHeight - scrollbarHeight)) / Math.max(1, totalContentHeight - contentHeight);
+            
+            context.fill(scrollbarX, contentY, scrollbarX + 6, contentY + contentHeight, 0x40FFFFFF);
+            context.fill(scrollbarX, scrollbarY, scrollbarX + 6, scrollbarY + scrollbarHeight, 0xFFFFFFFF);
+        }
+    }
+    
+
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
@@ -988,6 +1155,11 @@ public class PokeNotifierCustomScreen extends Screen {
 
         // Draw title centered
         context.drawCenteredTextWithShadow(this.textRenderer, this.title, this.width / 2, panelY + 10, 0xFFFFFF);
+        
+        // Render System Status side panel if active
+        if (systemStatusTimer > 0 && !systemStatusLines.isEmpty()) {
+            renderSystemStatusSidePanel(context, panelX, panelY, panelWidth, panelHeight);
+        }
 
 
 
@@ -1026,6 +1198,15 @@ public class PokeNotifierCustomScreen extends Screen {
             responseTimer--;
             if (responseTimer == 0) {
                 responseLines.clear();
+            }
+        }
+        
+        // Handle system status timer
+        if (systemStatusTimer > 0) {
+            systemStatusTimer--;
+            if (systemStatusTimer == 0) {
+                systemStatusLines.clear();
+                systemStatusScrollOffset = 0;
             }
         }
 
@@ -1111,6 +1292,33 @@ public class PokeNotifierCustomScreen extends Screen {
         }
         return super.mouseClicked(mouseX, mouseY, button);
     }
+    
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        // Handle scrolling in System Status side panel
+        if (systemStatusTimer > 0 && !systemStatusLines.isEmpty()) {
+            int panelWidth = 420;
+            int panelX = (this.width - panelWidth) / 2;
+            int sidePanelWidth = 250;
+            int sidePanelX = panelX + panelWidth + 10;
+            
+            // Check if mouse is over the side panel
+            if (mouseX >= sidePanelX && mouseX <= sidePanelX + sidePanelWidth) {
+                int lineHeight = this.textRenderer.fontHeight + 1;
+                int totalContentHeight = systemStatusLines.size() * lineHeight;
+                int contentHeight = 195; // Approximate content height
+                
+                if (totalContentHeight > contentHeight) {
+                    int scrollAmount = (int) (verticalAmount * 15); // Scroll speed
+                    systemStatusScrollOffset = Math.max(0, Math.min(totalContentHeight - contentHeight, systemStatusScrollOffset - scrollAmount));
+                    return true;
+                }
+            }
+        }
+        return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
+    }
+    
+
 
     public void displayResponse(List<Text> lines) {
         this.responseLines = new ArrayList<>(lines);
