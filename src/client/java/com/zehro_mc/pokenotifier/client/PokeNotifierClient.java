@@ -249,7 +249,7 @@ public class PokeNotifierClient implements ClientModInitializer {
                 if (ACTIVE_WAYPOINTS.remove(payload.uuid()) != null) {
                     LOGGER.info("Waypoint removed for: " + payload.name());
                     
-                    // Force remove waypoint from tracker and map
+                    // Force remove waypoint from tracker and map for ALL update types
                     try {
                         java.util.UUID pokemonUuid = java.util.UUID.fromString(payload.uuid());
                         com.zehro_mc.pokenotifier.client.compat.WaypointTracker.unregisterWaypoint(pokemonUuid);
@@ -258,6 +258,9 @@ public class PokeNotifierClient implements ClientModInitializer {
                         String cleanName = payload.name().replaceAll("[^a-zA-Z0-9 ]", "").trim();
                         if (cleanName.length() > 15) cleanName = cleanName.substring(0, 15);
                         XaeroIntegration.removeWaypoint(cleanName);
+                        
+                        // Force remove from WaypointManager as well
+                        com.zehro_mc.pokenotifier.client.data.WaypointManager.removeWaypointByPokemon(payload.uuid());
                         
                     } catch (Exception e) {
                         LOGGER.warn("Failed to force remove waypoint for {}: {}", payload.name(), e.getMessage());

@@ -327,6 +327,16 @@ public class PokeNotifierCustomScreen extends Screen {
             int buttonY = y + row * (buttonHeight + 5);
 
             ButtonWidget button = ButtonWidget.builder(Text.literal(getGenerationDisplayName(gen)), b -> {
+                // Check if Auto-Waypoint is enabled and warn user
+                if (clientConfig.auto_waypoint_enabled) {
+                    displayResponse(List.of(
+                        Text.literal("Auto-Waypoint is active! Disabling it to prevent massive waypoints.").formatted(Formatting.YELLOW),
+                        Text.literal("Catch 'em All would create waypoints for every Pokemon.").formatted(Formatting.GRAY)
+                    ));
+                    clientConfig.auto_waypoint_enabled = false;
+                    ConfigManager.saveClientConfigToFile();
+                }
+                
                 // Use networking payload instead of command
                 com.zehro_mc.pokenotifier.networking.CatchemallUpdatePayload payload = 
                     new com.zehro_mc.pokenotifier.networking.CatchemallUpdatePayload(

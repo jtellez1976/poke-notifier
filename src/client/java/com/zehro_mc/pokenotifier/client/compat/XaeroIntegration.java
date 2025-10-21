@@ -122,29 +122,8 @@ public class XaeroIntegration {
                                    "Location: " + x + ", " + y + ", " + z)
                             .formatted(Formatting.YELLOW))));
         } else {
-            // Manual waypoint button - create immediately when text is clicked
-            Text addButton = Text.literal("[Add]")
-                .styled(style -> style
-                    .withColor(Formatting.AQUA)
-                    .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, 
-                        Text.literal("Click to add waypoint: " + cleanName + "\n" +
-                                   "Location: " + x + ", " + y + ", " + z)
-                            .formatted(Formatting.YELLOW))));
-            
-            // Create waypoint immediately when this text is created
-            MinecraftClient.getInstance().execute(() -> {
-                if (XaeroWaypointIntegration.addWaypoint(cleanName, x, y, z)) {
-                    LOGGER.debug("[XAERO INTEGRATION] Manual waypoint created: {}", cleanName);
-                }
-            });
-            
-            return Text.literal("[Added]")
-                .styled(style -> style
-                    .withColor(Formatting.GREEN)
-                    .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, 
-                        Text.literal("Waypoint created: " + cleanName + "\n" +
-                                   "Location: " + x + ", " + y + ", " + z)
-                            .formatted(Formatting.YELLOW))));
+            // Manual waypoint button - create on click via custom handler
+            return new ManualWaypointText(cleanName, x, y, z);
         }
     }
     
@@ -207,22 +186,15 @@ public class XaeroIntegration {
                                    "Location: " + x + ", " + y + ", " + z)
                             .formatted(Formatting.YELLOW))));
         } else {
-            // Manual waypoint button - create immediately when text is created
-            MinecraftClient.getInstance().execute(() -> {
-                if (XaeroWaypointIntegration.addWaypoint(cleanName, x, y, z)) {
-                    LOGGER.debug("[XAERO INTEGRATION] Manual Pokemon waypoint created: {}", cleanName);
-                    if (ConfigManager.getClientConfig().auto_remove_waypoints && pokemonEntity != null) {
-                        WaypointTracker.registerWaypoint(pokemonEntity, cleanName);
-                    }
-                }
-            });
-            
-            return Text.literal("[Added]")
+            // Manual waypoint button with direct execution
+            return Text.literal("[Add]")
                 .styled(style -> style
-                    .withColor(Formatting.GREEN)
+                    .withColor(Formatting.AQUA)
+                    .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/waypoint add " + cleanName + " " + x + " " + y + " " + z))
                     .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, 
-                        Text.literal("Waypoint created: " + cleanName + "\n" +
-                                   "Location: " + x + ", " + y + ", " + z)
+                        Text.literal("Click to add waypoint: " + cleanName + "\n" +
+                                   "Location: " + x + ", " + y + ", " + z + "\n" +
+                                   "Creates tracked waypoint when clicked")
                             .formatted(Formatting.YELLOW))));
         }
     }
