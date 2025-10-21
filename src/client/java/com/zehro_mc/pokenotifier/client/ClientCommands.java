@@ -274,10 +274,31 @@ public class ClientCommands {
                                 })));
         pncCommand.then(internalCommand);
 
+        // --- NEW: Waypoint command for Xaero's integration ---
+        var waypointCommand = ClientCommandManager.literal("addwaypoint")
+                .then(ClientCommandManager.argument("name", StringArgumentType.string())
+                        .then(ClientCommandManager.argument("x", com.mojang.brigadier.arguments.IntegerArgumentType.integer())
+                                .then(ClientCommandManager.argument("y", com.mojang.brigadier.arguments.IntegerArgumentType.integer())
+                                        .then(ClientCommandManager.argument("z", com.mojang.brigadier.arguments.IntegerArgumentType.integer())
+                                                .executes(context -> {
+                                                    String name = StringArgumentType.getString(context, "name");
+                                                    int x = com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(context, "x");
+                                                    int y = com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(context, "y");
+                                                    int z = com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(context, "z");
+                                                    
+                                                    if (com.zehro_mc.pokenotifier.client.compat.XaeroWaypointIntegration.addWaypoint(name, x, y, z)) {
+                                                        context.getSource().sendFeedback(Text.literal("Waypoint '" + name + "' added successfully!").formatted(Formatting.GREEN));
+                                                    } else {
+                                                        context.getSource().sendFeedback(Text.literal("Failed to add waypoint. Xaero's minimap not found.").formatted(Formatting.RED));
+                                                    }
+                                                    return 1;
+                                                })))));
+
         // Register all subcommands
         pncCommand.then(alertsNode);
         pncCommand.then(customcatchNode);
         pncCommand.then(catchemallCommand);
+        pncCommand.then(waypointCommand);
 
         // Redirects server-side commands to be accessible via /pnc for convenience.
         var serverCommandNode = dispatcher.getRoot().getChild("pokenotifier");

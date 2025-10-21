@@ -32,5 +32,11 @@
 		"fabric-api": "*",
 		"minecraft": "1.21.1",
 		"cobblemon": ">=1.6.0"
+	},
+	"suggests": {
+		"xaerominimap": "*",
+		"xaeroworldmap": "*",
+		"advancementplaques": "*",
+		"iceberg": "*"
 	}
 }

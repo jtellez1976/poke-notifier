@@ -60,6 +60,8 @@ public class PokeNotifierClient implements ClientModInitializer {
     public void onInitializeClient() {
         // Load client-specific configurations at the very beginning.
         ConfigManager.loadClientConfig();
+        
+        // Xaero's integration now uses auto-detection format
 
         HudRenderCallback.EVENT.register(NotificationHUD::render);
         HudRenderCallback.EVENT.register(CatchEmAllHUD::render);
@@ -190,7 +192,20 @@ public class PokeNotifierClient implements ClientModInitializer {
                     chatMessage.append(Text.literal("]"));
 
                     chatMessage.append(Text.literal(" (" + payload.level() + ") has appeared at ").formatted(Formatting.YELLOW));
-                    chatMessage.append(Text.literal(payload.pos().getX() + ", " + payload.pos().getY() + ", " + payload.pos().getZ()).formatted(Formatting.GREEN));
+                    
+                    // Direct Xaero's API integration
+                    String pokemonName = payload.name();
+                    int x = payload.pos().getX();
+                    int y = payload.pos().getY();
+                    int z = payload.pos().getZ();
+                    
+                    chatMessage.append(Text.literal(" at (").formatted(Formatting.YELLOW));
+                    chatMessage.append(Text.literal(x + ", " + y + ", " + z).formatted(Formatting.GREEN));
+                    chatMessage.append(Text.literal(") ").formatted(Formatting.YELLOW));
+                    
+                    // Add clickable [Add Waypoint] button
+                    chatMessage.append(createWaypointButton(pokemonName, x, y, z));
+                    
                     chatMessage.append(Text.literal(" (").formatted(Formatting.YELLOW));
                     chatMessage.append(Text.literal(String.format("%.1f", payload.distance()) + " blocks away").formatted(Formatting.GREEN));
                     chatMessage.append(Text.literal("). Hurry up!!").formatted(Formatting.YELLOW));
@@ -319,5 +334,25 @@ public class PokeNotifierClient implements ClientModInitializer {
             rainbowText.append(Text.literal(String.valueOf(text.charAt(i))).formatted(rainbowColors[i % rainbowColors.length]));
         }
         return rainbowText;
+    }
+
+    /**
+     * Creates a clickable waypoint button for Xaero's integration.
+     * @param name Pokemon name for the waypoint
+     * @param x X coordinate
+     * @param y Y coordinate  
+     * @param z Z coordinate
+     * @return Clickable text component
+     */
+    private static MutableText createWaypointButton(String name, int x, int y, int z) {
+        return Text.literal("[Add Waypoint]").styled(style -> style
+            .withColor(Formatting.GREEN)
+            .withUnderline(true)
+            .withClickEvent(new net.minecraft.text.ClickEvent(
+                net.minecraft.text.ClickEvent.Action.RUN_COMMAND,
+                "/pnc addwaypoint \"" + name + "\" " + x + " " + y + " " + z))
+            .withHoverEvent(new net.minecraft.text.HoverEvent(
+                net.minecraft.text.HoverEvent.Action.SHOW_TEXT,
+                Text.literal("Click to add waypoint to Xaero's map").formatted(Formatting.YELLOW).formatted(Formatting.ITALIC))));
     }
 }

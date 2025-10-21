@@ -51,6 +51,14 @@ dependencies {
 	// Apuntamos directamente a los archivos .jar en nuestra carpeta 'libs'.
 	modCompileOnly files('libs/AdvancementPlaques-1.21.1-fabric-1.6.8.jar')
 	modCompileOnly files('libs/Iceberg-1.21.1-fabric-1.3.2.jar')
+	
+	// Xaero's integration uses runtime detection only - no compile dependencies needed
+	// If you need compile-time access, manually download and place in libs/:
+	// - Xaero's Minimap JAR
+	// - Xaero's World Map JAR
+	// Then uncomment the lines below:
+	// modCompileOnly files('libs/Xaeros_Minimap_[version].jar')
+	// modCompileOnly files('libs/XaerosWorldMap_[version].jar')
 
 	// GUI Library
 	modImplementation "com.terraformersmc:modmenu:${project.modmenu_version}"
