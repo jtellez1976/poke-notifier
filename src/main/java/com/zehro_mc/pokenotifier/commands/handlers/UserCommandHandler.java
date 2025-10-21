@@ -37,12 +37,19 @@ public class UserCommandHandler {
                     ServerPlayerEntity player = context.getSource().getPlayer();
                     if (player != null) {
                         ConfigServer config = ConfigManager.getServerConfig();
+                        GlobalHuntManager huntManager = GlobalHuntManager.getInstance();
+                        boolean hasActiveEvent = huntManager.hasActiveEvent();
+                        String activePokemon = hasActiveEvent ? 
+                            (huntManager.getCurrentEvent().isShiny() ? "Shiny " : "") + huntManager.getCurrentEvent().getPokemonName() : "";
+                        
                         ServerPlayNetworking.send(player, new AdminStatusPayload(
                                 player.hasPermissionLevel(2),
                                 config.debug_mode_enabled,
                                 config.enable_test_mode,
                                 config.bounty_system_enabled,
-                                GlobalHuntManager.getInstance().getConfig().isEnabled()));
+                                huntManager.isSystemEnabled(),
+                                hasActiveEvent,
+                                activePokemon));
                         ServerPlayNetworking.send(player, new OpenGuiPayload());
                     }
                     return 1;

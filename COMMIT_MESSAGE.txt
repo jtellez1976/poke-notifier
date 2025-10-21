@@ -1,0 +1,31 @@
+fix: Waypoint system improvements and Global Hunt state synchronization
+
+🔧 Waypoint System Fixes:
+- Fixed Create/Auto-Remove Waypoints toggles to update GUI immediately
+- Changed waypoint button colors from green to aqua for better visibility
+- Fixed waypoint statistics tracking for newly created waypoints
+- Improved auto-clear waypoints functionality
+
+🌍 Global Hunt System Fixes:
+- Fixed button state logic to show correct status (Event Active vs System Toggle)
+- Improved event state synchronization after server restart
+- Added proper GUI refresh after cancelling events
+- Fixed button enable/disable states based on active event status
+
+🎨 Visual Improvements:
+- All waypoint elements now use consistent aqua color scheme
+- Immediate visual feedback for setting changes
+- Better state indication for Global Hunt system
+
+📁 Files Modified:
+- PokeNotifierCustomScreen.java: GUI state management and refresh logic
+- MessageUtils.java: Waypoint button color updates
+- XaeroIntegration.java: Waypoint and coordinate color consistency
+- AdminStatusPayload.java: Added active event state synchronization
+- PokeNotifierClient.java: Enhanced client state tracking
+
+✅ Tested Features:
+- Waypoint creation and removal with Xaero's integration
+- GUI toggle buttons update without restart
+- Global Hunt state persistence across server restarts
+- Proper button states during active events

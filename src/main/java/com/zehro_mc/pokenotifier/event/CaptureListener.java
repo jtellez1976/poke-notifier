@@ -24,6 +24,7 @@ import com.zehro_mc.pokenotifier.networking.StatusUpdatePayload;
 import com.zehro_mc.pokenotifier.util.RarityUtil;
 import com.zehro_mc.pokenotifier.util.PrestigeEffects;
 import com.zehro_mc.pokenotifier.util.PlayerRankManager;
+import com.zehro_mc.pokenotifier.globalhunt.GlobalHuntManager;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
@@ -45,6 +46,17 @@ public class CaptureListener {
         Pokemon pokemon = event.getPokemon();
         ServerPlayerEntity player = event.getPlayer();
         String pokemonName = pokemon.getSpecies().getResourceIdentifier().getPath();
+        
+        // Check if this is a Global Hunt Pokemon
+        boolean isGlobalHuntPokemon = pokemon.getPersistentData().getBoolean("pokenotifier_global_hunt");
+        if (isGlobalHuntPokemon) {
+            // Notify Global Hunt Manager of capture
+            GlobalHuntManager manager = GlobalHuntManager.getInstance();
+            if (manager.hasActiveEvent()) {
+                manager.getCurrentEvent().onPokemonCaptured(player.getName().getString());
+                PokeNotifier.LOGGER.info("Global Hunt Pokemon {} captured by {}", pokemonName, player.getName().getString());
+            }
+        }
 
         // "Catch 'em All" logic.
         PlayerCatchProgress progress = ConfigManager.getPlayerCatchProgress(player.getUuid());

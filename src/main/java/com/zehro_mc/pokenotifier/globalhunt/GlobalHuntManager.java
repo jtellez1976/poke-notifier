@@ -136,7 +136,8 @@ public class GlobalHuntManager {
     
     private void startEvent(ServerWorld world, BlockPos coordinates, String pokemon, boolean isShiny, boolean isManual) {
         EventsConfig eventsConfig = ConfigManager.getEventsConfig();
-        currentEvent = new GlobalHuntEvent(world, coordinates, pokemon, isShiny, eventsConfig.globalHuntDurationMinutes);
+        int dynamicDuration = calculateDynamicDuration(world, coordinates);
+        currentEvent = new GlobalHuntEvent(world, coordinates, pokemon, isShiny, dynamicDuration);
         
         // Update statistics
         eventsConfig.totalGlobalHuntEvents++;
@@ -321,6 +322,29 @@ public class GlobalHuntManager {
     
     public EventsConfig getEventsConfig() {
         return ConfigManager.getEventsConfig();
+    }
+    
+    /**
+     * Calculates dynamic event duration based on distance to nearest player
+     */
+    private int calculateDynamicDuration(ServerWorld world, BlockPos coordinates) {
+        double nearestDistance = Double.MAX_VALUE;
+        
+        // Find nearest player
+        for (var player : server.getPlayerManager().getPlayerList()) {
+            if (player.getServerWorld() == world) {
+                double distance = player.getPos().distanceTo(coordinates.toCenterPos());
+                nearestDistance = Math.min(nearestDistance, distance);
+            }
+        }
+        
+        // Calculate duration: 15 min base + 1 min per 500 blocks, max 45 min
+        int baseDuration = 15;
+        int extraTime = (int) (nearestDistance / 500);
+        int totalDuration = Math.min(baseDuration + extraTime, 45);
+        
+        PokeNotifier.LOGGER.info("Global Hunt duration: {} minutes (nearest player: {} blocks)", totalDuration, (int)nearestDistance);
+        return totalDuration;
     }
     
     public void onEventCompleted(boolean successful) {

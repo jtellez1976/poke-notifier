@@ -274,8 +274,9 @@ public class ClientCommands {
                                 })));
         pncCommand.then(internalCommand);
 
-        // --- NEW: Waypoint command for Xaero's integration ---
+        // --- NEW: Waypoint command for Xaero's integration (HIDDEN) ---
         var waypointCommand = ClientCommandManager.literal("addwaypoint")
+                .requires(source -> false) // Hide from chat suggestions
                 .then(ClientCommandManager.argument("name", StringArgumentType.string())
                         .then(ClientCommandManager.argument("x", com.mojang.brigadier.arguments.IntegerArgumentType.integer())
                                 .then(ClientCommandManager.argument("y", com.mojang.brigadier.arguments.IntegerArgumentType.integer())

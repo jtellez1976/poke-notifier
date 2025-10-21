@@ -8,6 +8,9 @@
 
 package com.zehro_mc.pokenotifier.util;
 
+import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
+import com.zehro_mc.pokenotifier.ConfigManager;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.HoverEvent;
 import net.minecraft.text.MutableText;
@@ -42,14 +45,29 @@ public class MessageUtils {
      * @return Text component with waypoint button OR coordinates (not both)
      */
     public static MutableText createLocationText(String name, int x, int y, int z, int color) {
-        // Try to detect if Xaero's is available at runtime
-        if (isXaerosAvailable()) {
+        // Check if waypoint creation is enabled and Xaero's is available
+        if (ConfigManager.getClientConfig().create_waypoints_enabled && isXaeroAvailable()) {
             // Only show waypoint button, no coordinates
             return createWaypointButton(name, x, y, z, color);
-        } else {
-            // Only show coordinates, no waypoint button
-            return createCoordinateFallback(x, y, z);
         }
+        // Fallback to coordinates
+        return createCoordinateFallback(x, y, z);
+    }
+    
+    /**
+     * Creates a text component with waypoint button for a specific Pokemon entity.
+     * This enables automatic waypoint tracking and removal.
+     * @param pokemonEntity The Pokemon entity (unused in main-side implementation)
+     * @param name Display name for the waypoint
+     * @param x X coordinate
+     * @param y Y coordinate
+     * @param z Z coordinate
+     * @param color Waypoint color (0xRRGGBB format)
+     * @return Text component with waypoint button OR coordinates (not both)
+     */
+    public static MutableText createLocationTextForPokemon(PokemonEntity pokemonEntity, String name, int x, int y, int z, int color) {
+        // For main-side implementation, just use regular waypoint creation
+        return createLocationText(name, x, y, z, color);
     }
 
     /**
@@ -72,20 +90,29 @@ public class MessageUtils {
      * @return Clickable waypoint button
      */
     private static MutableText createWaypointButton(String name, int x, int y, int z, int color) {
-        String waypointCommand = String.format("/xaero_waypoint_add:%s:%s:%d:%d:%d:%d:false:0:Internal-overworld-waypoints", 
-                name, name.substring(0, 1), x, y, z, color);
+        // Clean pokemon name for waypoint (remove special characters and emojis)
+        String tempName = name.replaceAll("[^a-zA-Z0-9 ]", "").trim();
+        if (tempName.isEmpty()) {
+            tempName = "Pokemon";
+        }
+        if (tempName.length() > 15) {
+            tempName = tempName.substring(0, 15);
+        }
+        final String cleanName = tempName;
+        
+        // Create waypoint command for Xaero's
+        String waypointCommand = "xaero_waypoint_add:" + cleanName + ":" + cleanName.substring(0, Math.min(1, cleanName.length())) + ":" + x + ":" + y + ":" + z + ":6:false:0:Internal-xaero-waypoint";
         
         return Text.literal("[Add Waypoint]")
                 .styled(style -> style
-                        .withColor(Formatting.GREEN)
-                        .withUnderline(true)
-                        .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, waypointCommand))
+                        .withColor(Formatting.AQUA)
+                        .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + waypointCommand))
                         .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
-                                Text.literal("Click to add waypoint to Xaero's map\n" + 
+                                Text.literal("Click to add waypoint: " + cleanName + "\n" +
                                            "Location: " + x + ", " + y + ", " + z)
                                         .formatted(Formatting.YELLOW))));
     }
-
+    
     /**
      * Creates coordinate fallback text when Xaero's is not available.
      * @param x X coordinate
@@ -103,18 +130,32 @@ public class MessageUtils {
                                 Text.literal("Click to copy coordinates to clipboard")
                                         .formatted(Formatting.YELLOW))));
     }
-
+    
     /**
      * Detects if Xaero's mods are available at runtime.
      * @return true if Xaero's is detected, false otherwise
      */
-    private static boolean isXaerosAvailable() {
-        try {
-            Class.forName("xaero.common.XaeroMinimapSession");
-            return true;
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
+    private static boolean isXaeroAvailable() {
+        return FabricLoader.getInstance().isModLoaded("xaerominimap") || 
+               FabricLoader.getInstance().isModLoaded("xaeroworldmap");
+    }
+    
+    /**
+     * Creates a formatted message with location information for a Pokemon entity.
+     * This enables automatic waypoint tracking and removal.
+     * @param prefix Message prefix
+     * @param pokemonEntity The Pokemon entity
+     * @param locationName Name of the location/Pokemon
+     * @param pos Block position
+     * @param color Waypoint color
+     * @return Complete formatted message
+     */
+    public static MutableText createLocationMessageForPokemon(String prefix, PokemonEntity pokemonEntity, String locationName, BlockPos pos, int color) {
+        return Text.literal(prefix)
+                .formatted(Formatting.YELLOW)
+                .append(Text.literal(locationName).formatted(Formatting.GOLD))
+                .append(Text.literal(" at ").formatted(Formatting.YELLOW))
+                .append(createLocationTextForPokemon(pokemonEntity, locationName, pos.getX(), pos.getY(), pos.getZ(), color));
     }
 
     /**

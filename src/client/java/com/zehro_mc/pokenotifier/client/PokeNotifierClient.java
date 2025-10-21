@@ -14,6 +14,8 @@ import com.zehro_mc.pokenotifier.PokeNotifier;
 import com.zehro_mc.pokenotifier.util.MessageUtils;
 import com.zehro_mc.pokenotifier.block.entity.ModBlockEntities;
 import com.zehro_mc.pokenotifier.client.compat.AdvancementPlaquesCompat;
+import com.zehro_mc.pokenotifier.client.compat.XaeroIntegration;
+import com.zehro_mc.pokenotifier.client.event.PokemonWaypointHandler;
 import com.zehro_mc.pokenotifier.client.renderer.TrophyDisplayBlockEntityRenderer;
 import com.zehro_mc.pokenotifier.networking.*;
 import com.zehro_mc.pokenotifier.networking.GlobalHuntPayload;
@@ -54,6 +56,8 @@ public class PokeNotifierClient implements ClientModInitializer {
     public static boolean isServerTestMode = false;
     public static boolean isServerBountySystemEnabled = false;
     public static boolean isGlobalHuntSystemEnabled = true; // NEW: Track Global Hunt system state
+    public static boolean hasActiveGlobalHunt = false; // NEW: Track active Global Hunt event
+    public static String activeGlobalHuntPokemon = ""; // NEW: Track active Global Hunt Pokemon
     public static String lastGlobalHuntWinner = ""; // NEW: Track last Global Hunt winner
     public static String currentUpdateSource = null; // NEW: Track current update source
 
@@ -62,7 +66,9 @@ public class PokeNotifierClient implements ClientModInitializer {
         // Load client-specific configurations at the very beginning.
         ConfigManager.loadClientConfig();
         
-        // Xaero's integration now uses auto-detection format
+        // Initialize Xaero's integration and waypoint tracking
+        XaeroIntegration.initialize();
+        PokemonWaypointHandler.initialize();
 
         HudRenderCallback.EVENT.register(NotificationHUD::render);
         HudRenderCallback.EVENT.register(CatchEmAllHUD::render);
@@ -112,6 +118,8 @@ public class PokeNotifierClient implements ClientModInitializer {
                 isServerTestMode = payload.isTestMode();
                 isServerBountySystemEnabled = payload.isBountySystemEnabled();
                 isGlobalHuntSystemEnabled = payload.isGlobalHuntSystemEnabled();
+                hasActiveGlobalHunt = payload.hasActiveGlobalHunt();
+                activeGlobalHuntPokemon = payload.activeGlobalHuntPokemon();
             });
         });
         

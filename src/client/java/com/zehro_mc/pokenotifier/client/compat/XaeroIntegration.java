@@ -8,6 +8,8 @@
 
 package com.zehro_mc.pokenotifier.client.compat;
 
+import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
+import com.zehro_mc.pokenotifier.ConfigManager;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.ClickEvent;
@@ -86,34 +88,40 @@ public class XaeroIntegration {
      * @return Clickable text component for adding waypoint
      */
     public static Text createWaypointButton(String pokemonName, int x, int y, int z, int color) {
-        if (!xaeroAvailable) {
+        if (!xaeroAvailable || !ConfigManager.getClientConfig().create_waypoints_enabled) {
             return null; // Fallback will be used
         }
         
         // Clean pokemon name for waypoint (remove special characters and emojis)
-        String cleanName = pokemonName.replaceAll("[^a-zA-Z0-9 ]", "").trim();
-        if (cleanName.isEmpty()) {
-            cleanName = "Pokemon";
+        String tempName = pokemonName.replaceAll("[^a-zA-Z0-9 ]", "").trim();
+        if (tempName.isEmpty()) {
+            tempName = "Pokemon";
         }
-        if (cleanName.length() > 15) {
-            cleanName = cleanName.substring(0, 15);
+        if (tempName.length() > 15) {
+            tempName = tempName.substring(0, 15);
+        }
+        final String cleanName = tempName;
+        
+        LOGGER.debug("[XAERO INTEGRATION] Creating waypoint for: {}", cleanName);
+        
+        // Register waypoint for tracking if auto-removal is enabled
+        if (ConfigManager.getClientConfig().auto_remove_waypoints) {
+            WaypointTracker.registerWaypointByLocation(x, y, z, cleanName);
         }
         
-        // Use simple, safe command format
-        String waypointCommand = String.format("/xaero_waypoint_add:%s:%d:%d:%d:%d", 
-            cleanName, x, y, z, color);
+        // Try direct waypoint creation immediately
+        MinecraftClient.getInstance().execute(() -> {
+            if (XaeroWaypointIntegration.addWaypoint(cleanName, x, y, z)) {
+                LOGGER.debug("[XAERO INTEGRATION] Successfully added waypoint: {}", cleanName);
+            }
+        });
         
-        LOGGER.debug("[XAERO INTEGRATION] Creating waypoint button with command: {}", waypointCommand);
-        
-        return Text.literal("[Copy Waypoint]")
+        return Text.literal("[Waypoint Added]")
             .styled(style -> style
                 .withColor(Formatting.AQUA)
-                .withBold(true)
-                .withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, waypointCommand))
                 .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, 
-                    Text.literal("Click to copy waypoint command to clipboard\n" +
-                               "Command: " + waypointCommand + "\n" +
-                               "Paste in chat and press Enter to execute")
+                    Text.literal("Waypoint created: " + cleanName + "\n" +
+                               "Location: " + x + ", " + y + ", " + z)
                         .formatted(Formatting.YELLOW))));
     }
     
@@ -127,7 +135,7 @@ public class XaeroIntegration {
     public static Text createCoordinateFallback(int x, int y, int z) {
         return Text.literal(x + ", " + y + ", " + z)
             .styled(style -> style
-                .withColor(Formatting.GREEN)
+                .withColor(Formatting.AQUA)
                 .withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, x + " " + y + " " + z))
                 .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, 
                     Text.literal("Click to copy coordinates to clipboard")
@@ -135,54 +143,75 @@ public class XaeroIntegration {
     }
     
     /**
-     * Creates an alternative waypoint button that copies command to clipboard.
+     * Creates a waypoint button for a specific Pokemon entity (enables tracking).
+     * @param pokemonEntity The Pokemon entity
      * @param pokemonName The Pokemon name
      * @param x X coordinate
      * @param y Y coordinate
      * @param z Z coordinate
      * @param color Waypoint color
-     * @return Clickable text that copies waypoint command
+     * @return Clickable text component for adding waypoint
      */
-    public static Text createCopyWaypointButton(String pokemonName, int x, int y, int z, int color) {
-        String cleanName = pokemonName.replaceAll("[^a-zA-Z0-9 ]", "").trim();
-        if (cleanName.isEmpty()) cleanName = "Pokemon";
-        if (cleanName.length() > 15) cleanName = cleanName.substring(0, 15);
+    public static Text createWaypointButtonForPokemon(PokemonEntity pokemonEntity, String pokemonName, int x, int y, int z, int color) {
+        if (!xaeroAvailable || !ConfigManager.getClientConfig().create_waypoints_enabled) {
+            return null;
+        }
         
-        String waypointCommand = String.format("/xaero_waypoint_add:%s:%d:%d:%d:%d", 
-            cleanName, x, y, z, color);
+        String tempName = pokemonName.replaceAll("[^a-zA-Z0-9 ]", "").trim();
+        if (tempName.isEmpty()) tempName = "Pokemon";
+        if (tempName.length() > 15) tempName = tempName.substring(0, 15);
+        final String cleanName = tempName;
         
-        return Text.literal("[Copy Waypoint]")
+        // Register waypoint for tracking if auto-removal is enabled
+        if (ConfigManager.getClientConfig().auto_remove_waypoints && pokemonEntity != null) {
+            WaypointTracker.registerWaypoint(pokemonEntity, cleanName);
+        }
+        
+        // Try direct waypoint creation immediately
+        MinecraftClient.getInstance().execute(() -> {
+            if (XaeroWaypointIntegration.addWaypoint(cleanName, x, y, z)) {
+                LOGGER.debug("[XAERO INTEGRATION] Successfully added waypoint: {}", cleanName);
+            }
+        });
+        
+        return Text.literal("[Waypoint Added]")
             .styled(style -> style
                 .withColor(Formatting.AQUA)
-                .withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, waypointCommand))
                 .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, 
-                    Text.literal("Click to copy waypoint command to clipboard\n" + waypointCommand)
+                    Text.literal("Waypoint created: " + cleanName + "\n" +
+                               "Location: " + x + ", " + y + ", " + z)
                         .formatted(Formatting.YELLOW))));
     }
     
     /**
-     * Attempts to directly add a waypoint using Xaero's API (advanced integration).
-     * This is a fallback method if the command approach doesn't work.
-     * @param name Waypoint name
-     * @param x X coordinate
-     * @param y Y coordinate
-     * @param z Z coordinate
-     * @param color Waypoint color
-     * @return true if waypoint was added successfully
+     * Removes a waypoint by name.
+     * @param waypointName The name of the waypoint to remove
+     * @return true if removal command was sent successfully
      */
-    public static boolean addWaypointDirect(String name, int x, int y, int z, int color) {
+    public static boolean removeWaypoint(String waypointName) {
         if (!xaeroAvailable) {
             return false;
         }
         
         try {
-            // This would be implemented if command approach fails
-            // Using reflection to access Xaero's internal API
-            // For now, we rely on the command approach which is more stable
-            return true;
+            MinecraftClient client = MinecraftClient.getInstance();
+            if (client.player != null) {
+                String removeCommand = "/xaero_waypoint_remove:" + waypointName;
+                client.player.networkHandler.sendChatCommand(removeCommand.substring(1));
+                LOGGER.debug("[XAERO INTEGRATION] Sent remove command for waypoint: {}", waypointName);
+                return true;
+            }
         } catch (Exception e) {
-            LOGGER.warn("Failed to add waypoint directly: {}", e.getMessage());
-            return false;
+            LOGGER.warn("[XAERO INTEGRATION] Failed to remove waypoint '{}': {}", waypointName, e.getMessage());
         }
+        return false;
+    }
+    
+    /**
+     * Checks if waypoint creation is enabled in config.
+     * @return true if waypoint creation is enabled
+     */
+    public static boolean isWaypointCreationEnabled() {
+        return ConfigManager.getClientConfig().create_waypoints_enabled;
     }
 }

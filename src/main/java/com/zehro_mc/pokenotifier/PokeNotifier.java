@@ -501,12 +501,19 @@ public class PokeNotifier implements ModInitializer {
 
             // --- NEW: Sync admin status with the client ---
             ConfigServer config = ConfigManager.getServerConfig();
+            GlobalHuntManager huntManager = GlobalHuntManager.getInstance();
+            boolean hasActiveEvent = huntManager.hasActiveEvent();
+            String activePokemon = hasActiveEvent ? 
+                (huntManager.getCurrentEvent().isShiny() ? "Shiny " : "") + huntManager.getCurrentEvent().getPokemonName() : "";
+            
             ServerPlayNetworking.send(player, new AdminStatusPayload(
                     player.hasPermissionLevel(2),
                     config.debug_mode_enabled,
                     config.enable_test_mode,
                     config.bounty_system_enabled,
-                    GlobalHuntManager.getInstance().getConfig().isEnabled()));
+                    huntManager.isSystemEnabled(),
+                    hasActiveEvent,
+                    activePokemon));
             
             // --- NEW: Sync update source with client ---
             ServerPlayNetworking.send(player, new UpdateSourceSyncPayload(config.update_checker_source));

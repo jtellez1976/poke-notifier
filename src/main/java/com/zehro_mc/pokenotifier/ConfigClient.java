@@ -30,4 +30,8 @@ public class ConfigClient {
     public boolean alert_chat_enabled = true;
     public boolean silent_mode_enabled = false;
     public boolean searching_enabled = true;
+    
+    // Map Settings
+    public boolean auto_remove_waypoints = true;
+    public boolean create_waypoints_enabled = true;
 }

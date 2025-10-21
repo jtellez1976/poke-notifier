@@ -38,12 +38,19 @@ public class ConfigSyncHandler {
 
         // Sync admin status with the client
         ConfigServer config = ConfigManager.getServerConfig();
+        // GlobalHuntManager huntManager = GlobalHuntManager.getInstance();
+        // boolean hasActiveEvent = huntManager.hasActiveEvent();
+        // String activePokemon = hasActiveEvent ? 
+        //     (huntManager.getCurrentEvent().isShiny() ? "Shiny " : "") + huntManager.getCurrentEvent().getPokemonName() : "";
+        
         ServerPlayNetworking.send(player, new AdminStatusPayload(
                 player.hasPermissionLevel(2),
                 config.debug_mode_enabled,
                 config.enable_test_mode,
                 config.bounty_system_enabled,
-                false)); // GlobalHuntManager.getInstance().getConfig().isEnabled()));
+                false, // huntManager.isSystemEnabled(),
+                false, // hasActiveEvent,
+                "")); // activePokemon));
         
         // Sync update source with client
         // ServerPlayNetworking.send(player, new UpdateSourceSyncPayload(config.update_checker_source));
@@ -68,12 +75,19 @@ public class ConfigSyncHandler {
             }
             case ADMIN_STATUS -> {
                 for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
+                    // GlobalHuntManager huntManager = GlobalHuntManager.getInstance();
+                    // boolean hasActiveEvent = huntManager.hasActiveEvent();
+                    // String activePokemon = hasActiveEvent ? 
+                    //     (huntManager.getCurrentEvent().isShiny() ? "Shiny " : "") + huntManager.getCurrentEvent().getPokemonName() : "";
+                    
                     ServerPlayNetworking.send(player, new AdminStatusPayload(
                             player.hasPermissionLevel(2),
                             config.debug_mode_enabled,
                             config.enable_test_mode,
                             config.bounty_system_enabled,
-                            false)); // GlobalHuntManager.getInstance().getConfig().isEnabled()));
+                            false, // huntManager.isSystemEnabled(),
+                            false, // hasActiveEvent,
+                            "")); // activePokemon));
                 }
             }
         }

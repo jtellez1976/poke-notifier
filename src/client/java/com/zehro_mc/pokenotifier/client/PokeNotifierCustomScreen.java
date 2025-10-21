@@ -40,7 +40,7 @@ public class PokeNotifierCustomScreen extends Screen {
     private enum MainCategory { USER_TOOLS, EVENTS, ADMIN_TOOLS }
     private MainCategory currentMainCategory = MainCategory.USER_TOOLS;
 
-    private enum UserSubCategory { NOTIFICATIONS, CUSTOM_HUNT, CATCH_EM_ALL, INFO }
+    private enum UserSubCategory { NOTIFICATIONS, CUSTOM_HUNT, CATCH_EM_ALL, MAP_SETTINGS, INFO }
     private UserSubCategory currentUserSubCategory = UserSubCategory.NOTIFICATIONS;
 
     private enum EventSubCategory { GLOBAL_HUNT, BOUNTY_SYSTEM, SWARM_EVENTS, RIVAL_BATTLES }
@@ -131,7 +131,8 @@ public class PokeNotifierCustomScreen extends Screen {
         addDrawableChild(createSubNavButton(navX, navY, navWidth, "🔔 Notifications", UserSubCategory.NOTIFICATIONS, currentUserSubCategory));
         addDrawableChild(createSubNavButton(navX, navY + 22, navWidth, "🎯 Custom Hunt", UserSubCategory.CUSTOM_HUNT, currentUserSubCategory));
         addDrawableChild(createSubNavButton(navX, navY + 44, navWidth, "🏆 Catch 'em All", UserSubCategory.CATCH_EM_ALL, currentUserSubCategory));
-        addDrawableChild(createSubNavButton(navX, navY + 66, navWidth, "ℹ️ Info & Help", UserSubCategory.INFO, currentUserSubCategory));
+        addDrawableChild(createSubNavButton(navX, navY + 66, navWidth, "🗺️ Map Settings", UserSubCategory.MAP_SETTINGS, currentUserSubCategory));
+        addDrawableChild(createSubNavButton(navX, navY + 88, navWidth, "ℹ️ Info & Help", UserSubCategory.INFO, currentUserSubCategory));
 
         int contentX = panelX + navWidth + 20;
         int contentY = panelY + 55;
@@ -141,6 +142,7 @@ public class PokeNotifierCustomScreen extends Screen {
             case NOTIFICATIONS -> buildNotificationsPanel(contentX, contentY, contentWidth);
             case CUSTOM_HUNT -> buildCustomHuntPanel(contentX, contentY, contentWidth);
             case CATCH_EM_ALL -> buildCatchEmAllPanel(contentX, contentY, contentWidth);
+            case MAP_SETTINGS -> buildMapSettingsPanel(contentX, contentY, contentWidth);
             case INFO -> buildInfoPanel(contentX, contentY, contentWidth);
         }
     }
@@ -227,6 +229,7 @@ public class PokeNotifierCustomScreen extends Screen {
                 case NOTIFICATIONS -> "Configure chat, sound, and HUD alerts";
                 case CUSTOM_HUNT -> "Manage your personal Pokémon hunt list";
                 case CATCH_EM_ALL -> "Track Pokédex completion by generation";
+                case MAP_SETTINGS -> "Configure waypoint and map integration settings";
                 case INFO -> "View help, version, and mod information";
             };
         } else if (category instanceof AdminSubCategory) {
@@ -364,6 +367,91 @@ public class PokeNotifierCustomScreen extends Screen {
             net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
             displayResponse(List.of(Text.literal("Requesting your active Catch 'em All modes...").formatted(Formatting.YELLOW)));
         }).dimensions(x, statusY + 25, width, 20).build());
+    }
+
+    private void buildMapSettingsPanel(int x, int y, int width) {
+        // Waypoint Creation Toggle
+        addDrawableChild(createToggleButton("Create Waypoints", clientConfig.create_waypoints_enabled, newValue -> {
+            clientConfig.create_waypoints_enabled = newValue;
+            ConfigManager.saveClientConfigToFile();
+            this.clearAndInit(); // Refresh GUI immediately
+        }, x, y, width));
+        
+        // Auto-Remove Waypoints Toggle
+        addDrawableChild(createToggleButton("Auto-Remove Waypoints", clientConfig.auto_remove_waypoints, newValue -> {
+            clientConfig.auto_remove_waypoints = newValue;
+            ConfigManager.saveClientConfigToFile();
+            this.clearAndInit(); // Refresh GUI immediately
+        }, x, y + 25, width));
+        
+        // Xaero's Integration Status
+        boolean xaeroAvailable = com.zehro_mc.pokenotifier.client.compat.XaeroIntegration.isXaeroAvailable();
+        Text xaeroStatusText = Text.literal("Xaero's Integration: ")
+            .append(xaeroAvailable ? Text.literal("AVAILABLE").formatted(Formatting.GREEN) : Text.literal("NOT FOUND").formatted(Formatting.RED));
+        addDrawableChild(ButtonWidget.builder(xaeroStatusText, b -> {
+            List<Text> statusLines = new ArrayList<>();
+            statusLines.add(Text.literal("--- Xaero's Integration Status ---").formatted(Formatting.GOLD));
+            if (xaeroAvailable) {
+                statusLines.add(Text.literal("✓ Xaero's mods detected").formatted(Formatting.GREEN));
+                statusLines.add(Text.literal("✓ Waypoint buttons will appear in chat").formatted(Formatting.GREEN));
+                statusLines.add(Text.literal("✓ Click [Add Waypoint] to create waypoints").formatted(Formatting.AQUA));
+                if (clientConfig.auto_remove_waypoints) {
+                    statusLines.add(Text.literal("✓ Waypoints will be auto-removed when Pokemon are caught").formatted(Formatting.YELLOW));
+                } else {
+                    statusLines.add(Text.literal("⚠ Auto-removal is disabled").formatted(Formatting.GRAY));
+                }
+            } else {
+                statusLines.add(Text.literal("✗ Xaero's mods not found").formatted(Formatting.RED));
+                statusLines.add(Text.literal("→ Coordinates will be shown instead").formatted(Formatting.GRAY));
+                statusLines.add(Text.literal("→ Install Xaero's Minimap or Worldmap for waypoints").formatted(Formatting.GRAY));
+            }
+            displayResponse(statusLines);
+        }).dimensions(x, y + 60, width, 20).build());
+        
+        // Clear All Waypoints Button (only if Xaero's is available)
+        if (xaeroAvailable) {
+            addDrawableChild(ButtonWidget.builder(Text.literal("Clear All Tracked Waypoints"), b -> {
+                int trackedCount = com.zehro_mc.pokenotifier.client.compat.WaypointTracker.getTrackedWaypointCount();
+                if (trackedCount > 0) {
+                    this.client.setScreen(new ConfirmScreen(confirmed -> {
+                        if (confirmed) {
+                            com.zehro_mc.pokenotifier.client.compat.WaypointTracker.clearAllTrackedWaypoints();
+                            displayResponse(List.of(Text.literal("Cleared all tracked waypoints.").formatted(Formatting.GREEN)));
+                        }
+                        this.client.setScreen(this);
+                    }, Text.literal("Clear Waypoints"), Text.literal("Remove all " + trackedCount + " tracked waypoints?")));
+                } else {
+                    displayResponse(List.of(Text.literal("No waypoints are currently being tracked.").formatted(Formatting.GRAY)));
+                }
+            }).dimensions(x, y + 85, width, 20).build());
+            
+            // Waypoint Statistics
+            addDrawableChild(ButtonWidget.builder(Text.literal("Waypoint Statistics"), b -> {
+                int trackedCount = com.zehro_mc.pokenotifier.client.compat.WaypointTracker.getTrackedWaypointCount();
+                boolean autoRemovalEnabled = com.zehro_mc.pokenotifier.client.compat.WaypointTracker.isAutoRemovalEnabled();
+                
+                List<Text> statsLines = new ArrayList<>();
+                statsLines.add(Text.literal("--- Waypoint Statistics ---").formatted(Formatting.GOLD));
+                statsLines.add(Text.literal("Currently Tracked: " + trackedCount).formatted(Formatting.AQUA));
+                statsLines.add(Text.literal("Auto-Removal: " + (autoRemovalEnabled ? "Enabled" : "Disabled")).formatted(autoRemovalEnabled ? Formatting.GREEN : Formatting.RED));
+                statsLines.add(Text.literal("Waypoint Creation: " + (clientConfig.create_waypoints_enabled ? "Enabled" : "Disabled")).formatted(clientConfig.create_waypoints_enabled ? Formatting.GREEN : Formatting.RED));
+                displayResponse(statsLines);
+            }).dimensions(x, y + 110, width, 20).build());
+        } else {
+            // Show info about waypoint features when Xaero's is not available
+            addDrawableChild(ButtonWidget.builder(Text.literal("About Waypoint Features"), b -> {
+                List<Text> infoLines = new ArrayList<>();
+                infoLines.add(Text.literal("--- Waypoint Features ---").formatted(Formatting.GOLD));
+                infoLines.add(Text.literal("Install Xaero's Minimap or Worldmap to enable:").formatted(Formatting.YELLOW));
+                infoLines.add(Text.literal("• Clickable waypoint buttons in chat").formatted(Formatting.AQUA));
+                infoLines.add(Text.literal("• Automatic waypoint creation for Pokemon").formatted(Formatting.AQUA));
+                infoLines.add(Text.literal("• Auto-removal when Pokemon are caught").formatted(Formatting.AQUA));
+                infoLines.add(Text.literal("• Waypoint tracking and management").formatted(Formatting.AQUA));
+                infoLines.add(Text.literal("").formatted(Formatting.WHITE));
+                infoLines.add(Text.literal("Without Xaero's: Coordinates are shown instead").formatted(Formatting.GRAY));
+                displayResponse(infoLines);
+            }).dimensions(x, y + 85, width, 20).build());
+        }
     }
 
     private void buildInfoPanel(int x, int y, int width) {
@@ -567,19 +655,35 @@ public class PokeNotifierCustomScreen extends Screen {
     private void buildGlobalHuntDetailsPanel(int x, int y, int width) {
         int currentY = y;
         
-        // System Toggle
-        Text systemToggleText = Text.literal(PokeNotifierClient.isGlobalHuntSystemEnabled ? "🟢 Disable System" : "🔴 Enable System");
-        addDrawableChild(ButtonWidget.builder(systemToggleText, b -> {
-            com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
-                new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
-                    com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.TOGGLE_GLOBAL_HUNT_SYSTEM, "");
-            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
-            displayResponse(List.of(Text.literal("Toggling Global Hunt system...").formatted(Formatting.YELLOW)));
-            
-            PokeNotifierClient.isGlobalHuntSystemEnabled = !PokeNotifierClient.isGlobalHuntSystemEnabled;
-            Text newText = Text.literal(PokeNotifierClient.isGlobalHuntSystemEnabled ? "🟢 Disable System" : "🔴 Enable System");
-            b.setMessage(newText);
-        }).dimensions(x, currentY, width / 2 - 2, 20).build());
+        // System Toggle - show proper status
+        boolean hasActiveEvent = PokeNotifierClient.hasActiveGlobalHunt;
+        Text systemToggleText;
+        
+        if (hasActiveEvent) {
+            systemToggleText = Text.literal("⚠️ Event Active").formatted(Formatting.YELLOW);
+        } else {
+            systemToggleText = Text.literal(PokeNotifierClient.isGlobalHuntSystemEnabled ? "🟢 Disable System" : "🔴 Enable System");
+        }
+        
+        ButtonWidget systemToggleButton = ButtonWidget.builder(systemToggleText, b -> {
+            if (!hasActiveEvent) {
+                com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
+                    new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
+                        com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.TOGGLE_GLOBAL_HUNT_SYSTEM, "");
+                net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+                displayResponse(List.of(Text.literal("Toggling Global Hunt system...").formatted(Formatting.YELLOW)));
+                
+                PokeNotifierClient.isGlobalHuntSystemEnabled = !PokeNotifierClient.isGlobalHuntSystemEnabled;
+                this.clearAndInit(); // Refresh entire GUI to update all states
+            } else {
+                displayResponse(List.of(Text.literal("Cannot disable system while an event is active. Cancel the event first.").formatted(Formatting.RED)));
+            }
+        }).dimensions(x, currentY, width / 2 - 2, 20).build();
+        
+        if (hasActiveEvent) {
+            systemToggleButton.active = false;
+        }
+        addDrawableChild(systemToggleButton);
         
         // Event Status
         addDrawableChild(ButtonWidget.builder(Text.literal("📊 Status"), b -> {
@@ -602,7 +706,7 @@ public class PokeNotifierCustomScreen extends Screen {
         
         currentY += 25;
         
-        addDrawableChild(ButtonWidget.builder(Text.literal("🚀 Start Event"), b -> {
+        ButtonWidget startEventButton = ButtonWidget.builder(Text.literal("🚀 Start Event"), b -> {
             String pokemonName = this.pokemonNameField.getText().trim();
             if (!pokemonName.isEmpty()) {
                 String parameter = pokemonName + (this.shinyCheckbox.isChecked() ? " shiny" : "");
@@ -615,29 +719,58 @@ public class PokeNotifierCustomScreen extends Screen {
             } else {
                 displayResponse(List.of(Text.literal("Please enter a Pokémon name first.").formatted(Formatting.RED)));
             }
-        }).dimensions(x, currentY, width / 2 - 2, 20).build());
+        }).dimensions(x, currentY, width / 2 - 2, 20).build();
         
-        addDrawableChild(ButtonWidget.builder(Text.literal("❌ Cancel Event"), b -> {
+        // Disable start button if there's already an active event
+        if (PokeNotifierClient.hasActiveGlobalHunt) {
+            startEventButton.active = false;
+        }
+        addDrawableChild(startEventButton);
+        
+        ButtonWidget cancelEventButton = ButtonWidget.builder(Text.literal("❌ Cancel Event"), b -> {
             com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
                 new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
                     com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.CANCEL_GLOBAL_HUNT, "");
             net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
             displayResponse(List.of(Text.literal("Cancelling active Global Hunt...").formatted(Formatting.YELLOW)));
-        }).dimensions(x + width / 2 + 2, currentY, width / 2 - 2, 20).build());
+            
+            // Update client state immediately
+            PokeNotifierClient.hasActiveGlobalHunt = false;
+            PokeNotifierClient.activeGlobalHuntPokemon = "";
+            this.clearAndInit(); // Refresh GUI to show updated state
+        }).dimensions(x + width / 2 + 2, currentY, width / 2 - 2, 20).build();
+        
+        // Only enable cancel button if there's an active event
+        if (!PokeNotifierClient.hasActiveGlobalHunt) {
+            cancelEventButton.active = false;
+        }
+        addDrawableChild(cancelEventButton);
         
         currentY += 30;
         
-        // Statistics Section (only for Global Hunt)
-        Text statsTitle = Text.literal("📈 Global Hunt Statistics").formatted(Formatting.YELLOW);
-        addDrawableChild(ButtonWidget.builder(statsTitle, b -> {}).dimensions(x, currentY, width, 20).build()).active = false;
-        
-        currentY += 25;
-        
-        Text totalEvents = Text.literal("Total Events: Loading...").formatted(Formatting.GRAY);
-        addDrawableChild(ButtonWidget.builder(totalEvents, b -> {}).dimensions(x, currentY, width / 2, 15).build()).active = false;
-        
-        Text successRate = Text.literal("Success Rate: Loading...").formatted(Formatting.GRAY);
-        addDrawableChild(ButtonWidget.builder(successRate, b -> {}).dimensions(x + width / 2, currentY, width / 2, 15).build()).active = false;
+        // Active Event Status
+        if (PokeNotifierClient.hasActiveGlobalHunt && !PokeNotifierClient.activeGlobalHuntPokemon.isEmpty()) {
+            Text activeEventTitle = Text.literal("🎯 Active Event").formatted(Formatting.GREEN);
+            addDrawableChild(ButtonWidget.builder(activeEventTitle, b -> {}).dimensions(x, currentY, width, 20).build()).active = false;
+            
+            currentY += 25;
+            
+            Text activePokemon = Text.literal("Target: " + PokeNotifierClient.activeGlobalHuntPokemon).formatted(Formatting.GOLD);
+            addDrawableChild(ButtonWidget.builder(activePokemon, b -> {
+                com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
+                    new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
+                        com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.GLOBAL_HUNT_STATUS, "");
+                net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+                displayResponse(List.of(Text.literal("Requesting detailed event status...").formatted(Formatting.YELLOW)));
+            }).dimensions(x, currentY, width, 20).build());
+            
+            currentY += 30;
+        } else {
+            Text noActiveEvent = Text.literal("No Active Event").formatted(Formatting.GRAY);
+            addDrawableChild(ButtonWidget.builder(noActiveEvent, b -> {}).dimensions(x, currentY, width, 20).build()).active = false;
+            
+            currentY += 30;
+        }
     }
     
     private void openGlobalHuntSettings() {

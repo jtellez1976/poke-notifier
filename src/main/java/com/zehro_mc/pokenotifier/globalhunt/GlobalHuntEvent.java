@@ -349,15 +349,16 @@ public class GlobalHuntEvent {
     public void checkPokemonStatus() {
         if (!isActive || isCaptured || spawnedPokemon == null) return;
         
-        // Check if Pokemon was killed or removed
-        if (spawnedPokemon.isRemoved() || spawnedPokemon.isDead()) {
-            PokeNotifier.LOGGER.info("Global Hunt Pokemon {} was defeated/killed, ending event", pokemonName);
+        // Only check if Pokemon is actually dead, not removed
+        // Removed can happen during chunk loading/unloading
+        if (spawnedPokemon.isDead()) {
+            PokeNotifier.LOGGER.info("Global Hunt Pokemon {} died in battle, ending event", pokemonName);
             
-            // Announce Pokemon defeat
+            // Announce Pokemon death
             world.getServer().getPlayerManager().broadcast(
                 Text.literal("💀 Global Hunt ").formatted(Formatting.RED)
                     .append(Text.literal((isShiny ? "Shiny " : "") + pokemonName).formatted(Formatting.YELLOW))
-                    .append(Text.literal(" was defeated! Event ended.").formatted(Formatting.GRAY)), 
+                    .append(Text.literal(" fainted in battle! Event ended.").formatted(Formatting.GRAY)), 
                 false
             );
             
@@ -368,6 +369,25 @@ public class GlobalHuntEvent {
             GlobalHuntManager.getInstance().onEventCompleted(false);
             
             cancel();
+        }
+        
+        // Check if Pokemon was permanently removed (not just chunk unloading)
+        if (spawnedPokemon.isRemoved() && spawnedPokemon.getRemovalReason() != null) {
+            // Only end event if removal reason indicates death/kill, not capture
+            if (spawnedPokemon.getRemovalReason() == net.minecraft.entity.Entity.RemovalReason.KILLED) {
+                PokeNotifier.LOGGER.info("Global Hunt Pokemon {} was killed, ending event", pokemonName);
+                
+                world.getServer().getPlayerManager().broadcast(
+                    Text.literal("💀 Global Hunt ").formatted(Formatting.RED)
+                        .append(Text.literal((isShiny ? "Shiny " : "") + pokemonName).formatted(Formatting.YELLOW))
+                        .append(Text.literal(" was defeated! Event ended.").formatted(Formatting.GRAY)), 
+                    false
+                );
+                
+                destroyBeacon();
+                GlobalHuntManager.getInstance().onEventCompleted(false);
+                cancel();
+            }
         }
     }
     
