@@ -30,7 +30,14 @@ public class XaeroWaypointIntegration {
         if (!xaeroLoaded) return false;
         
         try {
-            return XaeroWaypointHelper.addWaypoint(name, x, y, z);
+            boolean result = XaeroWaypointHelper.addWaypoint(name, x, y, z);
+            
+            // If successful, always register for tracking (all mod-created waypoints)
+            if (result) {
+                WaypointTracker.registerWaypointByLocation(x, y, z, name);
+            }
+            
+            return result;
         } catch (Exception e) {
             return false;
         }

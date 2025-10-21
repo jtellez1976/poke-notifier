@@ -14,7 +14,7 @@ package com.zehro_mc.pokenotifier;
  */
 public class ConfigServer {
 
-    public int config_version = 5;
+    public int config_version = 6;
 
     public String[] _instructions = new String[]{
             "Poke Notifier Configuration - Server-Only Settings",
@@ -33,7 +33,8 @@ public class ConfigServer {
             "swarm_notifications_enabled: If true, a global announcement will be made when a Pokémon swarm starts.",
             "swarm_system_enabled: If true, the server will automatically start random swarms.",
             "swarm_check_interval_minutes: How often (in minutes) the system tries to start a new swarm.",
-            "swarm_start_chance_percent: The percentage chance (0-100) of a swarm starting during each interval."
+            "swarm_start_chance_percent: The percentage chance (0-100) of a swarm starting during each interval.",
+            "global_hunt_system_enabled: If true, the Global Hunt system is available for use."
     };
 
     public boolean debug_mode_enabled = false;
@@ -50,5 +51,6 @@ public class ConfigServer {
     public boolean swarm_system_enabled = true;
     public int swarm_check_interval_minutes = 30;
     public int swarm_start_chance_percent = 25;
+    public boolean global_hunt_system_enabled = false;
     public String active_bounty = null;
 }

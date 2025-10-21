@@ -288,6 +288,8 @@ public class ClientCommands {
                                                     int z = com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(context, "z");
                                                     
                                                     if (com.zehro_mc.pokenotifier.client.compat.XaeroWaypointIntegration.addWaypoint(name, x, y, z)) {
+                                                        // Register waypoint for tracking
+                                                        com.zehro_mc.pokenotifier.client.compat.WaypointTracker.registerWaypointByName(name);
                                                         context.getSource().sendFeedback(Text.literal("Waypoint '" + name + "' added successfully!").formatted(Formatting.GREEN));
                                                     } else {
                                                         context.getSource().sendFeedback(Text.literal("Failed to add waypoint. Xaero's minimap not found.").formatted(Formatting.RED));
@@ -295,11 +297,29 @@ public class ClientCommands {
                                                     return 1;
                                                 })))));
 
+        // --- NEW: Waypoint interceptor for Xaero commands ---
+        var xaeroInterceptor = ClientCommandManager.literal("xaero_waypoint_add")
+                .requires(source -> false) // Hide from chat suggestions
+                .executes(context -> {
+                    // This will be called when Xaero waypoint commands are executed
+                    String command = context.getInput();
+                    if (command.contains(":")) {
+                        String[] parts = command.split(":");
+                        if (parts.length >= 2) {
+                            String waypointName = parts[1];
+                            // Register for tracking
+                            com.zehro_mc.pokenotifier.client.compat.WaypointTracker.registerWaypointByName(waypointName);
+                        }
+                    }
+                    return 1;
+                });
+
         // Register all subcommands
         pncCommand.then(alertsNode);
         pncCommand.then(customcatchNode);
         pncCommand.then(catchemallCommand);
         pncCommand.then(waypointCommand);
+        dispatcher.register(xaeroInterceptor);
 
         // Redirects server-side commands to be accessible via /pnc for convenience.
         var serverCommandNode = dispatcher.getRoot().getChild("pokenotifier");

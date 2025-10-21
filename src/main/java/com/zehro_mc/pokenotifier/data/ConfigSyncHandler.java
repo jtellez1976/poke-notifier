@@ -19,11 +19,14 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Handles configuration synchronization between server and clients.
  */
 public class ConfigSyncHandler {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ConfigSyncHandler.class);
     
     /**
      * Performs initial synchronization when a player joins the server.
@@ -43,12 +46,15 @@ public class ConfigSyncHandler {
         // String activePokemon = hasActiveEvent ? 
         //     (huntManager.getCurrentEvent().isShiny() ? "Shiny " : "") + huntManager.getCurrentEvent().getPokemonName() : "";
         
+        boolean globalHuntEnabled = config.global_hunt_system_enabled;
+        LOGGER.info("[SERVER] Sending admin status to {} - Global Hunt System: {}", player.getName().getString(), globalHuntEnabled);
+        
         ServerPlayNetworking.send(player, new AdminStatusPayload(
                 player.hasPermissionLevel(2),
                 config.debug_mode_enabled,
                 config.enable_test_mode,
                 config.bounty_system_enabled,
-                false, // huntManager.isSystemEnabled(),
+                globalHuntEnabled,
                 false, // hasActiveEvent,
                 "")); // activePokemon));
         
@@ -80,12 +86,15 @@ public class ConfigSyncHandler {
                     // String activePokemon = hasActiveEvent ? 
                     //     (huntManager.getCurrentEvent().isShiny() ? "Shiny " : "") + huntManager.getCurrentEvent().getPokemonName() : "";
                     
+                    boolean globalHuntEnabled = config.global_hunt_system_enabled;
+                    LOGGER.info("[SERVER] Syncing admin status to {} - Global Hunt System: {}", player.getName().getString(), globalHuntEnabled);
+                    
                     ServerPlayNetworking.send(player, new AdminStatusPayload(
                             player.hasPermissionLevel(2),
                             config.debug_mode_enabled,
                             config.enable_test_mode,
                             config.bounty_system_enabled,
-                            false, // huntManager.isSystemEnabled(),
+                            globalHuntEnabled,
                             false, // hasActiveEvent,
                             "")); // activePokemon));
                 }

@@ -370,19 +370,48 @@ public class PokeNotifierCustomScreen extends Screen {
     }
 
     private void buildMapSettingsPanel(int x, int y, int width) {
+        int currentY = y;
+        
         // Waypoint Creation Toggle
         addDrawableChild(createToggleButton("Create Waypoints", clientConfig.create_waypoints_enabled, newValue -> {
             clientConfig.create_waypoints_enabled = newValue;
             ConfigManager.saveClientConfigToFile();
-            this.clearAndInit(); // Refresh GUI immediately
-        }, x, y, width));
+            this.clearAndInit();
+        }, x, currentY, width));
+        currentY += 25;
         
         // Auto-Remove Waypoints Toggle
         addDrawableChild(createToggleButton("Auto-Remove Waypoints", clientConfig.auto_remove_waypoints, newValue -> {
             clientConfig.auto_remove_waypoints = newValue;
             ConfigManager.saveClientConfigToFile();
-            this.clearAndInit(); // Refresh GUI immediately
-        }, x, y + 25, width));
+            this.clearAndInit();
+        }, x, currentY, width));
+        currentY += 25;
+        
+        // Auto-Waypoint Toggle with conflict detection
+        boolean isCatchEmAllActive = PokeNotifierClient.currentCatchEmAllGeneration != null && !"none".equals(PokeNotifierClient.currentCatchEmAllGeneration);
+        
+        // Auto-disable if both are active (server-side protection)
+        if (isCatchEmAllActive && clientConfig.auto_waypoint_enabled) {
+            clientConfig.auto_waypoint_enabled = false;
+            ConfigManager.saveClientConfigToFile();
+        }
+        
+        ButtonWidget autoWaypointButton = createToggleButton("Auto-Waypoint", clientConfig.auto_waypoint_enabled, newValue -> {
+            boolean currentCatchEmAllActive = PokeNotifierClient.currentCatchEmAllGeneration != null && !"none".equals(PokeNotifierClient.currentCatchEmAllGeneration);
+            if (newValue && currentCatchEmAllActive) {
+                displayResponse(List.of(
+                    Text.literal("Cannot enable Auto-Waypoint while Catch 'em All is active!").formatted(Formatting.RED),
+                    Text.literal("This would create massive waypoints. Disable Catch 'em All first.").formatted(Formatting.YELLOW)
+                ));
+                return;
+            }
+            clientConfig.auto_waypoint_enabled = newValue;
+            ConfigManager.saveClientConfigToFile();
+            this.clearAndInit();
+        }, x, currentY, width);
+        addDrawableChild(autoWaypointButton);
+        currentY += 30;
         
         // Xaero's Integration Status
         boolean xaeroAvailable = com.zehro_mc.pokenotifier.client.compat.XaeroIntegration.isXaeroAvailable();
@@ -394,22 +423,38 @@ public class PokeNotifierCustomScreen extends Screen {
             if (xaeroAvailable) {
                 statusLines.add(Text.literal("✓ Xaero's mods detected").formatted(Formatting.GREEN));
                 statusLines.add(Text.literal("✓ Waypoint buttons will appear in chat").formatted(Formatting.GREEN));
-                statusLines.add(Text.literal("✓ Click [Add Waypoint] to create waypoints").formatted(Formatting.AQUA));
+                statusLines.add(Text.literal("✓ Click [Add] to create waypoints").formatted(Formatting.AQUA));
                 if (clientConfig.auto_remove_waypoints) {
-                    statusLines.add(Text.literal("✓ Waypoints will be auto-removed when Pokemon are caught").formatted(Formatting.YELLOW));
+                    statusLines.add(Text.literal("✓ Waypoints auto-removed when Pokemon caught").formatted(Formatting.YELLOW));
                 } else {
-                    statusLines.add(Text.literal("⚠ Auto-removal is disabled").formatted(Formatting.GRAY));
+                    statusLines.add(Text.literal("⚠ Auto-removal disabled").formatted(Formatting.GRAY));
                 }
             } else {
                 statusLines.add(Text.literal("✗ Xaero's mods not found").formatted(Formatting.RED));
-                statusLines.add(Text.literal("→ Coordinates will be shown instead").formatted(Formatting.GRAY));
-                statusLines.add(Text.literal("→ Install Xaero's Minimap or Worldmap for waypoints").formatted(Formatting.GRAY));
+                statusLines.add(Text.literal("→ Coordinates shown instead").formatted(Formatting.GRAY));
+                statusLines.add(Text.literal("→ Install Xaero's Minimap/Worldmap for waypoints").formatted(Formatting.GRAY));
             }
             displayResponse(statusLines);
-        }).dimensions(x, y + 60, width, 20).build());
+        }).dimensions(x, currentY, width, 20).build());
+        currentY += 25;
         
-        // Clear All Waypoints Button (only if Xaero's is available)
+        // Xaero-specific buttons
         if (xaeroAvailable) {
+            // Waypoint Statistics
+            addDrawableChild(ButtonWidget.builder(Text.literal("Waypoint Statistics"), b -> {
+                int trackedCount = com.zehro_mc.pokenotifier.client.compat.WaypointTracker.getTrackedWaypointCount();
+                boolean autoRemovalEnabled = com.zehro_mc.pokenotifier.client.compat.WaypointTracker.isAutoRemovalEnabled();
+                
+                List<Text> statsLines = new ArrayList<>();
+                statsLines.add(Text.literal("--- Waypoint Statistics ---").formatted(Formatting.GOLD));
+                statsLines.add(Text.literal("Currently Tracked: " + trackedCount).formatted(Formatting.AQUA));
+                statsLines.add(Text.literal("Auto-Removal: " + (autoRemovalEnabled ? "Enabled" : "Disabled")).formatted(autoRemovalEnabled ? Formatting.GREEN : Formatting.RED));
+                statsLines.add(Text.literal("Waypoint Creation: " + (clientConfig.create_waypoints_enabled ? "Enabled" : "Disabled")).formatted(clientConfig.create_waypoints_enabled ? Formatting.GREEN : Formatting.RED));
+                displayResponse(statsLines);
+            }).dimensions(x, currentY, width, 20).build());
+            currentY += 25;
+            
+            // Clear All Waypoints Button
             addDrawableChild(ButtonWidget.builder(Text.literal("Clear All Tracked Waypoints"), b -> {
                 int trackedCount = com.zehro_mc.pokenotifier.client.compat.WaypointTracker.getTrackedWaypointCount();
                 if (trackedCount > 0) {
@@ -423,22 +468,9 @@ public class PokeNotifierCustomScreen extends Screen {
                 } else {
                     displayResponse(List.of(Text.literal("No waypoints are currently being tracked.").formatted(Formatting.GRAY)));
                 }
-            }).dimensions(x, y + 85, width, 20).build());
-            
-            // Waypoint Statistics
-            addDrawableChild(ButtonWidget.builder(Text.literal("Waypoint Statistics"), b -> {
-                int trackedCount = com.zehro_mc.pokenotifier.client.compat.WaypointTracker.getTrackedWaypointCount();
-                boolean autoRemovalEnabled = com.zehro_mc.pokenotifier.client.compat.WaypointTracker.isAutoRemovalEnabled();
-                
-                List<Text> statsLines = new ArrayList<>();
-                statsLines.add(Text.literal("--- Waypoint Statistics ---").formatted(Formatting.GOLD));
-                statsLines.add(Text.literal("Currently Tracked: " + trackedCount).formatted(Formatting.AQUA));
-                statsLines.add(Text.literal("Auto-Removal: " + (autoRemovalEnabled ? "Enabled" : "Disabled")).formatted(autoRemovalEnabled ? Formatting.GREEN : Formatting.RED));
-                statsLines.add(Text.literal("Waypoint Creation: " + (clientConfig.create_waypoints_enabled ? "Enabled" : "Disabled")).formatted(clientConfig.create_waypoints_enabled ? Formatting.GREEN : Formatting.RED));
-                displayResponse(statsLines);
-            }).dimensions(x, y + 110, width, 20).build());
+            }).dimensions(x, currentY, width, 20).build());
         } else {
-            // Show info about waypoint features when Xaero's is not available
+            // About Waypoint Features when Xaero's not available
             addDrawableChild(ButtonWidget.builder(Text.literal("About Waypoint Features"), b -> {
                 List<Text> infoLines = new ArrayList<>();
                 infoLines.add(Text.literal("--- Waypoint Features ---").formatted(Formatting.GOLD));
@@ -450,7 +482,7 @@ public class PokeNotifierCustomScreen extends Screen {
                 infoLines.add(Text.literal("").formatted(Formatting.WHITE));
                 infoLines.add(Text.literal("Without Xaero's: Coordinates are shown instead").formatted(Formatting.GRAY));
                 displayResponse(infoLines);
-            }).dimensions(x, y + 85, width, 20).build());
+            }).dimensions(x, currentY, width, 20).build());
         }
     }
 

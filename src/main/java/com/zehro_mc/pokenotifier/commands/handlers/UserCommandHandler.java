@@ -18,11 +18,14 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Handles user-accessible commands (available to all players).
  */
 public class UserCommandHandler {
+    private static final Logger LOGGER = LoggerFactory.getLogger(UserCommandHandler.class);
     
     /**
      * Registers all user commands to the main command node.
@@ -42,12 +45,15 @@ public class UserCommandHandler {
                         String activePokemon = hasActiveEvent ? 
                             (huntManager.getCurrentEvent().isShiny() ? "Shiny " : "") + huntManager.getCurrentEvent().getPokemonName() : "";
                         
+                        boolean globalHuntEnabled = config.global_hunt_system_enabled;
+                        LOGGER.info("[SERVER] Sending admin status via GUI command to {} - Global Hunt System: {}", player.getName().getString(), globalHuntEnabled);
+                        
                         ServerPlayNetworking.send(player, new AdminStatusPayload(
                                 player.hasPermissionLevel(2),
                                 config.debug_mode_enabled,
                                 config.enable_test_mode,
                                 config.bounty_system_enabled,
-                                huntManager.isSystemEnabled(),
+                                globalHuntEnabled,
                                 hasActiveEvent,
                                 activePokemon));
                         ServerPlayNetworking.send(player, new OpenGuiPayload());

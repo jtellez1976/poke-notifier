@@ -506,12 +506,15 @@ public class PokeNotifier implements ModInitializer {
             String activePokemon = hasActiveEvent ? 
                 (huntManager.getCurrentEvent().isShiny() ? "Shiny " : "") + huntManager.getCurrentEvent().getPokemonName() : "";
             
+            boolean globalHuntEnabled = config.global_hunt_system_enabled;
+            LOGGER.info("[SERVER] Sending admin status on join to {} - Global Hunt System: {}", player.getName().getString(), globalHuntEnabled);
+            
             ServerPlayNetworking.send(player, new AdminStatusPayload(
                     player.hasPermissionLevel(2),
                     config.debug_mode_enabled,
                     config.enable_test_mode,
                     config.bounty_system_enabled,
-                    huntManager.isSystemEnabled(),
+                    globalHuntEnabled,
                     hasActiveEvent,
                     activePokemon));
             
@@ -788,10 +791,14 @@ public class PokeNotifier implements ModInitializer {
                         }
                     }
                     case TOGGLE_GLOBAL_HUNT_SYSTEM -> {
-                        boolean enabled = GlobalHuntManager.getInstance().getConfig().isEnabled();
-                        GlobalHuntManager.getInstance().getConfig().setEnabled(!enabled);
-                        List<Text> lines = new ArrayList<>(List.of(Text.literal("Global Hunt system ").append((!enabled) ? Text.literal("enabled").formatted(Formatting.GREEN) : Text.literal("disabled").formatted(Formatting.RED))));
+                        ConfigServer config = ConfigManager.getServerConfig();
+                        config.global_hunt_system_enabled = !config.global_hunt_system_enabled;
+                        ConfigManager.saveServerConfigToFile();
+                        List<Text> lines = new ArrayList<>(List.of(Text.literal("Global Hunt system ").append(config.global_hunt_system_enabled ? Text.literal("enabled").formatted(Formatting.GREEN) : Text.literal("disabled").formatted(Formatting.RED))));
                         ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                        
+                        // Sync with all players
+                        com.zehro_mc.pokenotifier.data.ConfigSyncHandler.syncConfigurationChange(context.server(), com.zehro_mc.pokenotifier.data.ConfigSyncHandler.ConfigType.ADMIN_STATUS);
                     }
                     case GLOBAL_HUNT_STATUS -> {
                         List<Text> lines = new ArrayList<>();

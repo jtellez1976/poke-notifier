@@ -10,6 +10,8 @@ package com.zehro_mc.pokenotifier.client.compat;
 
 import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
 import com.zehro_mc.pokenotifier.ConfigManager;
+import com.zehro_mc.pokenotifier.client.data.WaypointManager;
+import com.zehro_mc.pokenotifier.client.data.WaypointData;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.BlockPos;
@@ -29,6 +31,9 @@ public class WaypointTracker {
     // Map of Pokemon UUID to waypoint name for tracking
     private static final Map<UUID, String> trackedWaypoints = new ConcurrentHashMap<>();
     
+    // Flag to indicate when the mod is creating a waypoint (to distinguish from manual user waypoints)
+    private static volatile boolean isModCreatingWaypoint = false;
+    
     /**
      * Registers a waypoint for a Pokemon entity.
      * @param pokemonEntity The Pokemon entity
@@ -41,7 +46,14 @@ public class WaypointTracker {
         
         UUID pokemonId = pokemonEntity.getUuid();
         trackedWaypoints.put(pokemonId, waypointName);
-        LOGGER.debug("[WAYPOINT TRACKER] Registered waypoint '{}' for Pokemon {}", waypointName, pokemonId);
+        
+        // Add to persistent storage
+        BlockPos pos = pokemonEntity.getBlockPos();
+        WaypointManager.addWaypoint(waypointName, pos.getX(), pos.getY(), pos.getZ(), 
+            pokemonId.toString(), WaypointData.WaypointType.POKEMON);
+        
+        LOGGER.info("[WAYPOINT TRACKER] Registered waypoint '{}' for Pokemon {} (Total: {})", 
+            waypointName, pokemonId, getTrackedWaypointCount());
     }
     
     /**
@@ -52,15 +64,49 @@ public class WaypointTracker {
      * @param waypointName The name of the created waypoint
      */
     public static void registerWaypointByLocation(int x, int y, int z, String waypointName) {
-        if (!ConfigManager.getClientConfig().auto_remove_waypoints) {
-            return;
-        }
-        
         // For location-based waypoints, we'll use a special UUID based on coordinates
         String locationKey = x + "_" + y + "_" + z;
         UUID locationId = UUID.nameUUIDFromBytes(locationKey.getBytes());
         trackedWaypoints.put(locationId, waypointName);
-        LOGGER.debug("[WAYPOINT TRACKER] Registered location waypoint '{}' at {}, {}, {}", waypointName, x, y, z);
+        
+        // Add to persistent storage
+        WaypointManager.addWaypoint(waypointName, x, y, z, null, WaypointData.WaypointType.EVENT);
+        
+        LOGGER.info("[WAYPOINT TRACKER] Registered location waypoint '{}' at {}, {}, {} (Total: {})", 
+            waypointName, x, y, z, getTrackedWaypointCount());
+    }
+    
+    /**
+     * Registers a waypoint by name only (for command-created waypoints).
+     * Only registers if the mod is currently creating the waypoint.
+     * @param waypointName The name of the created waypoint
+     */
+    public static void registerWaypointByName(String waypointName) {
+        if (!isModCreatingWaypoint) {
+            // This is a manual user waypoint, don't track it
+            return;
+        }
+        
+        // Create a UUID based on the waypoint name for tracking
+        UUID waypointId = UUID.nameUUIDFromBytes(("waypoint_" + waypointName).getBytes());
+        trackedWaypoints.put(waypointId, waypointName);
+        LOGGER.info("[WAYPOINT TRACKER] Registered mod waypoint '{}' (Total tracked: {})", waypointName, trackedWaypoints.size());
+    }
+    
+    /**
+     * Sets the flag indicating the mod is about to create a waypoint.
+     * This should be called before any waypoint creation by the mod.
+     */
+    public static void setModCreatingWaypoint(boolean creating) {
+        isModCreatingWaypoint = creating;
+    }
+    
+    /**
+     * Checks if the mod is currently creating a waypoint.
+     * @return true if mod is creating waypoint
+     */
+    public static boolean isModCreatingWaypoint() {
+        return isModCreatingWaypoint;
     }
     
     /**
@@ -80,7 +126,12 @@ public class WaypointTracker {
             if (!pokemonEntity.isAlive() || pokemonEntity.isRemoved() || pokemonEntity.getOwner() != null) {
                 removeWaypoint(waypointName);
                 trackedWaypoints.remove(pokemonId);
-                LOGGER.debug("[WAYPOINT TRACKER] Removed waypoint '{}' for Pokemon {} (dead/captured/removed)", waypointName, pokemonId);
+                
+                // Remove from persistent storage
+                WaypointManager.removeWaypointByPokemon(pokemonId.toString());
+                
+                LOGGER.info("[WAYPOINT TRACKER] Removed waypoint '{}' for Pokemon {} (Total: {})", 
+                    waypointName, pokemonId, getTrackedWaypointCount());
             }
         }
     }
@@ -95,15 +146,14 @@ public class WaypointTracker {
         }
         
         try {
-            MinecraftClient client = MinecraftClient.getInstance();
-            if (client.player != null) {
-                // Use Xaero's remove waypoint command
-                String removeCommand = "/xaero_waypoint_remove:" + waypointName;
-                client.player.networkHandler.sendChatCommand(removeCommand.substring(1)); // Remove the '/' prefix
-                LOGGER.debug("[WAYPOINT TRACKER] Sent remove command for waypoint: {}", waypointName);
+            // Use XaeroIntegration's remove method instead of direct command
+            if (XaeroIntegration.removeWaypoint(waypointName)) {
+                LOGGER.debug("[WAYPOINT TRACKER] Successfully removed waypoint: {}", waypointName);
+            } else {
+                LOGGER.warn("[WAYPOINT TRACKER] Failed to remove waypoint: {}", waypointName);
             }
         } catch (Exception e) {
-            LOGGER.warn("[WAYPOINT TRACKER] Failed to remove waypoint '{}': {}", waypointName, e.getMessage());
+            LOGGER.warn("[WAYPOINT TRACKER] Error removing waypoint '{}': {}", waypointName, e.getMessage());
         }
     }
     
@@ -121,18 +171,24 @@ public class WaypointTracker {
     
     /**
      * Clears all tracked waypoints (useful for cleanup).
+     * Only removes waypoints that were created by the mod, not manual user waypoints.
      */
     public static void clearAllTrackedWaypoints() {
         if (!ConfigManager.getClientConfig().auto_remove_waypoints) {
-            trackedWaypoints.clear();
             return;
         }
         
+        int removedCount = 0;
         for (String waypointName : trackedWaypoints.values()) {
             removeWaypoint(waypointName);
+            removedCount++;
         }
         trackedWaypoints.clear();
-        LOGGER.info("[WAYPOINT TRACKER] Cleared all tracked waypoints");
+        
+        // Clear persistent storage
+        WaypointManager.clearAllWaypoints();
+        
+        LOGGER.info("[WAYPOINT TRACKER] Cleared {} mod-created waypoints (manual waypoints preserved)", removedCount);
     }
     
     /**
@@ -140,7 +196,7 @@ public class WaypointTracker {
      * @return Number of tracked waypoints
      */
     public static int getTrackedWaypointCount() {
-        return trackedWaypoints.size();
+        return WaypointManager.getWaypointCount();
     }
     
     /**

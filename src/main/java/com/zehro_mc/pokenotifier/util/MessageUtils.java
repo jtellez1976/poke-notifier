@@ -57,7 +57,7 @@ public class MessageUtils {
     /**
      * Creates a text component with waypoint button for a specific Pokemon entity.
      * This enables automatic waypoint tracking and removal.
-     * @param pokemonEntity The Pokemon entity (unused in main-side implementation)
+     * @param pokemonEntity The Pokemon entity
      * @param name Display name for the waypoint
      * @param x X coordinate
      * @param y Y coordinate
@@ -66,8 +66,23 @@ public class MessageUtils {
      * @return Text component with waypoint button OR coordinates (not both)
      */
     public static MutableText createLocationTextForPokemon(PokemonEntity pokemonEntity, String name, int x, int y, int z, int color) {
-        // For main-side implementation, just use regular waypoint creation
-        return createLocationText(name, x, y, z, color);
+        // Check if waypoint creation is enabled and Xaero's is available
+        if (ConfigManager.getClientConfig().create_waypoints_enabled && isXaeroAvailable()) {
+            // Use client-side integration for Pokemon-specific waypoints
+            try {
+                Class<?> xaeroIntegrationClass = Class.forName("com.zehro_mc.pokenotifier.client.compat.XaeroIntegration");
+                java.lang.reflect.Method createWaypointButtonForPokemonMethod = xaeroIntegrationClass.getMethod("createWaypointButtonForPokemon", 
+                    Class.forName("com.cobblemon.mod.common.entity.pokemon.PokemonEntity"), String.class, int.class, int.class, int.class, int.class);
+                Object result = createWaypointButtonForPokemonMethod.invoke(null, pokemonEntity, name, x, y, z, color);
+                if (result instanceof Text) {
+                    return (MutableText) result;
+                }
+            } catch (Exception e) {
+                // Fallback to regular waypoint creation
+            }
+        }
+        // Fallback to coordinates
+        return createCoordinateFallback(x, y, z);
     }
 
     /**
@@ -81,36 +96,31 @@ public class MessageUtils {
     }
 
     /**
-     * Creates a waypoint button for Xaero's integration.
+     * Creates a waypoint button using the client-side integration.
+     * This method is only called on the client side.
      * @param name Waypoint name
      * @param x X coordinate
      * @param y Y coordinate
      * @param z Z coordinate
      * @param color Waypoint color
-     * @return Clickable waypoint button
+     * @return Clickable waypoint button or coordinates
      */
     private static MutableText createWaypointButton(String name, int x, int y, int z, int color) {
-        // Clean pokemon name for waypoint (remove special characters and emojis)
-        String tempName = name.replaceAll("[^a-zA-Z0-9 ]", "").trim();
-        if (tempName.isEmpty()) {
-            tempName = "Pokemon";
+        // This method should only be called on client side
+        // Use XaeroIntegration to create waypoint with proper tracking
+        try {
+            Class<?> xaeroIntegrationClass = Class.forName("com.zehro_mc.pokenotifier.client.compat.XaeroIntegration");
+            java.lang.reflect.Method createWaypointButtonMethod = xaeroIntegrationClass.getMethod("createWaypointButton", String.class, int.class, int.class, int.class, int.class);
+            Object result = createWaypointButtonMethod.invoke(null, name, x, y, z, color);
+            if (result instanceof Text) {
+                return (MutableText) result;
+            }
+        } catch (Exception e) {
+            // Fallback to coordinates if client integration fails
         }
-        if (tempName.length() > 15) {
-            tempName = tempName.substring(0, 15);
-        }
-        final String cleanName = tempName;
         
-        // Create waypoint command for Xaero's
-        String waypointCommand = "xaero_waypoint_add:" + cleanName + ":" + cleanName.substring(0, Math.min(1, cleanName.length())) + ":" + x + ":" + y + ":" + z + ":6:false:0:Internal-xaero-waypoint";
-        
-        return Text.literal("[Add Waypoint]")
-                .styled(style -> style
-                        .withColor(Formatting.AQUA)
-                        .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + waypointCommand))
-                        .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
-                                Text.literal("Click to add waypoint: " + cleanName + "\n" +
-                                           "Location: " + x + ", " + y + ", " + z)
-                                        .formatted(Formatting.YELLOW))));
+        // Fallback to coordinates
+        return createCoordinateFallback(x, y, z);
     }
     
     /**

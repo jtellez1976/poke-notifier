@@ -15,6 +15,7 @@ import com.zehro_mc.pokenotifier.util.MessageUtils;
 import com.zehro_mc.pokenotifier.block.entity.ModBlockEntities;
 import com.zehro_mc.pokenotifier.client.compat.AdvancementPlaquesCompat;
 import com.zehro_mc.pokenotifier.client.compat.XaeroIntegration;
+import com.zehro_mc.pokenotifier.client.data.WaypointManager;
 import com.zehro_mc.pokenotifier.client.event.PokemonWaypointHandler;
 import com.zehro_mc.pokenotifier.client.renderer.TrophyDisplayBlockEntityRenderer;
 import com.zehro_mc.pokenotifier.networking.*;
@@ -55,7 +56,7 @@ public class PokeNotifierClient implements ClientModInitializer {
     public static boolean isServerDebugMode = false;
     public static boolean isServerTestMode = false;
     public static boolean isServerBountySystemEnabled = false;
-    public static boolean isGlobalHuntSystemEnabled = true; // NEW: Track Global Hunt system state
+    public static boolean isGlobalHuntSystemEnabled = false; // Will be synced from server
     public static boolean hasActiveGlobalHunt = false; // NEW: Track active Global Hunt event
     public static String activeGlobalHuntPokemon = ""; // NEW: Track active Global Hunt Pokemon
     public static String lastGlobalHuntWinner = ""; // NEW: Track last Global Hunt winner
@@ -68,6 +69,7 @@ public class PokeNotifierClient implements ClientModInitializer {
         
         // Initialize Xaero's integration and waypoint tracking
         XaeroIntegration.initialize();
+        WaypointManager.loadWaypoints();
         PokemonWaypointHandler.initialize();
 
         HudRenderCallback.EVENT.register(NotificationHUD::render);
@@ -120,6 +122,8 @@ public class PokeNotifierClient implements ClientModInitializer {
                 isGlobalHuntSystemEnabled = payload.isGlobalHuntSystemEnabled();
                 hasActiveGlobalHunt = payload.hasActiveGlobalHunt();
                 activeGlobalHuntPokemon = payload.activeGlobalHuntPokemon();
+                
+                LOGGER.info("[CLIENT] Received admin status - Global Hunt System: {}", isGlobalHuntSystemEnabled);
             });
         });
         
@@ -202,15 +206,21 @@ public class PokeNotifierClient implements ClientModInitializer {
 
                     chatMessage.append(Text.literal(" (" + payload.level() + ") has appeared at ").formatted(Formatting.YELLOW));
                     
-                    // Use MessageUtils for unified waypoint/coordinate display
+                    // Create waypoints only for NEW Pokémon or HUNT category (custom list)
                     String pokemonName = payload.name();
                     int x = payload.pos().getX();
                     int y = payload.pos().getY();
                     int z = payload.pos().getZ();
                     
-                    // Import MessageUtils at the top of the file
-                    chatMessage.append(com.zehro_mc.pokenotifier.util.MessageUtils.createLocationText(
-                            pokemonName, x, y, z, payload.color()));
+                    boolean shouldCreateWaypoint = "NEW".equals(payload.status()) || "HUNT".equals(payload.rarityCategoryName());
+                    
+                    if (shouldCreateWaypoint) {
+                        chatMessage.append(com.zehro_mc.pokenotifier.client.util.ClientMessageUtils.createLocationText(
+                                pokemonName, x, y, z, payload.color()));
+                    } else {
+                        // Just show coordinates for CAUGHT Pokémon
+                        chatMessage.append(XaeroIntegration.createCoordinateFallback(x, y, z));
+                    }
                     
                     chatMessage.append(Text.literal(" (").formatted(Formatting.YELLOW));
                     chatMessage.append(Text.literal(String.format("%.1f", payload.distance()) + " blocks away").formatted(Formatting.GREEN));

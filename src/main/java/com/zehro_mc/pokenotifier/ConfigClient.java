@@ -34,4 +34,5 @@ public class ConfigClient {
     // Map Settings
     public boolean auto_remove_waypoints = true;
     public boolean create_waypoints_enabled = true;
+    public boolean auto_waypoint_enabled = false; // Auto-create waypoints for Pokemon
 }
