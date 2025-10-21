@@ -11,6 +11,7 @@ package com.zehro_mc.pokenotifier.client;
 import com.zehro_mc.pokenotifier.ConfigClient;
 import com.zehro_mc.pokenotifier.ConfigManager;
 import com.zehro_mc.pokenotifier.PokeNotifier;
+import com.zehro_mc.pokenotifier.util.MessageUtils;
 import com.zehro_mc.pokenotifier.block.entity.ModBlockEntities;
 import com.zehro_mc.pokenotifier.client.compat.AdvancementPlaquesCompat;
 import com.zehro_mc.pokenotifier.client.renderer.TrophyDisplayBlockEntityRenderer;
@@ -193,18 +194,15 @@ public class PokeNotifierClient implements ClientModInitializer {
 
                     chatMessage.append(Text.literal(" (" + payload.level() + ") has appeared at ").formatted(Formatting.YELLOW));
                     
-                    // Direct Xaero's API integration
+                    // Use MessageUtils for unified waypoint/coordinate display
                     String pokemonName = payload.name();
                     int x = payload.pos().getX();
                     int y = payload.pos().getY();
                     int z = payload.pos().getZ();
                     
-                    chatMessage.append(Text.literal(" at (").formatted(Formatting.YELLOW));
-                    chatMessage.append(Text.literal(x + ", " + y + ", " + z).formatted(Formatting.GREEN));
-                    chatMessage.append(Text.literal(") ").formatted(Formatting.YELLOW));
-                    
-                    // Add clickable [Add Waypoint] button
-                    chatMessage.append(createWaypointButton(pokemonName, x, y, z));
+                    // Import MessageUtils at the top of the file
+                    chatMessage.append(com.zehro_mc.pokenotifier.util.MessageUtils.createLocationText(
+                            pokemonName, x, y, z, payload.color()));
                     
                     chatMessage.append(Text.literal(" (").formatted(Formatting.YELLOW));
                     chatMessage.append(Text.literal(String.format("%.1f", payload.distance()) + " blocks away").formatted(Formatting.GREEN));
@@ -336,23 +334,5 @@ public class PokeNotifierClient implements ClientModInitializer {
         return rainbowText;
     }
 
-    /**
-     * Creates a clickable waypoint button for Xaero's integration.
-     * @param name Pokemon name for the waypoint
-     * @param x X coordinate
-     * @param y Y coordinate  
-     * @param z Z coordinate
-     * @return Clickable text component
-     */
-    private static MutableText createWaypointButton(String name, int x, int y, int z) {
-        return Text.literal("[Add Waypoint]").styled(style -> style
-            .withColor(Formatting.GREEN)
-            .withUnderline(true)
-            .withClickEvent(new net.minecraft.text.ClickEvent(
-                net.minecraft.text.ClickEvent.Action.RUN_COMMAND,
-                "/pnc addwaypoint \"" + name + "\" " + x + " " + y + " " + z))
-            .withHoverEvent(new net.minecraft.text.HoverEvent(
-                net.minecraft.text.HoverEvent.Action.SHOW_TEXT,
-                Text.literal("Click to add waypoint to Xaero's map").formatted(Formatting.YELLOW).formatted(Formatting.ITALIC))));
-    }
+
 }

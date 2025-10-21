@@ -30,6 +30,7 @@ import com.zehro_mc.pokenotifier.util.PokeNotifierServerUtils;
 import com.zehro_mc.pokenotifier.util.PlayerRankManager;
 import com.zehro_mc.pokenotifier.util.UpdateChecker;
 import com.zehro_mc.pokenotifier.util.RarityUtil;
+import com.zehro_mc.pokenotifier.util.MessageUtils;
 import com.zehro_mc.pokenotifier.globalhunt.GlobalHuntManager;
 import kotlin.Unit;
 import com.mojang.brigadier.context.CommandContext;
@@ -793,7 +794,7 @@ public class PokeNotifier implements ModInitializer {
                         if (GlobalHuntManager.getInstance().hasActiveEvent()) {
                             var event = GlobalHuntManager.getInstance().getCurrentEvent();
                             lines.add(Text.literal("Active Event: ").append(Text.literal((event.isShiny() ? "Shiny " : "") + event.getPokemonName()).formatted(Formatting.GOLD)));
-                            lines.add(Text.literal("Location: ").append(Text.literal(event.getCoordinates().getX() + ", " + event.getCoordinates().getY() + ", " + event.getCoordinates().getZ()).formatted(Formatting.AQUA)));
+                            lines.add(Text.literal("Location: ").append(MessageUtils.createLocationText("Global Hunt " + event.getPokemonName(), event.getCoordinates(), MessageUtils.Colors.GLOBAL_HUNT)));
                             lines.add(Text.literal("World: ").append(Text.literal(event.getWorld().getRegistryKey().getValue().toString()).formatted(Formatting.AQUA)));
                         } else {
                             lines.add(Text.literal("Active Event: None").formatted(Formatting.GRAY));
@@ -1301,7 +1302,7 @@ public class PokeNotifier implements ModInitializer {
         String capitalizedBounty = newBounty.substring(0, 1).toUpperCase() + newBounty.substring(1);
         Text message = Text.literal("🎯 New Bounty Available! ").formatted(Formatting.GREEN)
                 .append(Text.literal("The first trainer to capture a ").formatted(Formatting.YELLOW))
-                .append(Text.literal(capitalizedBounty).formatted(Formatting.GOLD, Formatting.BOLD))
+                .append(Text.literal(capitalizedBounty).formatted(Formatting.GOLD))
                 .append(Text.literal(" will receive a special reward!").formatted(Formatting.YELLOW));
 
         // --- MEJORA: Usamos ModeStatusPayload para el toast y el sonido de campana ---
@@ -1498,12 +1499,18 @@ public class PokeNotifier implements ModInitializer {
 
             Text message = Text.literal("🌊 Swarm Alert! ").formatted(Formatting.AQUA)
                     .append(Text.literal("A large concentration of ").formatted(Formatting.YELLOW))
-                    .append(Text.literal(capitalizedName).formatted(Formatting.GOLD, Formatting.BOLD))
-                    .append(Text.literal(" has been detected in " + biomeName + " biomes").formatted(Formatting.YELLOW))
-                    .append(Text.literal(" around X: " + swarmPos.getX() + ", Z: " + swarmPos.getZ()).formatted(Formatting.AQUA)); // Add coordinates
-
-            server.getPlayerManager().broadcast(message, false);
-            server.getPlayerManager().getPlayerList().forEach(p -> p.playSoundToPlayer(SoundEvents.EVENT_RAID_HORN.value(), SoundCategory.NEUTRAL, 1.0F, 1.0F));
+                    .append(Text.literal(capitalizedName).formatted(Formatting.GOLD))
+                    .append(Text.literal(" has been detected in " + biomeName + " biomes at ").formatted(Formatting.YELLOW))
+                    .append(MessageUtils.createLocationText(capitalizedName + " Swarm", swarmPos, MessageUtils.Colors.SWARM));
+            
+            // Send personalized messages with distance info
+            for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
+                double playerDistance = player.getPos().distanceTo(swarmPos.toCenterPos());
+                Text personalMessage = message.copy()
+                        .append(Text.literal(" (" + String.format("%.0f", playerDistance) + " blocks away)").formatted(Formatting.GREEN));
+                player.sendMessage(personalMessage, false);
+                player.playSoundToPlayer(SoundEvents.EVENT_RAID_HORN.value(), SoundCategory.NEUTRAL, 1.0F, 1.0F);
+            }
 
             // --- MEJORA: Spawn a random amount of Pokémon between 10 and 15 ---
             int swarmSize = 10 + SWARM_RANDOM.nextInt(6); // Generates a number from 0-5, so the result is 10-15.

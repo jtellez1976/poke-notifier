@@ -14,6 +14,7 @@ import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.zehro_mc.pokenotifier.ConfigManager;
 import com.zehro_mc.pokenotifier.ConfigPokemon;
 import com.zehro_mc.pokenotifier.ConfigServer;
+import com.zehro_mc.pokenotifier.util.MessageUtils;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -123,11 +124,23 @@ public class SwarmSystem {
 
             Text message = Text.literal("🌊 Swarm Alert! ").formatted(Formatting.AQUA)
                     .append(Text.literal("A large concentration of ").formatted(Formatting.YELLOW))
-                    .append(Text.literal(capitalizedName).formatted(Formatting.GOLD, Formatting.BOLD))
-                    .append(Text.literal(" has been detected in " + biomeName + " biomes").formatted(Formatting.YELLOW))
-                    .append(Text.literal(" around X: " + swarmPos.getX() + ", Z: " + swarmPos.getZ()).formatted(Formatting.AQUA));
+                    .append(Text.literal(capitalizedName).formatted(Formatting.GOLD))
+                    .append(Text.literal(" has been detected in " + biomeName + " biomes at ").formatted(Formatting.YELLOW))
+                    .append(MessageUtils.createLocationText(capitalizedName + " Swarm", swarmPos, MessageUtils.Colors.SWARM));
+            
+            // Add distance info for nearby players
+            for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
+                double playerDistance = player.getPos().distanceTo(swarmPos.toCenterPos());
+                if (playerDistance <= 100) { // Within 100 blocks
+                    Text personalMessage = message.copy()
+                            .append(Text.literal(" (" + String.format("%.0f", playerDistance) + " blocks away)").formatted(Formatting.GREEN));
+                    player.sendMessage(personalMessage, false);
+                } else {
+                    player.sendMessage(message, false);
+                }
+            }
 
-            server.getPlayerManager().broadcast(message, false);
+            // Message is sent individually above
             server.getPlayerManager().getPlayerList().forEach(p -> p.playSoundToPlayer(SoundEvents.EVENT_RAID_HORN.value(), SoundCategory.NEUTRAL, 1.0F, 1.0F));
 
             // Spawn a random amount of Pokémon between 10 and 15

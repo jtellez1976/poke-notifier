@@ -33,6 +33,7 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import com.zehro_mc.pokenotifier.PokeNotifier;
 import com.zehro_mc.pokenotifier.networking.GlobalHuntPayload;
 import com.zehro_mc.pokenotifier.util.RarityUtil;
+import com.zehro_mc.pokenotifier.util.MessageUtils;
 
 import java.util.Iterator;
 
@@ -170,14 +171,21 @@ public class GlobalHuntEvent {
         String shinyText = isShiny ? "SHINY " : "";
         String worldName = getWorldDisplayName();
         
-        Text announcement = Text.literal("⚡ GLOBAL HUNT ALERT! ⚡").formatted(Formatting.RED, Formatting.BOLD)
+        Text announcement = Text.literal("⚡ GLOBAL HUNT ALERT! ⚡").formatted(Formatting.RED)
             .append(Text.literal("\nA " + shinyText + pokemonName + " Lvl " + dynamicLevel + " has been spotted!").formatted(Formatting.GOLD))
-            .append(Text.literal("\nLocation: " + coordinates.getX() + ", " + coordinates.getY() + ", " + coordinates.getZ()).formatted(Formatting.YELLOW))
+            .append(Text.literal("\nLocation: ").formatted(Formatting.YELLOW))
+            .append(MessageUtils.createLocationText("Global Hunt " + pokemonName, coordinates, MessageUtils.Colors.GLOBAL_HUNT))
             .append(Text.literal("\nWorld: " + worldName).formatted(Formatting.YELLOW))
             .append(Text.literal("\nTime Limit: " + durationMinutes + " minutes!").formatted(Formatting.GREEN))
-            .append(Text.literal("\nFirst to capture wins!").formatted(Formatting.RED, Formatting.BOLD));
+            .append(Text.literal("\nFirst to capture wins!").formatted(Formatting.RED));
         
-        world.getServer().getPlayerManager().broadcast(announcement, false);
+        // Send personalized messages with distance info
+        for (ServerPlayerEntity player : world.getServer().getPlayerManager().getPlayerList()) {
+            double distance = player.getPos().distanceTo(coordinates.toCenterPos());
+            Text personalMessage = announcement.copy()
+                    .append(Text.literal("\nDistance: " + String.format("%.0f", distance) + " blocks").formatted(Formatting.AQUA));
+            player.sendMessage(personalMessage, false);
+        }
         
         // Send networking payload to clients for special effects
         GlobalHuntPayload payload = new GlobalHuntPayload(
@@ -215,7 +223,7 @@ public class GlobalHuntEvent {
         isCaptured = true;
         
         // Announce winner with original format
-        Text winnerAnnouncement = Text.literal("🏆 GLOBAL HUNT COMPLETE! 🏆").formatted(Formatting.GREEN, Formatting.BOLD)
+        Text winnerAnnouncement = Text.literal("🏆 GLOBAL HUNT COMPLETE! 🏆").formatted(Formatting.GREEN)
             .append(Text.literal("\n" + playerName + " captured the " + (isShiny ? "Shiny " : "") + pokemonName + "!").formatted(Formatting.GOLD))
             .append(Text.literal("\nCongratulations to the winner!").formatted(Formatting.YELLOW));
         
@@ -254,7 +262,7 @@ public class GlobalHuntEvent {
         if (!isActive || isCaptured) return;
         
         // Announce timeout with original format
-        Text timeoutAnnouncement = Text.literal("⏰ GLOBAL HUNT EXPIRED! ⏰").formatted(Formatting.RED, Formatting.BOLD)
+        Text timeoutAnnouncement = Text.literal("⏰ GLOBAL HUNT EXPIRED! ⏰").formatted(Formatting.RED)
             .append(Text.literal("\nThe " + (isShiny ? "Shiny " : "") + pokemonName + " has escaped!").formatted(Formatting.YELLOW))
             .append(Text.literal("\nBetter luck next time...").formatted(Formatting.GRAY));
         

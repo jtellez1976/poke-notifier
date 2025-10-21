@@ -133,7 +133,7 @@ public class BountySystem {
         String capitalizedBounty = newBounty.substring(0, 1).toUpperCase() + newBounty.substring(1);
         Text message = Text.literal("🎯 New Bounty Available! ").formatted(Formatting.GREEN)
                 .append(Text.literal("The first trainer to capture a ").formatted(Formatting.YELLOW))
-                .append(Text.literal(capitalizedBounty).formatted(Formatting.GOLD, Formatting.BOLD))
+                .append(Text.literal(capitalizedBounty).formatted(Formatting.GOLD))
                 .append(Text.literal(" will receive a special reward!").formatted(Formatting.YELLOW));
 
         ModeStatusPayload payload = new ModeStatusPayload("New Bounty!", true);
