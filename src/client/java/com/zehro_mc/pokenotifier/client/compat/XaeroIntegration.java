@@ -122,8 +122,15 @@ public class XaeroIntegration {
                                    "Location: " + x + ", " + y + ", " + z)
                             .formatted(Formatting.YELLOW))));
         } else {
-            // Manual waypoint button - create on click via custom handler
-            return new ManualWaypointText(cleanName, x, y, z);
+            // Manual waypoint button - use Xaero's command
+            return Text.literal("[Add]")
+                .styled(style -> style
+                    .withColor(Formatting.AQUA)
+                    .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/xaero_waypoint_add:" + cleanName + ":" + cleanName.substring(0, Math.min(1, cleanName.length())) + ":" + x + ":" + y + ":" + z + ":6:false:0:Internal-xaero-waypoint"))
+                    .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, 
+                        Text.literal("Click to add waypoint: " + cleanName + "\n" +
+                                   "Location: " + x + ", " + y + ", " + z)
+                            .formatted(Formatting.YELLOW))));
         }
     }
     
@@ -186,15 +193,14 @@ public class XaeroIntegration {
                                    "Location: " + x + ", " + y + ", " + z)
                             .formatted(Formatting.YELLOW))));
         } else {
-            // Manual waypoint button with direct execution
+            // Manual waypoint button with Pokemon tracking
             return Text.literal("[Add]")
                 .styled(style -> style
                     .withColor(Formatting.AQUA)
-                    .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/waypoint add " + cleanName + " " + x + " " + y + " " + z))
+                    .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/xaero_waypoint_add:" + cleanName + ":" + cleanName.substring(0, Math.min(1, cleanName.length())) + ":" + x + ":" + y + ":" + z + ":6:false:0:Internal-xaero-waypoint"))
                     .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, 
                         Text.literal("Click to add waypoint: " + cleanName + "\n" +
-                                   "Location: " + x + ", " + y + ", " + z + "\n" +
-                                   "Creates tracked waypoint when clicked")
+                                   "Location: " + x + ", " + y + ", " + z)
                             .formatted(Formatting.YELLOW))));
         }
     }
