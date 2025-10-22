@@ -40,3 +40,8 @@ hs_err_*.log
 replay_*.log
 *.hprof
 *.jfr
+
+# documentation (keep only README.md public)
+
+*.md
+!README.md
