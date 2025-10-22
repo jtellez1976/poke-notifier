@@ -16,17 +16,34 @@ import net.minecraft.util.Identifier;
  */
 public class GuiIcons {
     
-    // Custom icons
+    // User Tools icons
     public static final Identifier NOTIFICATIONS = Identifier.of("poke-notifier", "textures/gui/icons/notifications.png");
+    public static final Identifier CUSTOM_HUNT = Identifier.of("poke-notifier", "textures/gui/icons/custom_hunt.png");
+    public static final Identifier CATCH_EM_ALL = Identifier.of("poke-notifier", "textures/gui/icons/catch_em_all.png");
+    public static final Identifier MAP_SETTINGS = Identifier.of("poke-notifier", "textures/gui/icons/map_settings.png");
+    public static final Identifier INFO_HELP = Identifier.of("poke-notifier", "textures/gui/icons/info_help.png");
     
-    // Fallback to pokeball for others until more icons are created
-    public static final Identifier POKEBALL = Identifier.of("poke-notifier", "textures/gui/pokeball-icon.png");
-    public static final Identifier SETTINGS = POKEBALL;
-    public static final Identifier REFRESH = POKEBALL;
-    public static final Identifier INFO = POKEBALL;
-    public static final Identifier WARNING = POKEBALL;
-    public static final Identifier SUCCESS = POKEBALL;
-    public static final Identifier ERROR = POKEBALL;
+    // Toggle states
+    public static final Identifier ON = Identifier.of("poke-notifier", "textures/gui/icons/on.png");
+    public static final Identifier OFF = Identifier.of("poke-notifier", "textures/gui/icons/off.png");
+    
+    // Admin Tools icons
+    public static final Identifier SYSTEM_STATUS = Identifier.of("poke-notifier", "textures/gui/icons/system_status.png");
+    public static final Identifier SERVER_CONTROL = Identifier.of("poke-notifier", "textures/gui/icons/server_control.png");
+    public static final Identifier PLAYER_DATA = Identifier.of("poke-notifier", "textures/gui/icons/player_data.png");
+    public static final Identifier TESTING = Identifier.of("poke-notifier", "textures/gui/icons/testing.png");
+    
+    // Events icons
+    public static final Identifier GLOBAL_HUNT = Identifier.of("poke-notifier", "textures/gui/icons/global_hunt.png");
+    public static final Identifier BOUNTY_SYSTEM = Identifier.of("poke-notifier", "textures/gui/icons/bounty_system.png");
+    public static final Identifier SWARM_EVENTS = Identifier.of("poke-notifier", "textures/gui/icons/swarm_events.png");
+    public static final Identifier RIVAL_BATTLES = Identifier.of("poke-notifier", "textures/gui/icons/rival_battles.png");
+    
+    // Legacy aliases
+    public static final Identifier SETTINGS = MAP_SETTINGS;
+    public static final Identifier INFO = INFO_HELP;
+    public static final Identifier SUCCESS = CUSTOM_HUNT;
+    public static final Identifier WARNING = CATCH_EM_ALL;
     
     /**
      * Render an icon at the specified position

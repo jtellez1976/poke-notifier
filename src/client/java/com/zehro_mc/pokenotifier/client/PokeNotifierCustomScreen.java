@@ -136,10 +136,10 @@ public class PokeNotifierCustomScreen extends Screen {
         int navWidth = 100;
 
         addDrawableChild(createIconButton(navX, navY, navWidth, GuiIcons.NOTIFICATIONS, "Notifications", UserSubCategory.NOTIFICATIONS, currentUserSubCategory));
-        addDrawableChild(createIconButton(navX, navY + 22, navWidth, GuiIcons.SUCCESS, "Custom Hunt", UserSubCategory.CUSTOM_HUNT, currentUserSubCategory));
-        addDrawableChild(createIconButton(navX, navY + 44, navWidth, GuiIcons.WARNING, "Catch 'em All", UserSubCategory.CATCH_EM_ALL, currentUserSubCategory));
-        addDrawableChild(createIconButton(navX, navY + 66, navWidth, GuiIcons.SETTINGS, "Map Settings", UserSubCategory.MAP_SETTINGS, currentUserSubCategory));
-        addDrawableChild(createIconButton(navX, navY + 88, navWidth, GuiIcons.INFO, "Info & Help", UserSubCategory.INFO, currentUserSubCategory));
+        addDrawableChild(createIconButton(navX, navY + 22, navWidth, GuiIcons.CUSTOM_HUNT, "Custom Hunt", UserSubCategory.CUSTOM_HUNT, currentUserSubCategory));
+        addDrawableChild(createIconButton(navX, navY + 44, navWidth, GuiIcons.CATCH_EM_ALL, "Catch 'em All", UserSubCategory.CATCH_EM_ALL, currentUserSubCategory));
+        addDrawableChild(createIconButton(navX, navY + 66, navWidth, GuiIcons.MAP_SETTINGS, "Map Settings", UserSubCategory.MAP_SETTINGS, currentUserSubCategory));
+        addDrawableChild(createIconButton(navX, navY + 88, navWidth, GuiIcons.INFO_HELP, "Info & Help", UserSubCategory.INFO, currentUserSubCategory));
 
         int contentX = panelX + navWidth + 20;
         int contentY = panelY + 55;
@@ -201,10 +201,10 @@ public class PokeNotifierCustomScreen extends Screen {
         int navY = panelY + 55;
         int navWidth = 110;
 
-        addDrawableChild(createSubNavButton(navX, navY, navWidth, Text.literal("📊 System Status"), AdminSubCategory.SYSTEM_STATUS, currentAdminSubCategory));
-        addDrawableChild(createSubNavButton(navX, navY + 22, navWidth, Text.literal("⚙️ Server Control"), AdminSubCategory.SERVER_CONTROL, currentAdminSubCategory));
-        addDrawableChild(createSubNavButton(navX, navY + 44, navWidth, Text.literal("👤 Player Data"), AdminSubCategory.PLAYER_DATA, currentAdminSubCategory));
-        addDrawableChild(createSubNavButton(navX, navY + 66, navWidth, Text.literal("🔬 Testing"), AdminSubCategory.TESTING, currentAdminSubCategory));
+        addDrawableChild(createIconButton(navX, navY, navWidth, GuiIcons.SYSTEM_STATUS, "System Status", AdminSubCategory.SYSTEM_STATUS, currentAdminSubCategory));
+        addDrawableChild(createIconButton(navX, navY + 22, navWidth, GuiIcons.SERVER_CONTROL, "Server Control", AdminSubCategory.SERVER_CONTROL, currentAdminSubCategory));
+        addDrawableChild(createIconButton(navX, navY + 44, navWidth, GuiIcons.PLAYER_DATA, "Player Data", AdminSubCategory.PLAYER_DATA, currentAdminSubCategory));
+        addDrawableChild(createIconButton(navX, navY + 66, navWidth, GuiIcons.TESTING, "Testing", AdminSubCategory.TESTING, currentAdminSubCategory));
 
         int contentX = panelX + navWidth + 20;
         int contentY = panelY + 55;
@@ -1054,13 +1054,17 @@ public class PokeNotifierCustomScreen extends Screen {
     // --- HELPER METHODS ---
 
     private ButtonWidget createToggleButton(String label, boolean currentValue, java.util.function.Consumer<Boolean> configUpdater, int x, int y, int width) {
-        Text message = Text.literal(label + ": " + (currentValue ? "ON" : "OFF")).formatted(currentValue ? Formatting.GREEN : Formatting.RED);
-        return ButtonWidget.builder(message, button -> {
+        net.minecraft.util.Identifier iconId = currentValue ? GuiIcons.ON : GuiIcons.OFF;
+        String statusText = currentValue ? "ON" : "OFF";
+        
+        IconButton button = new IconButton(x, y, width, 18, iconId, label + ": " + statusText, b -> {
             boolean newValue = !currentValue;
             configUpdater.accept(newValue);
-            button.setMessage(Text.literal(label + ": " + (newValue ? "ON" : "OFF")).formatted(newValue ? Formatting.GREEN : Formatting.RED));
             displayResponse(List.of(Text.literal("Settings updated.").formatted(Formatting.GREEN)));
-        }).dimensions(x, y, width, 18).build();
+            this.clearAndInit(); // Refresh to update icon
+        });
+        
+        return button;
     }
 
 
