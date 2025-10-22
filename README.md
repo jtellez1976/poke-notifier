@@ -1,8 +1,33 @@
-# Poke Notifier v1.3.0 - The Unified GUI & Admin Tools Update!
+# Poke Notifier v1.4.0 - The Complete Server Events Update!
 
-This version introduces a massive overhaul to the user and admin experience by unifying all configuration options into a single, powerful, and intuitive Graphical User Interface (GUI). The mod is now easier to use for players and significantly more powerful for server operators.
+Poke Notifier has evolved from a simple notification mod into a comprehensive server event management system! This latest version introduces powerful new event systems, enhanced administration tools, and seamless map integration, making it the ultimate tool for community servers running Cobblemon.
 
-## ✨ New Core Features in v1.3.0
+## 🌟 Latest Features in v1.4.0
+
+### 🌪️ **Swarm Events System**
+- **Mass Pokémon Spawning**: Create server-wide swarm events with 15-25 Pokémon of the same species
+- **Smart Performance**: Pokémon only spawn when players are nearby, optimizing server resources
+- **Guaranteed Shiny**: Every swarm includes at least one shiny Pokémon with boosted odds
+- **Dynamic Levels**: Pokémon spawn at levels based on your server's player average (±10 levels)
+- **Automatic Management**: Events end naturally when all Pokémon are caught or time expires
+
+### 🌍 **Global Hunt Events**
+- **Server-Wide Challenges**: Admins can start hunt events for specific Pokémon species
+- **Competitive Rewards**: First player to catch the target wins special prizes
+- **Real-Time Tracking**: Live updates on hunt progress and winner announcements
+
+### 🗺️ **Xaero's Minimap Integration**
+- **Automatic Event Waypoints**: Swarm and hunt events create map waypoints automatically
+- **Smart Cleanup**: Waypoints are removed when events end or Pokémon are caught
+- **Protected Waypoints**: Important event waypoints are protected from accidental deletion
+- **Click-to-Navigate**: Clickable coordinates in chat for easy navigation
+
+### 📊 **Advanced System Monitoring**
+- **Live System Logs**: Real-time server monitoring with scrollable system status
+- **Event Statistics**: Complete tracking of all server events and player participation
+- **Performance Metrics**: Monitor entity counts, player activity, and system health
+
+## ✨ Core Features from v1.3.0
 
 ### 🎨 Unified GUI
 - **One Command to Rule Them All:** The new `/pnc gui` command is now the single, universal entry point for both players and administrators. All other chat commands have been hidden to provide a clean, focused experience.
@@ -21,9 +46,10 @@ The GUI intelligently adapts to who is using it:
 ### 🛠️ Complete Admin Control via GUI
 Administrators no longer need to memorize complex commands. Everything is now accessible with a click:
 - **Server Control:** Toggle `Debug Mode` and `Test Mode`, and safely `Reload` or `Reset` all mod configurations (with confirmation prompts for dangerous actions).
-- **Event Management:** Enable or disable the `Bounty System` and manually trigger a `Swarm` of any Pokémon.
+- **Event Management:** Create and manage `Swarm Events`, `Global Hunts`, and `Bounty System` with full control over duration, rewards, and participants.
 - **Player Data Management:** Easily select an online player from an autocomplete list to `Autocomplete` a generation's progress or `Rollback` their data from a backup.
-- **Testing:** A dedicated panel to spawn any Pokémon for testing, with a simple checkbox to make it `Shiny`.
+- **Testing:** A dedicated panel to spawn any Pokémon for testing, with options for shiny, level, and location.
+- **System Monitoring:** Real-time view of server status, active events, and system performance.
 
 ---
 
@@ -32,6 +58,15 @@ Administrators no longer need to memorize complex commands. Everything is now ac
 | Command    | Description                                  |
 | :--------- | :------------------------------------------- |
 | `/pnc gui` | Opens the main configuration screen for all users. |
+
+---
+
+## 🎯 **Perfect For**
+
+- **Community Servers**: Create engaging server-wide Pokémon hunting events
+- **Competitive Play**: Organize tournaments and challenges with built-in tracking
+- **Casual Servers**: Enhance the hunting experience with smart notifications
+- **Large Communities**: Manage multiple events and player progress efficiently
 
 ---
 
@@ -45,12 +80,46 @@ You can also check out the source code and contribute to the project at our GitH
 
 ---
 
-## 🔧 Installation
+## 📋 **Installation & Compatibility**
 
-1.  Ensure you have Fabric Loader installed.
-2.  Download the correct version of Fabric API and Cobblemon.
-3.  Download the latest version of **Poke Notifier**.
-4.  Place all three .jar files into your `mods` folder.
-5.  (Optional) For more stylized mode activation notifications, install `AdvancementPlaques` and its dependency, `Iceberg`.
+### Required Dependencies
+- **Minecraft Version**: 1.21.1
+- **Fabric Loader**: 0.17.3+
+- **Fabric API**: 0.104.0+1.21.1
+- **Cobblemon**: 1.6.1+1.21.1
 
-Start the game and enjoy the hunt!
+### Optional Dependencies
+- **Xaero's Minimap/World Map**: For enhanced waypoint integration
+- **AdvancementPlaques + Iceberg**: For stylized event notifications
+- **ModMenu**: For easy mod configuration access
+
+### Installation Steps
+1. Ensure you have Fabric Loader installed
+2. Download the required dependencies listed above
+3. Download the latest version of **Poke Notifier**
+4. Place all .jar files into your `mods` folder
+5. Install optional dependencies for enhanced features
+6. Start the game and use `/pnc gui` to access all features!
+
+## 🚀 **Getting Started**
+
+### For Players
+- Use `/pnc gui` to access all mod features
+- Configure notifications in the User Tools tab
+- Track active events in the Events tab
+- Customize map settings for waypoint integration
+
+### For Server Admins
+- Access advanced controls through the Admin Tools tab
+- Create server events from the Events management panel
+- Monitor server status with real-time system logs
+- Manage player data and test features safely
+
+### Creating Your First Event
+1. Open `/pnc gui` as an admin
+2. Navigate to Events → Swarm Events
+3. Enter a Pokémon name and click "Start Swarm"
+4. Watch as players receive notifications and waypoints are created
+5. Monitor the event progress in real-time
+
+Start building engaging Pokémon hunting experiences for your community!
