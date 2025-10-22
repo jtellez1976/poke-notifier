@@ -124,10 +124,14 @@ public class SwarmEventManager {
     }
     
     public void startSwarm(String pokemonName, BlockPos location, String biomeName, String triggeredBy) {
+        startSwarmWithShiny(pokemonName, location, biomeName, triggeredBy, false);
+    }
+    
+    public void startSwarmWithShiny(String pokemonName, BlockPos location, String biomeName, String triggeredBy, boolean forceShiny) {
         swarmEntities.clear();
 
         announceSwarmStart(pokemonName, biomeName, location);
-        int spawnedCount = spawnSwarmPokemon(location, pokemonName, false); // One shiny guaranteed per swarm
+        int spawnedCount = spawnSwarmPokemon(location, pokemonName, forceShiny);
         
         // Record statistics after spawning to get accurate count
         String swarmType = biomeName.equals("Admin Location") ? "MANUAL" : "AUTOMATIC";
@@ -135,15 +139,19 @@ public class SwarmEventManager {
         
         syncStatusWithClients();
 
-        PokeNotifier.LOGGER.info("[SwarmManager] Started {} swarm: {} by {} (spawned: {})", 
-            biomeName.equals("Admin Location") ? "manual" : "automatic", pokemonName, triggeredBy, spawnedCount);
+        PokeNotifier.LOGGER.info("[SwarmManager] Started {} swarm: {} by {} (spawned: {}, shiny forced: {})", 
+            biomeName.equals("Admin Location") ? "manual" : "automatic", pokemonName, triggeredBy, spawnedCount, forceShiny);
     }
 
     public boolean startManualSwarm(String pokemonName) {
-        return startManualSwarm(pokemonName, "ADMIN");
+        return startManualSwarm(pokemonName, "ADMIN", false);
     }
     
     public boolean startManualSwarm(String pokemonName, String adminName) {
+        return startManualSwarm(pokemonName, adminName, false);
+    }
+    
+    public boolean startManualSwarm(String pokemonName, String adminName, boolean forceShiny) {
         // Manual swarms are independent of automatic system - force start even if one exists
         if (SwarmStatistics.hasActiveSwarm()) {
             endCurrentSwarm("admin");
@@ -159,11 +167,15 @@ public class SwarmEventManager {
         Biome biome = overworld.getBiome(location).value();
         String biomeName = getBiomeName(overworld, location);
 
-        startSwarm(pokemonName, location, biomeName, adminName);
+        startSwarmWithShiny(pokemonName, location, biomeName, adminName, forceShiny);
         return true;
     }
     
     public boolean startManualSwarmAt(String pokemonName, BlockPos playerPos, String adminName) {
+        return startManualSwarmAt(pokemonName, playerPos, adminName, false);
+    }
+    
+    public boolean startManualSwarmAt(String pokemonName, BlockPos playerPos, String adminName, boolean forceShiny) {
         // Manual swarms are independent of automatic system - force start even if one exists
         if (SwarmStatistics.hasActiveSwarm()) {
             endCurrentSwarm("admin");
@@ -181,7 +193,7 @@ public class SwarmEventManager {
         Biome biome = overworld.getBiome(location).value();
         String biomeName = "Admin Location";
 
-        startSwarm(pokemonName, location, biomeName, adminName);
+        startSwarmWithShiny(pokemonName, location, biomeName, adminName, forceShiny);
         return true;
     }
 
@@ -303,10 +315,22 @@ public class SwarmEventManager {
         ServerWorld overworld = server.getOverworld();
         int previousCount = swarmEntities.size();
         
+        // Debug logging for entity tracking
+        if (ConfigManager.getServerConfig().debug_mode_enabled && previousCount > 0) {
+            PokeNotifier.LOGGER.debug("[SwarmManager] Checking {} tracked entities", previousCount);
+        }
+        
         swarmEntities.removeIf(uuid -> {
             com.cobblemon.mod.common.entity.pokemon.PokemonEntity entity = 
                 (com.cobblemon.mod.common.entity.pokemon.PokemonEntity) overworld.getEntity(uuid);
-            return entity == null || !entity.isAlive() || entity.isRemoved();
+            boolean shouldRemove = entity == null || !entity.isAlive() || entity.isRemoved();
+            
+            if (shouldRemove && ConfigManager.getServerConfig().debug_mode_enabled) {
+                PokeNotifier.LOGGER.debug("[SwarmManager] Removing entity {} - entity null: {}, alive: {}, removed: {}", 
+                    uuid, entity == null, entity != null ? entity.isAlive() : "N/A", entity != null ? entity.isRemoved() : "N/A");
+            }
+            
+            return shouldRemove;
         });
         
         // Update statistics with current alive count
@@ -315,12 +339,12 @@ public class SwarmEventManager {
             SwarmStatistics.updateCurrentSwarm(swarmEntities.size(), current.entitiesCaptured);
         }
         
-        // Don't auto-end swarm - let admin decide when to end it
-        
         // Only sync if count changed to reduce network spam
         if (swarmEntities.size() != previousCount) {
             syncStatusWithClients();
-            // Reduced logging
+            if (ConfigManager.getServerConfig().debug_mode_enabled) {
+                PokeNotifier.LOGGER.debug("[SwarmManager] Entity count changed: {} -> {}", previousCount, swarmEntities.size());
+            }
         }
     }
 
@@ -422,7 +446,13 @@ public class SwarmEventManager {
         long remaining = (swarmConfig.duration_minutes * 60 * 1000L) - elapsed;
         return Math.max(0, (int) (remaining / (60 * 1000)));
     }
-    public int getRemainingEntities() { return swarmEntities.size(); }
+    public int getRemainingEntities() { 
+        int count = swarmEntities.size();
+        if (ConfigManager.getServerConfig().debug_mode_enabled) {
+            PokeNotifier.LOGGER.debug("[SwarmManager] getRemainingEntities() returning: {}", count);
+        }
+        return count;
+    }
     public int getTotalSpawnedCount() { 
         SwarmStatistics.CurrentSwarm current = SwarmStatistics.getCurrentSwarm();
         return current != null ? current.totalEntitiesSpawned : 0;
@@ -462,17 +492,23 @@ public class SwarmEventManager {
         SwarmStatistics.CurrentSwarm current = SwarmStatistics.getCurrentSwarm();
         String locationStr = current != null ? 
             "X: " + current.location.x + ", Z: " + current.location.z : "";
-            
+        
+        // Get current entity count from our tracked set
+        int currentEntityCount = swarmEntities.size();
+        
         SwarmStatusPayload payload = new SwarmStatusPayload(
             current != null,
             current != null ? current.pokemonName : "",
             locationStr,
             current != null ? current.biome : "",
             getRemainingMinutes(),
-            getRemainingEntities()
+            currentEntityCount // Use the actual tracked count
         );
         
-        // Reduced logging
+        if (ConfigManager.getServerConfig().debug_mode_enabled) {
+            PokeNotifier.LOGGER.debug("[SwarmManager] Syncing status - Active: {}, Entities: {}, Pokemon: {}", 
+                current != null, currentEntityCount, current != null ? current.pokemonName : "none");
+        }
         
         for (net.minecraft.server.network.ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
             net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(player, payload);
@@ -508,6 +544,9 @@ public class SwarmEventManager {
         try {
             net.minecraft.server.world.ServerWorld overworld = server.getOverworld();
             
+            // Clear previous entities before spawning new ones
+            swarmEntities.clear();
+            
             // Use configurable spawn count
             int spawnCount = ThreadLocalRandom.current().nextInt(
                 swarmConfig.pokemon_count_min, 
@@ -515,18 +554,27 @@ public class SwarmEventManager {
             );
             
             boolean shinySpawned = false;
+            int actualSpawned = 0;
             
             for (int i = 0; i < spawnCount; i++) {
                 com.cobblemon.mod.common.api.pokemon.PokemonProperties props = 
                     com.cobblemon.mod.common.api.pokemon.PokemonProperties.Companion.parse(pokemonName);
                 
-                // Handle shiny logic - only one shiny per swarm
-                boolean shouldBeShiny = !shinySpawned && (i == spawnCount - 1 || 
-                    Math.random() < (1.0 / 4096.0) * swarmConfig.shiny_multiplier);
+                // Handle shiny logic
+                boolean shouldBeShiny;
+                if (forceAllShiny) {
+                    shouldBeShiny = true; // Force all to be shiny
+                } else {
+                    // Normal logic - only one shiny per swarm
+                    shouldBeShiny = !shinySpawned && (i == spawnCount - 1 || 
+                        Math.random() < (1.0 / 4096.0) * swarmConfig.shiny_multiplier);
+                }
                 
                 if (shouldBeShiny) {
                     props.setShiny(true);
-                    shinySpawned = true;
+                    if (!forceAllShiny) {
+                        shinySpawned = true; // Only set flag if not forcing all shiny
+                    }
                 }
                 
                 BlockPos spawnPos = findSafeSpawnLocation(overworld, centerLocation);
@@ -535,18 +583,26 @@ public class SwarmEventManager {
                 com.cobblemon.mod.common.entity.pokemon.PokemonEntity entity = props.createEntity(overworld);
                 entity.refreshPositionAndAngles(spawnPos.getX(), spawnPos.getY(), spawnPos.getZ(), 0, 0);
                 
+                // Set randomized level based on server player average
+                int randomLevel = calculateRandomLevel();
+                entity.getPokemon().setLevel(randomLevel);
+                
                 // Mark as swarm spawn
                 entity.getPokemon().getPersistentData().putBoolean("pokenotifier_swarm_spawn", true);
                 
-                overworld.spawnEntity(entity);
-                
-                // Track this entity
-                swarmEntities.add(entity.getUuid());
+                // Spawn entity first, then track it
+                if (overworld.spawnEntity(entity)) {
+                    // Track this entity only if spawn was successful
+                    swarmEntities.add(entity.getUuid());
+                    actualSpawned++;
+                    PokeNotifier.LOGGER.debug("[SwarmManager] Spawned and tracked entity: {} (UUID: {})", pokemonName, entity.getUuid());
+                }
             }
             
-            PokeNotifier.LOGGER.info("[SwarmManager] Spawned {} {} (1 shiny guaranteed)", spawnCount, pokemonName);
+            PokeNotifier.LOGGER.info("[SwarmManager] Spawned {} {} entities (1 shiny guaranteed), tracking {} entities", 
+                actualSpawned, pokemonName, swarmEntities.size());
             
-            return spawnCount;
+            return actualSpawned;
         } catch (Exception e) {
             PokeNotifier.LOGGER.error("Failed to spawn swarm Pokémon", e);
             return 0;
@@ -646,6 +702,66 @@ public class SwarmEventManager {
             return result.toString().trim();
         } catch (Exception e) {
             return "Unknown Biome";
+        }
+    }
+    
+    /**
+     * Calculate a random level for spawned Pokemon based on server player average
+     */
+    private int calculateRandomLevel() {
+        try {
+            List<net.minecraft.server.network.ServerPlayerEntity> players = server.getPlayerManager().getPlayerList();
+            if (players.isEmpty()) {
+                return ThreadLocalRandom.current().nextInt(15, 35); // Default range if no players
+            }
+            
+            // Calculate average level of all players' Pokemon
+            int totalLevels = 0;
+            int pokemonCount = 0;
+            
+            for (net.minecraft.server.network.ServerPlayerEntity player : players) {
+                try {
+                    com.cobblemon.mod.common.api.storage.PokemonStore party = 
+                        com.cobblemon.mod.common.Cobblemon.INSTANCE.getStorage().getParty(player);
+                    
+                    // Use iterator to access Pokemon in party
+                    java.util.Iterator<com.cobblemon.mod.common.pokemon.Pokemon> iterator = party.iterator();
+                    while (iterator.hasNext()) {
+                        com.cobblemon.mod.common.pokemon.Pokemon pokemon = iterator.next();
+                        if (pokemon != null) {
+                            totalLevels += pokemon.getLevel();
+                            pokemonCount++;
+                        }
+                    }
+                } catch (Exception e) {
+                    // Skip this player if there's an error accessing their party
+                    continue;
+                }
+            }
+            
+            int averageLevel;
+            if (pokemonCount > 0) {
+                averageLevel = totalLevels / pokemonCount;
+            } else {
+                averageLevel = 25; // Default if no Pokemon found
+            }
+            
+            // Create a range around the average level (±10 levels)
+            int minLevel = Math.max(5, averageLevel - 10);
+            int maxLevel = Math.min(80, averageLevel + 10);
+            
+            int randomLevel = ThreadLocalRandom.current().nextInt(minLevel, maxLevel + 1);
+            
+            if (ConfigManager.getServerConfig().debug_mode_enabled) {
+                PokeNotifier.LOGGER.debug("[SwarmManager] Level calculation - Players: {}, Pokemon: {}, Avg: {}, Range: {}-{}, Selected: {}", 
+                    players.size(), pokemonCount, averageLevel, minLevel, maxLevel, randomLevel);
+            }
+            
+            return randomLevel;
+            
+        } catch (Exception e) {
+            PokeNotifier.LOGGER.warn("[SwarmManager] Error calculating random level, using default: {}", e.getMessage());
+            return ThreadLocalRandom.current().nextInt(20, 40); // Fallback range
         }
     }
 }

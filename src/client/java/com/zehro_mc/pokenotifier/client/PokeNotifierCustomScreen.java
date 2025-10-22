@@ -722,24 +722,19 @@ public class PokeNotifierCustomScreen extends Screen {
         
         currentY += 25;
         
-        // Here checkbox for spawning at admin location
-        CheckboxWidget hereCheckbox = CheckboxWidget.builder(Text.literal("Here!"), this.textRenderer).pos(x, currentY).checked(false)
-            .tooltip(net.minecraft.client.gui.tooltip.Tooltip.of(Text.literal("Spawn swarm at your current location instead of random location"))).build();
-        addDrawableChild(hereCheckbox);
-        
-        currentY += 25;
+        // Note: "Here" option temporarily disabled due to positioning issues
+        currentY += 5;
         
         // Start Swarm - ALWAYS enabled regardless of automatic mode
         ButtonWidget startSwarmButton = ButtonWidget.builder(Text.literal("🌪️ Start Swarm"), b -> {
             String pokemonName = this.pokemonNameField.getText().trim();
             if (!pokemonName.isEmpty()) {
-                String parameter = pokemonName + (hereCheckbox.isChecked() ? " here" : "");
+                String parameter = pokemonName; // Removed "here" option temporarily
                 com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
                     new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
                         com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.START_SWARM, parameter);
                 net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
-                String locationText = hereCheckbox.isChecked() ? " at your location" : "";
-                displayResponse(List.of(Text.literal("Starting manual swarm of ").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append(locationText + " (shiny guaranteed)...").formatted(Formatting.YELLOW)));
+                displayResponse(List.of(Text.literal("Starting manual swarm of ").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append(" (shiny guaranteed)...").formatted(Formatting.YELLOW)));
                 this.pokemonNameField.setText("");
             } else {
                 displayResponse(List.of(Text.literal("Please enter a Pokémon name first.").formatted(Formatting.RED)));

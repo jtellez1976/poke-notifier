@@ -821,10 +821,11 @@ public class PokeNotifier implements ModInitializer {
                             SwarmEventManager swarmManager = SwarmEventManager.getInstance();
                             if (swarmManager != null) {
                                 boolean success;
+                                String adminName = player.getName().getString();
                                 if (spawnHere) {
-                                    success = swarmManager.startManualSwarmAt(pokemonName, player.getBlockPos(), isShiny ? "shiny" : "");
+                                    success = swarmManager.startManualSwarmAt(pokemonName, player.getBlockPos(), adminName, isShiny);
                                 } else {
-                                    success = swarmManager.startManualSwarm(pokemonName, isShiny ? "shiny" : "");
+                                    success = swarmManager.startManualSwarm(pokemonName, adminName, isShiny);
                                 }
                                 
                                 if (success) {
