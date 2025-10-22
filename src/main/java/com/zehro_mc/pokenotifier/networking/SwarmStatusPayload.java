@@ -19,7 +19,8 @@ public record SwarmStatusPayload(
     String pokemonName,
     String location,
     String biome,
-    int remainingMinutes
+    int remainingMinutes,
+    int remainingEntities
 ) implements CustomPayload {
     
     public static final CustomPayload.Id<SwarmStatusPayload> ID = new CustomPayload.Id<>(Identifier.of("poke-notifier", "swarm_status"));
@@ -30,6 +31,7 @@ public record SwarmStatusPayload(
         PacketCodecs.STRING, SwarmStatusPayload::location,
         PacketCodecs.STRING, SwarmStatusPayload::biome,
         PacketCodecs.VAR_INT, SwarmStatusPayload::remainingMinutes,
+        PacketCodecs.VAR_INT, SwarmStatusPayload::remainingEntities,
         SwarmStatusPayload::new
     );
 

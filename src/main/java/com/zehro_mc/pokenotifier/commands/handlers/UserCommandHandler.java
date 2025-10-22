@@ -48,17 +48,24 @@ public class UserCommandHandler {
                         boolean globalHuntEnabled = config.global_hunt_system_enabled;
                         LOGGER.info("[SERVER] Sending admin status via GUI command to {} - Global Hunt System: {}", player.getName().getString(), globalHuntEnabled);
                         
+                        // Get swarm status from SwarmEventManager
+                        com.zehro_mc.pokenotifier.events.SwarmEventManager swarmManager = 
+                            com.zehro_mc.pokenotifier.events.SwarmEventManager.getInstance();
+                        boolean swarmSystemEnabled = swarmManager != null && swarmManager.isSystemEnabled();
+                        boolean hasActiveSwarm = swarmManager != null && swarmManager.hasActiveSwarm();
+                        String activeSwarmPokemon = hasActiveSwarm ? swarmManager.getActiveSwarmPokemon() : "";
+                        
                         ServerPlayNetworking.send(player, new AdminStatusPayload(
                                 player.hasPermissionLevel(2),
                                 config.debug_mode_enabled,
                                 config.enable_test_mode,
                                 config.bounty_system_enabled,
                                 globalHuntEnabled,
-                                config.swarm_system_enabled,
+                                swarmSystemEnabled,
                                 hasActiveEvent,
                                 activePokemon,
-                                false, // hasActiveSwarm - TODO: implement swarm manager
-                                "")); // activeSwarmPokemon
+                                hasActiveSwarm,
+                                activeSwarmPokemon));
                         ServerPlayNetworking.send(player, new OpenGuiPayload());
                     }
                     return 1;

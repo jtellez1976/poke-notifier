@@ -55,9 +55,10 @@ public class EventManager {
             bountySystem.tick(server);
         }
         
-        if (swarmSystem != null) {
-            swarmSystem.tick(server);
-        }
+        // DISABLED: Old swarm system replaced by SwarmEventManager
+        // if (swarmSystem != null) {
+        //     swarmSystem.tick(server);
+        // }
     }
     
     /**

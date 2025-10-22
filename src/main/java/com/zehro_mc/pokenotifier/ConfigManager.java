@@ -222,6 +222,17 @@ public class ConfigManager {
 
     private static void loadConfigServer() throws ConfigReadException {
         configServer = loadConfigFile(CONFIG_SERVER_FILE, ConfigServer.class, "config-server.json");
+        
+        // Check if we need to migrate swarm settings to separate config
+        if (configServer.config_version < 7) {
+            migrateSwarmSettings();
+        }
+    }
+    
+    private static void migrateSwarmSettings() {
+        // Migration no longer needed since swarm fields have been removed
+        // The SwarmConfig will use default values
+        PokeNotifier.LOGGER.info("[ConfigManager] Swarm configuration now uses separate config file");
     }
 
     public static void saveServerConfigToFile() {

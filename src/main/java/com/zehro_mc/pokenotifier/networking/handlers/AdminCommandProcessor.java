@@ -50,6 +50,9 @@ public class AdminCommandProcessor {
             case RELOAD_CONFIG -> reloadConfig(player);
             case RESET_CONFIG -> resetConfig(player);
             case START_SWARM -> startSwarm(player, payload.parameter(), server);
+            case CANCEL_SWARM -> cancelSwarm(player);
+            case SWARM_STATUS -> swarmStatus(player);
+            case TOGGLE_SWARM_SYSTEM -> toggleSwarmSystem(player);
             case AUTOCOMPLETE_PLAYER -> autocompletePlayer(player, payload.parameter());
             case ROLLBACK_PLAYER -> rollbackPlayer(player, payload.parameter());
             case SPAWN_POKEMON -> spawnPokemon(player, payload.parameter());
@@ -124,14 +127,102 @@ public class AdminCommandProcessor {
         }
     }
     
-    private static void startSwarm(ServerPlayerEntity player, String pokemonName, MinecraftServer server) {
-        pokemonName = pokemonName.trim();
+    private static void startSwarm(ServerPlayerEntity player, String parameter, MinecraftServer server) {
+        String[] parts = parameter.split(" ");
+        String pokemonName = parts[0].trim();
+        boolean spawnHere = parameter.contains(" here");
+        
         if (!pokemonName.isEmpty()) {
-            boolean success = EventManager.getSwarmSystem().startSwarm(server, pokemonName);
-            if (success) {
-                List<Text> lines = new ArrayList<>(List.of(Text.literal("Attempting to start a swarm of ").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append("...").formatted(Formatting.GREEN)));
+            com.zehro_mc.pokenotifier.events.SwarmEventManager swarmManager = 
+                com.zehro_mc.pokenotifier.events.SwarmEventManager.getInstance();
+            if (swarmManager != null) {
+                try {
+                    boolean success;
+                    if (spawnHere) {
+                        success = swarmManager.startManualSwarmAt(pokemonName, player.getBlockPos(), player.getName().getString());
+                    } else {
+                        success = swarmManager.startManualSwarm(pokemonName, player.getName().getString());
+                    }
+                    
+                    if (success) {
+                        String location = spawnHere ? " at your location" : "";
+                        List<Text> lines = new ArrayList<>(List.of(Text.literal("Starting manual swarm of ").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append(location + " (shiny guaranteed)...").formatted(Formatting.GREEN)));
+                        ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                    } else {
+                        List<Text> lines = new ArrayList<>(List.of(Text.literal("Failed to start swarm - another swarm is already active.").formatted(Formatting.RED)));
+                        ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                    }
+                } catch (Exception e) {
+                    List<Text> lines = new ArrayList<>(List.of(Text.literal("Error starting swarm: " + e.getMessage()).formatted(Formatting.RED)));
+                    ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                }
+            } else {
+                List<Text> lines = new ArrayList<>(List.of(Text.literal("Swarm system not available.").formatted(Formatting.RED)));
                 ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
             }
+        } else {
+            List<Text> lines = new ArrayList<>(List.of(Text.literal("Please specify a Pokemon name.").formatted(Formatting.RED)));
+            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+        }
+    }
+    
+    private static void cancelSwarm(ServerPlayerEntity player) {
+        com.zehro_mc.pokenotifier.events.SwarmEventManager swarmManager = 
+            com.zehro_mc.pokenotifier.events.SwarmEventManager.getInstance();
+        if (swarmManager != null) {
+            if (swarmManager.hasActiveSwarm()) {
+                swarmManager.endCurrentSwarm("admin");
+                List<Text> lines = new ArrayList<>(List.of(Text.literal("Swarm cancelled successfully.").formatted(Formatting.GREEN)));
+                ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+            } else {
+                List<Text> lines = new ArrayList<>(List.of(Text.literal("No active swarm to cancel.").formatted(Formatting.YELLOW)));
+                ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+            }
+        } else {
+            List<Text> lines = new ArrayList<>(List.of(Text.literal("Swarm system not available.").formatted(Formatting.RED)));
+            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+        }
+    }
+    
+    private static void swarmStatus(ServerPlayerEntity player) {
+        com.zehro_mc.pokenotifier.events.SwarmEventManager swarmManager = 
+            com.zehro_mc.pokenotifier.events.SwarmEventManager.getInstance();
+        com.zehro_mc.pokenotifier.events.SwarmConfig swarmConfig = com.zehro_mc.pokenotifier.events.SwarmConfig.load();
+        
+        List<Text> lines = new ArrayList<>();
+        lines.add(Text.literal("--- Swarm System Status ---").formatted(Formatting.GOLD));
+        lines.add(Text.literal("Automatic Mode: ").append(swarmConfig.system_enabled ? Text.literal("ENABLED").formatted(Formatting.GREEN) : Text.literal("DISABLED").formatted(Formatting.RED)));
+        
+        com.zehro_mc.pokenotifier.events.SwarmStatistics.CurrentSwarm current = com.zehro_mc.pokenotifier.events.SwarmStatistics.getCurrentSwarm();
+        if (current != null) {
+            lines.add(Text.literal("Current Swarm: ").append(Text.literal(current.pokemonName).formatted(Formatting.GOLD)));
+            lines.add(Text.literal("Type: ").append(Text.literal(current.swarmType).formatted(Formatting.AQUA)));
+            lines.add(Text.literal("Triggered by: ").append(Text.literal(current.triggeredBy).formatted(Formatting.AQUA)));
+            lines.add(Text.literal("Location: ").append(Text.literal(current.location.x + ", " + current.location.y + ", " + current.location.z).formatted(Formatting.WHITE)));
+            lines.add(Text.literal("Entities Alive: ").append(Text.literal(String.valueOf(current.entitiesAlive)).formatted(Formatting.GREEN)));
+            lines.add(Text.literal("Entities Captured: ").append(Text.literal(String.valueOf(current.entitiesCaptured)).formatted(Formatting.YELLOW)));
+            if (swarmManager != null) {
+                int remaining = swarmManager.getRemainingMinutes();
+                lines.add(Text.literal("Time Remaining: ").append(Text.literal(remaining + " minutes").formatted(Formatting.AQUA)));
+            }
+        } else {
+            lines.add(Text.literal("Current Swarm: ").append(Text.literal("None").formatted(Formatting.GRAY)));
+        }
+        
+        ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+    }
+    
+    private static void toggleSwarmSystem(ServerPlayerEntity player) {
+        com.zehro_mc.pokenotifier.events.SwarmEventManager swarmManager = 
+            com.zehro_mc.pokenotifier.events.SwarmEventManager.getInstance();
+        if (swarmManager != null) {
+            swarmManager.toggleSystem();
+            com.zehro_mc.pokenotifier.events.SwarmConfig config = com.zehro_mc.pokenotifier.events.SwarmConfig.load();
+            List<Text> lines = new ArrayList<>(List.of(Text.literal("Swarm automatic mode ").append(config.system_enabled ? Text.literal("enabled").formatted(Formatting.GREEN) : Text.literal("disabled").formatted(Formatting.RED))));
+            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+        } else {
+            List<Text> lines = new ArrayList<>(List.of(Text.literal("Swarm system not available.").formatted(Formatting.RED)));
+            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
         }
     }
     

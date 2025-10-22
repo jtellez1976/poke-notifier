@@ -39,7 +39,7 @@ public class EventsConfig {
     public boolean bountySystemEnabled = false;
     
     // === SWARM EVENTS ===
-    public boolean swarmEventsEnabled = false;
+    // NOTE: Swarm events are now managed independently in config/poke-notifier/events/config-swarm.json
     
     // === RIVAL BATTLES ===
     public boolean rivalBattlesEnabled = false;

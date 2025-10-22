@@ -684,19 +684,21 @@ public class PokeNotifierCustomScreen extends Screen {
     private void buildSwarmEventsDetailsPanel(int x, int y, int width) {
         int currentY = y;
         
-        // System Toggle - always allow toggle regardless of active swarm
-        Text systemToggleText = Text.literal(PokeNotifierClient.isSwarmSystemEnabled ? "🟢 Disable System" : "🔴 Enable System");
+        // Automatic Mode Toggle - independent of manual swarms
+        Text systemToggleText = Text.literal(PokeNotifierClient.isSwarmSystemEnabled ? "🟢 Disable Automatic" : "🔴 Enable Automatic");
         
         ButtonWidget systemToggleButton = ButtonWidget.builder(systemToggleText, b -> {
             com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
                 new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
                     com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.TOGGLE_SWARM_SYSTEM, "");
             net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
-            displayResponse(List.of(Text.literal("Toggling Swarm system...").formatted(Formatting.YELLOW)));
+            displayResponse(List.of(Text.literal("Toggling automatic swarm mode...").formatted(Formatting.YELLOW)));
             
             PokeNotifierClient.isSwarmSystemEnabled = !PokeNotifierClient.isSwarmSystemEnabled;
             this.clearAndInit(); // Refresh entire GUI to update all states
-        }).dimensions(x, currentY, width / 2 - 2, 20).build();
+        }).dimensions(x, currentY, width / 2 - 2, 20)
+        .tooltip(net.minecraft.client.gui.tooltip.Tooltip.of(Text.literal("Toggle automatic swarm generation (independent of manual swarms)")))
+        .build();
         
         addDrawableChild(systemToggleButton);
         
@@ -707,7 +709,9 @@ public class PokeNotifierCustomScreen extends Screen {
                     com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.SWARM_STATUS, "");
             net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
             displayResponse(List.of(Text.literal("Requesting Swarm status...").formatted(Formatting.YELLOW)));
-        }).dimensions(x + width / 2 + 2, currentY, width / 2 - 2, 20).build());
+        }).dimensions(x + width / 2 + 2, currentY, width / 2 - 2, 20)
+        .tooltip(net.minecraft.client.gui.tooltip.Tooltip.of(Text.literal("Show automatic mode status and current swarm info")))
+        .build());
         
         currentY += 25;
         
@@ -716,30 +720,36 @@ public class PokeNotifierCustomScreen extends Screen {
         this.pokemonNameField.setPlaceholder(Text.literal("Pokémon for Swarm"));
         addDrawableChild(this.pokemonNameField);
         
-        this.shinyCheckbox = CheckboxWidget.builder(Text.literal("✨"), this.textRenderer).pos(x + width - 35, currentY).checked(false).build();
-        addDrawableChild(this.shinyCheckbox);
+        currentY += 25;
+        
+        // Here checkbox for spawning at admin location
+        CheckboxWidget hereCheckbox = CheckboxWidget.builder(Text.literal("Here!"), this.textRenderer).pos(x, currentY).checked(false)
+            .tooltip(net.minecraft.client.gui.tooltip.Tooltip.of(Text.literal("Spawn swarm at your current location instead of random location"))).build();
+        addDrawableChild(hereCheckbox);
         
         currentY += 25;
         
+        // Start Swarm - ALWAYS enabled regardless of automatic mode
         ButtonWidget startSwarmButton = ButtonWidget.builder(Text.literal("🌪️ Start Swarm"), b -> {
             String pokemonName = this.pokemonNameField.getText().trim();
             if (!pokemonName.isEmpty()) {
-                String parameter = pokemonName + (this.shinyCheckbox.isChecked() ? " shiny" : "");
+                String parameter = pokemonName + (hereCheckbox.isChecked() ? " here" : "");
                 com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
                     new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
                         com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.START_SWARM, parameter);
                 net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
-                displayResponse(List.of(Text.literal("Starting swarm of ").append(Text.literal((this.shinyCheckbox.isChecked() ? "Shiny " : "") + pokemonName).formatted(Formatting.GOLD)).append("...").formatted(Formatting.YELLOW)));
+                String locationText = hereCheckbox.isChecked() ? " at your location" : "";
+                displayResponse(List.of(Text.literal("Starting manual swarm of ").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append(locationText + " (shiny guaranteed)...").formatted(Formatting.YELLOW)));
                 this.pokemonNameField.setText("");
             } else {
                 displayResponse(List.of(Text.literal("Please enter a Pokémon name first.").formatted(Formatting.RED)));
             }
-        }).dimensions(x, currentY, width / 2 - 2, 20).build();
+        }).dimensions(x, currentY, width / 2 - 2, 20)
+        .tooltip(net.minecraft.client.gui.tooltip.Tooltip.of(Text.literal("Start a manual swarm (independent of automatic mode)")))
+        .build();
         
-        // Only disable if system is disabled
-        if (!PokeNotifierClient.isSwarmSystemEnabled) {
-            startSwarmButton.active = false;
-        }
+        // Only disable if there's already an active swarm
+        startSwarmButton.active = !PokeNotifierClient.hasActiveSwarm;
         addDrawableChild(startSwarmButton);
         
         ButtonWidget cancelSwarmButton = ButtonWidget.builder(Text.literal("❌ Cancel Swarm"), b -> {
@@ -753,8 +763,12 @@ public class PokeNotifierCustomScreen extends Screen {
             PokeNotifierClient.hasActiveSwarm = false;
             PokeNotifierClient.activeSwarmPokemon = "";
             this.clearAndInit(); // Refresh GUI to show updated state
-        }).dimensions(x + width / 2 + 2, currentY, width / 2 - 2, 20).build();
+        }).dimensions(x + width / 2 + 2, currentY, width / 2 - 2, 20)
+        .tooltip(net.minecraft.client.gui.tooltip.Tooltip.of(Text.literal("Cancel any active swarm (manual or automatic)")))
+        .build();
         
+        // Only enable if there's an active swarm
+        cancelSwarmButton.active = PokeNotifierClient.hasActiveSwarm;
         addDrawableChild(cancelSwarmButton);
         
         currentY += 30;
@@ -1095,8 +1109,8 @@ public class PokeNotifierCustomScreen extends Screen {
         lines.add(Text.literal("EVENT SYSTEMS").formatted(Formatting.YELLOW, Formatting.UNDERLINE));
         lines.add(createStatusLine("  Bounty System", PokeNotifierClient.isServerBountySystemEnabled));
         lines.add(createStatusLine("  Global Hunt System", PokeNotifierClient.isGlobalHuntSystemEnabled));
-        lines.add(createStatusLine("  Swarm System", serverConfig.swarm_system_enabled));
-        lines.add(createStatusLine("  Swarm Notifications", serverConfig.swarm_notifications_enabled));
+        lines.add(createStatusLine("  Swarm System", PokeNotifierClient.isSwarmSystemEnabled));
+        lines.add(createStatusLine("  Swarm Notifications", true)); // Always enabled when swarm system is active
         lines.add(Text.literal(""));
         
         // User Notification Services
@@ -1321,6 +1335,20 @@ public class PokeNotifierCustomScreen extends Screen {
                     String msg = button.getMessage().getString();
                     if (msg.contains("Autocomplete") || msg.contains("Rollback")) {
                         button.active = hasPlayerName;
+                    }
+                }
+            }
+        }
+        
+        // Update swarm button state in real-time
+        if (this.currentMainCategory == MainCategory.EVENTS && this.currentEventSubCategory == EventSubCategory.SWARM_EVENTS && this.children() != null) {
+            for (var child : this.children()) {
+                if (child instanceof ButtonWidget button) {
+                    String msg = button.getMessage().getString();
+                    if (msg.contains("Start Swarm")) {
+                        button.active = !PokeNotifierClient.hasActiveSwarm; // Independent of automatic mode
+                    } else if (msg.contains("Cancel Swarm")) {
+                        button.active = PokeNotifierClient.hasActiveSwarm;
                     }
                 }
             }

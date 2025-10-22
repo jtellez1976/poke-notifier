@@ -10,6 +10,7 @@ package com.zehro_mc.pokenotifier.data;
 
 import com.zehro_mc.pokenotifier.ConfigManager;
 import com.zehro_mc.pokenotifier.ConfigServer;
+import com.zehro_mc.pokenotifier.events.SwarmConfig;
 // import com.zehro_mc.pokenotifier.globalhunt.GlobalHuntManager;
 import com.zehro_mc.pokenotifier.networking.AdminStatusPayload;
 // import com.zehro_mc.pokenotifier.networking.UpdateSourceSyncPayload;
@@ -49,13 +50,14 @@ public class ConfigSyncHandler {
         boolean globalHuntEnabled = config.global_hunt_system_enabled;
         LOGGER.info("[SERVER] Sending admin status to {} - Global Hunt System: {}", player.getName().getString(), globalHuntEnabled);
         
+        SwarmConfig swarmConfig = SwarmConfig.load();
         ServerPlayNetworking.send(player, new AdminStatusPayload(
                 player.hasPermissionLevel(2),
                 config.debug_mode_enabled,
                 config.enable_test_mode,
                 config.bounty_system_enabled,
                 globalHuntEnabled,
-                config.swarm_system_enabled,
+                swarmConfig.system_enabled,
                 false, // hasActiveEvent,
                 "", // activePokemon
                 false, // hasActiveSwarm
@@ -92,13 +94,14 @@ public class ConfigSyncHandler {
                     boolean globalHuntEnabled = config.global_hunt_system_enabled;
                     LOGGER.info("[SERVER] Syncing admin status to {} - Global Hunt System: {}", player.getName().getString(), globalHuntEnabled);
                     
+                    SwarmConfig swarmConfig = SwarmConfig.load();
                     ServerPlayNetworking.send(player, new AdminStatusPayload(
                             player.hasPermissionLevel(2),
                             config.debug_mode_enabled,
                             config.enable_test_mode,
                             config.bounty_system_enabled,
                             globalHuntEnabled,
-                            config.swarm_system_enabled,
+                            swarmConfig.system_enabled,
                             false, // hasActiveEvent,
                             "", // activePokemon
                             false, // hasActiveSwarm

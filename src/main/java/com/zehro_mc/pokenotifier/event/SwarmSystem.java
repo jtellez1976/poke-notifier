@@ -13,7 +13,7 @@ import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.zehro_mc.pokenotifier.ConfigManager;
 import com.zehro_mc.pokenotifier.ConfigPokemon;
-import com.zehro_mc.pokenotifier.ConfigServer;
+import com.zehro_mc.pokenotifier.events.SwarmConfig;
 import com.zehro_mc.pokenotifier.util.MessageUtils;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -45,17 +45,17 @@ public class SwarmSystem {
      * @param server The minecraft server instance
      */
     public void tick(MinecraftServer server) {
-        ConfigServer config = ConfigManager.getServerConfig();
-        if (!config.swarm_system_enabled) {
+        SwarmConfig config = SwarmConfig.load();
+        if (!config.system_enabled) {
             return;
         }
 
         swarmTickCounter++;
 
-        if (swarmTickCounter >= config.swarm_check_interval_minutes * 60 * 20) {
+        if (swarmTickCounter >= config.check_interval_minutes * 60 * 20) {
             swarmTickCounter = 0;
 
-            if (SWARM_RANDOM.nextInt(100) < config.swarm_start_chance_percent) {
+            if (SWARM_RANDOM.nextInt(100) < config.start_chance_percent) {
                 startRandomSwarm(server, null);
             }
         }

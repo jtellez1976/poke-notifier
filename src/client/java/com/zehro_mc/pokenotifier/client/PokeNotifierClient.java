@@ -69,6 +69,7 @@ public class PokeNotifierClient implements ClientModInitializer {
     public static String activeSwarmLocation = "";
     public static String activeSwarmBiome = "";
     public static int swarmRemainingMinutes = 0;
+    public static int swarmRemainingEntities = 0;
 
     @Override
     public void onInitializeClient() {
@@ -161,9 +162,10 @@ public class PokeNotifierClient implements ClientModInitializer {
                 activeSwarmLocation = payload.location();
                 activeSwarmBiome = payload.biome();
                 swarmRemainingMinutes = payload.remainingMinutes();
+                swarmRemainingEntities = payload.remainingEntities();
                 
-                LOGGER.info("[CLIENT] Swarm status updated: {} - {}", 
-                    hasActiveSwarm ? "ACTIVE" : "INACTIVE", activeSwarmPokemon);
+                LOGGER.info("[CLIENT] Swarm status updated: {} - {} (entities: {})", 
+                    hasActiveSwarm ? "ACTIVE" : "INACTIVE", activeSwarmPokemon, swarmRemainingEntities);
             });
         });
 
