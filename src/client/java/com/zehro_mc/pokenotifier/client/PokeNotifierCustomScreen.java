@@ -84,8 +84,8 @@ public class PokeNotifierCustomScreen extends Screen {
 
         // --- Main Tabs (Top) ---
         int tabY = panelY + 25;
-        int tabWidth = PokeNotifierClient.isPlayerAdmin ? 80 : 100;
-        IconButton userTab = new IconButton(panelX + 5, tabY, tabWidth, 20, GuiIcons.USER_TOOLS, "User Tools", b -> {
+        int tabWidth = PokeNotifierClient.isPlayerAdmin ? 75 : 95;
+        IconButton userTab = new IconButton(panelX + 5, tabY, tabWidth, 18, GuiIcons.USER_TOOLS, "User Tools", b -> {
             this.currentMainCategory = MainCategory.USER_TOOLS;
             this.clearAndInit();
         });
@@ -93,14 +93,14 @@ public class PokeNotifierCustomScreen extends Screen {
         addDrawableChild(userTab);
 
         if (PokeNotifierClient.isPlayerAdmin) {
-            IconButton eventsTab = new IconButton(panelX + 10 + tabWidth, tabY, tabWidth, 20, GuiIcons.EVENTS, "Events", b -> {
+            IconButton eventsTab = new IconButton(panelX + 10 + tabWidth, tabY, tabWidth, 18, GuiIcons.EVENTS, "Events", b -> {
                 this.currentMainCategory = MainCategory.EVENTS;
                 this.clearAndInit();
             });
             eventsTab.active = this.currentMainCategory != MainCategory.EVENTS;
             addDrawableChild(eventsTab);
 
-            IconButton adminTab = new IconButton(panelX + 15 + tabWidth * 2, tabY, tabWidth, 20, GuiIcons.ADMIN, "Admin", b -> {
+            IconButton adminTab = new IconButton(panelX + 15 + tabWidth * 2, tabY, tabWidth, 18, GuiIcons.ADMIN, "Admin", b -> {
                 this.currentMainCategory = MainCategory.ADMIN_TOOLS;
                 this.clearAndInit();
             });
@@ -119,7 +119,7 @@ public class PokeNotifierCustomScreen extends Screen {
 
         // Close Button
         addDrawableChild(ButtonWidget.builder(Text.literal("Close"), button -> this.close())
-                .dimensions(panelX + (panelWidth - 80) / 2, panelY + panelHeight - 28, 80, 18)
+                .dimensions(panelX + (panelWidth - 70) / 2, panelY + panelHeight - 26, 70, 16)
                 .build());
     }
 
@@ -127,7 +127,7 @@ public class PokeNotifierCustomScreen extends Screen {
     private void buildUserToolsLayout(int panelX, int panelY, int panelWidth, int panelHeight) {
         int navX = panelX + 10;
         int navY = panelY + 55;
-        int navWidth = 100;
+        int navWidth = 95;
 
         addDrawableChild(createIconButton(navX, navY, navWidth, GuiIcons.NOTIFICATIONS, "Notifications", UserSubCategory.NOTIFICATIONS, currentUserSubCategory));
         addDrawableChild(createIconButton(navX, navY + 22, navWidth, GuiIcons.CUSTOM_HUNT, "Custom Hunt", UserSubCategory.CUSTOM_HUNT, currentUserSubCategory));
@@ -153,7 +153,7 @@ public class PokeNotifierCustomScreen extends Screen {
         // Left navigation panel for events
         int navX = panelX + 10;
         int navY = panelY + 55;
-        int navWidth = 120;
+        int navWidth = 110;
         
         // Event navigation buttons
         addDrawableChild(createEventIconButton(navX, navY, navWidth, GuiIcons.GLOBAL_HUNT, "Global Hunt", EventSubCategory.GLOBAL_HUNT, PokeNotifierClient.isGlobalHuntSystemEnabled));
@@ -189,7 +189,7 @@ public class PokeNotifierCustomScreen extends Screen {
     private void buildAdminToolsLayout(int panelX, int panelY, int panelWidth, int panelHeight) {
         int navX = panelX + 10;
         int navY = panelY + 55;
-        int navWidth = 110;
+        int navWidth = 100;
 
         addDrawableChild(createIconButton(navX, navY, navWidth, GuiIcons.SYSTEM_STATUS, "System Status", AdminSubCategory.SYSTEM_STATUS, currentAdminSubCategory));
         addDrawableChild(createIconButton(navX, navY + 22, navWidth, GuiIcons.SERVER_CONTROL, "Server Control", AdminSubCategory.SERVER_CONTROL, currentAdminSubCategory));
@@ -266,7 +266,7 @@ public class PokeNotifierCustomScreen extends Screen {
 
         // Create the Silent Mode button with improved logic
         net.minecraft.util.Identifier silentModeIcon = clientConfig.silent_mode_enabled ? GuiIcons.ON : GuiIcons.OFF;
-        addDrawableChild(new IconButton(x, y + 85, width, 20, silentModeIcon, "Silent Mode", button -> {
+        addDrawableChild(new IconButton(x, y + 85, width, 18, silentModeIcon, "Silent Mode", button -> {
             clientConfig.silent_mode_enabled = !clientConfig.silent_mode_enabled;
             if (clientConfig.silent_mode_enabled) {
                 // When silent mode is turned ON, turn off all other alerts
@@ -284,7 +284,7 @@ public class PokeNotifierCustomScreen extends Screen {
             displayResponse(List.of(Text.literal("Settings updated.").formatted(Formatting.GREEN)));
         }));
 
-        addDrawableChild(createToggleButton("Searching", clientConfig.searching_enabled, newValue -> clientConfig.searching_enabled = newValue, x, y + 110, width));
+        addDrawableChild(createToggleButton("Searching", clientConfig.searching_enabled, newValue -> clientConfig.searching_enabled = newValue, x, y + 105, width));
     }
 
     private void buildCustomHuntPanel(int x, int y, int width) {
@@ -293,7 +293,7 @@ public class PokeNotifierCustomScreen extends Screen {
         addDrawableChild(this.pokemonNameField);
 
         // Add button
-        addDrawableChild(new IconButton(x, y + 25, width, 20, GuiIcons.ADD, "Add", b -> {
+        addDrawableChild(new IconButton(x, y + 25, width, 18, GuiIcons.ADD, "Add", b -> {
             String pokemonName = this.pokemonNameField.getText().trim();
             if (!pokemonName.isEmpty()) {
                 com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload payload = 
@@ -306,7 +306,7 @@ public class PokeNotifierCustomScreen extends Screen {
         }));
 
         // Clear List button
-        addDrawableChild(new IconButton(x, y + 50, width, 20, GuiIcons.CLEAR, "Clear List", b -> {
+        addDrawableChild(new IconButton(x, y + 48, width, 18, GuiIcons.CLEAR, "Clear List", b -> {
             com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload payload = 
                 new com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload(
                     com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload.Action.CLEAR, "");
@@ -315,7 +315,7 @@ public class PokeNotifierCustomScreen extends Screen {
         }));
         
         // View List button
-        addDrawableChild(new IconButton(x, y + 75, width, 20, GuiIcons.VIEW_LIST, "View List", b -> {
+        addDrawableChild(new IconButton(x, y + 71, width, 18, GuiIcons.VIEW_LIST, "View List", b -> {
             com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload payload = 
                 new com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload(
                     com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload.Action.LIST, "");
@@ -327,7 +327,7 @@ public class PokeNotifierCustomScreen extends Screen {
     private void buildCatchEmAllPanel(int x, int y, int width) {
         List<String> generations = Arrays.asList("gen1", "gen2", "gen3", "gen4", "gen5", "gen6", "gen7", "gen8", "gen9");
         int buttonWidth = (width - 5) / 2;
-        int buttonHeight = 20;
+        int buttonHeight = 18;
 
         for (int i = 0; i < generations.size(); i++) {
             String gen = generations.get(i);
@@ -367,7 +367,7 @@ public class PokeNotifierCustomScreen extends Screen {
         int statusY = y + 5 * (buttonHeight + 5);
         
         // Stop Tracking button
-        IconButton stopTrackingButton = new IconButton(x, statusY, width, 20, GuiIcons.OFF, "Stop Tracking", b -> {
+        IconButton stopTrackingButton = new IconButton(x, statusY, width, 18, GuiIcons.OFF, "Stop Tracking", b -> {
             if (PokeNotifierClient.currentCatchEmAllGeneration != null && !"none".equals(PokeNotifierClient.currentCatchEmAllGeneration)) {
                 com.zehro_mc.pokenotifier.networking.CatchemallUpdatePayload payload = 
                     new com.zehro_mc.pokenotifier.networking.CatchemallUpdatePayload(
@@ -382,7 +382,7 @@ public class PokeNotifierCustomScreen extends Screen {
         addDrawableChild(stopTrackingButton);
         
         // View Status button
-        addDrawableChild(new IconButton(x, statusY + 25, width, 20, GuiIcons.SYSTEM_STATUS, "View Status", b -> {
+        addDrawableChild(new IconButton(x, statusY + 23, width, 18, GuiIcons.SYSTEM_STATUS, "View Status", b -> {
             com.zehro_mc.pokenotifier.networking.CatchemallUpdatePayload payload = 
                 new com.zehro_mc.pokenotifier.networking.CatchemallUpdatePayload(
                     com.zehro_mc.pokenotifier.networking.CatchemallUpdatePayload.Action.LIST, "");
@@ -591,7 +591,7 @@ public class PokeNotifierCustomScreen extends Screen {
         // This will be rendered in the render method
         
         // Refresh button at the bottom
-        addDrawableChild(new IconButton(x, y + textBoxHeight + 5, width, 20, GuiIcons.REFRESH, "Refresh Status", b -> {
+        addDrawableChild(new IconButton(x, y + textBoxHeight + 5, width, 18, GuiIcons.REFRESH, "Refresh Status", b -> {
             systemStatusLines = getSystemStatusLines();
             systemStatusTimer = 600; // Show for 30 seconds (600 ticks)
             systemStatusScrollOffset = 0; // Reset scroll
@@ -601,7 +601,7 @@ public class PokeNotifierCustomScreen extends Screen {
     private void buildServerControlPanel(int x, int y, int width) {
         // Debug Mode toggle
         net.minecraft.util.Identifier debugModeIcon = PokeNotifierClient.isServerDebugMode ? GuiIcons.ON : GuiIcons.OFF;
-        addDrawableChild(new IconButton(x, y, width, 20, debugModeIcon, "Debug Mode", b -> {
+        addDrawableChild(new IconButton(x, y, width, 18, debugModeIcon, "Debug Mode", b -> {
             com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
                 new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
                     com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.TOGGLE_DEBUG_MODE, "");
@@ -615,7 +615,7 @@ public class PokeNotifierCustomScreen extends Screen {
         
         // Test Mode toggle
         net.minecraft.util.Identifier testModeIcon = PokeNotifierClient.isServerTestMode ? GuiIcons.ON : GuiIcons.OFF;
-        addDrawableChild(new IconButton(x, y + 25, width, 20, testModeIcon, "Test Mode", b -> {
+        addDrawableChild(new IconButton(x, y + 23, width, 18, testModeIcon, "Test Mode", b -> {
             com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
                 new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
                     com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.TOGGLE_TEST_MODE, "");
@@ -634,7 +634,7 @@ public class PokeNotifierCustomScreen extends Screen {
                     com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.SERVER_STATUS, "");
             net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
             displayResponse(List.of(Text.literal("Requesting server status...").formatted(Formatting.YELLOW)));
-        }).dimensions(x, y + 60, width, 20).build());
+        }).dimensions(x, y + 55, width, 18).build());
         
         // Reload Configs button
         addDrawableChild(ButtonWidget.builder(Text.literal("Reload Configs"), b -> {
@@ -643,7 +643,7 @@ public class PokeNotifierCustomScreen extends Screen {
                     com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.RELOAD_CONFIG, "");
             net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
             displayResponse(List.of(Text.literal("Reloading configurations...").formatted(Formatting.YELLOW)));
-        }).dimensions(x, y + 85, width, 20).build());
+        }).dimensions(x, y + 78, width, 18).build());
 
         // Reset All Configs button with confirmation
         addDrawableChild(ButtonWidget.builder(Text.literal("Reset All Configs"), b -> {
@@ -656,12 +656,12 @@ public class PokeNotifierCustomScreen extends Screen {
                 }
                 this.client.setScreen(this);
             }, Text.literal("Confirm Reset"), Text.literal("This will reset ALL configs. Are you sure?")));
-        }).dimensions(x, y + 110, width, 20).build());
+        }).dimensions(x, y + 101, width, 18).build());
         
         // Note: Event management has been moved to the Events tab
         addDrawableChild(ButtonWidget.builder(Text.literal("Event Management"), b -> {
             displayResponse(List.of(Text.literal("Event management has been moved to the Events tab.").formatted(Formatting.YELLOW)));
-        }).dimensions(x, y + 140, width, 20).build()).active = false;
+        }).dimensions(x, y + 124, width, 18).build()).active = false;
     }
 
     // --- EVENT PANEL BUILDERS ---
@@ -670,7 +670,7 @@ public class PokeNotifierCustomScreen extends Screen {
         // System Toggle
         net.minecraft.util.Identifier bountyToggleIcon = PokeNotifierClient.isServerBountySystemEnabled ? GuiIcons.ON : GuiIcons.OFF;
         String bountyToggleText = PokeNotifierClient.isServerBountySystemEnabled ? "Disable System" : "Enable System";
-        addDrawableChild(new IconButton(x, y, width, 20, bountyToggleIcon, bountyToggleText, b -> {
+        addDrawableChild(new IconButton(x, y, width, 18, bountyToggleIcon, bountyToggleText, b -> {
             com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
                 new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
                     com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.TOGGLE_BOUNTY_SYSTEM, "");
@@ -689,7 +689,7 @@ public class PokeNotifierCustomScreen extends Screen {
         net.minecraft.util.Identifier systemToggleIcon = PokeNotifierClient.isSwarmSystemEnabled ? GuiIcons.ON : GuiIcons.OFF;
         String systemToggleText = PokeNotifierClient.isSwarmSystemEnabled ? "Disable Automatic" : "Enable Automatic";
         
-        IconButton systemToggleButton = new IconButton(x, currentY, width / 2 - 2, 20, systemToggleIcon, systemToggleText, b -> {
+        IconButton systemToggleButton = new IconButton(x, currentY, width / 2 - 2, 18, systemToggleIcon, systemToggleText, b -> {
             com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
                 new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
                     com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.TOGGLE_SWARM_SYSTEM, "");
@@ -703,7 +703,7 @@ public class PokeNotifierCustomScreen extends Screen {
         addDrawableChild(systemToggleButton);
         
         // Swarm Status
-        addDrawableChild(new IconButton(x + width / 2 + 2, currentY, width / 2 - 2, 20, GuiIcons.SYSTEM_STATUS, "Status", b -> {
+        addDrawableChild(new IconButton(x + width / 2 + 2, currentY, width / 2 - 2, 18, GuiIcons.SYSTEM_STATUS, "Status", b -> {
             com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
                 new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
                     com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.SWARM_STATUS, "");
@@ -711,20 +711,20 @@ public class PokeNotifierCustomScreen extends Screen {
             displayResponse(List.of(Text.literal("Requesting Swarm status...").formatted(Formatting.YELLOW)));
         }));
         
-        currentY += 25;
+        currentY += 23;
         
         // Manual Swarm Controls
         this.pokemonNameField = new AutocompleteTextFieldWidget(this.textRenderer, x, currentY, width - 40, 20, Text.literal(""), () -> PokeNotifierApi.getAllPokemonNames().toList());
         this.pokemonNameField.setPlaceholder(Text.literal("Pokémon for Swarm"));
         addDrawableChild(this.pokemonNameField);
         
-        currentY += 25;
+        currentY += 23;
         
         // Note: "Here" option temporarily disabled due to positioning issues
-        currentY += 5;
+        currentY += 3;
         
         // Start Swarm - ALWAYS enabled regardless of automatic mode
-        IconButton startSwarmButton = new IconButton(x, currentY, width / 2 - 2, 20, GuiIcons.ON, "Start Swarm", b -> {
+        IconButton startSwarmButton = new IconButton(x, currentY, width / 2 - 2, 18, GuiIcons.ON, "Start Swarm", b -> {
             String pokemonName = this.pokemonNameField.getText().trim();
             if (!pokemonName.isEmpty()) {
                 String parameter = pokemonName; // Removed "here" option temporarily
@@ -743,7 +743,7 @@ public class PokeNotifierCustomScreen extends Screen {
         startSwarmButton.active = !PokeNotifierClient.hasActiveSwarm;
         addDrawableChild(startSwarmButton);
         
-        IconButton cancelSwarmButton = new IconButton(x + width / 2 + 2, currentY, width / 2 - 2, 20, GuiIcons.OFF, "Cancel Swarm", b -> {
+        IconButton cancelSwarmButton = new IconButton(x + width / 2 + 2, currentY, width / 2 - 2, 18, GuiIcons.OFF, "Cancel Swarm", b -> {
             com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
                 new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
                     com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.CANCEL_SWARM, "");
@@ -760,14 +760,14 @@ public class PokeNotifierCustomScreen extends Screen {
         cancelSwarmButton.active = PokeNotifierClient.hasActiveSwarm;
         addDrawableChild(cancelSwarmButton);
         
-        currentY += 30;
+        currentY += 26;
         
         // Active Swarm Status
         if (PokeNotifierClient.hasActiveSwarm && !PokeNotifierClient.activeSwarmPokemon.isEmpty()) {
             Text activeSwarmTitle = Text.literal("🌪️ Active Swarm").formatted(Formatting.GREEN);
-            addDrawableChild(ButtonWidget.builder(activeSwarmTitle, b -> {}).dimensions(x, currentY, width, 20).build()).active = false;
+            addDrawableChild(ButtonWidget.builder(activeSwarmTitle, b -> {}).dimensions(x, currentY, width, 18).build()).active = false;
             
-            currentY += 25;
+            currentY += 21;
             
             Text activePokemon = Text.literal("Target: " + PokeNotifierClient.activeSwarmPokemon).formatted(Formatting.GOLD);
             addDrawableChild(ButtonWidget.builder(activePokemon, b -> {
@@ -776,16 +776,16 @@ public class PokeNotifierCustomScreen extends Screen {
                         com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.SWARM_STATUS, "");
                 net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
                 displayResponse(List.of(Text.literal("Requesting detailed swarm status...").formatted(Formatting.YELLOW)));
-            }).dimensions(x, currentY, width, 20).build());
+            }).dimensions(x, currentY, width, 18).build());
         } else {
             Text noActiveSwarm = Text.literal("No Active Swarm").formatted(Formatting.GRAY);
-            addDrawableChild(ButtonWidget.builder(noActiveSwarm, b -> {}).dimensions(x, currentY, width, 20).build()).active = false;
+            addDrawableChild(ButtonWidget.builder(noActiveSwarm, b -> {}).dimensions(x, currentY, width, 18).build()).active = false;
         }
     }
     
     private void buildRivalBattlesDetailsPanel(int x, int y, int width) {
         // Rival system is automatically enabled, only admin can disable it
-        addDrawableChild(new IconButton(x, y, width, 20, GuiIcons.ON, "Rival System", b -> {
+        addDrawableChild(new IconButton(x, y, width, 18, GuiIcons.ON, "Rival System", b -> {
             // This system is always on, show info instead
             displayResponse(List.of(
                 Text.literal("--- Rival System Information ---").formatted(Formatting.GOLD),
@@ -798,7 +798,7 @@ public class PokeNotifierCustomScreen extends Screen {
         }));
         
         // Show current settings
-        addDrawableChild(new IconButton(x, y + 25, width, 20, GuiIcons.SYSTEM_STATUS, "View Settings", b -> {
+        addDrawableChild(new IconButton(x, y + 23, width, 18, GuiIcons.SYSTEM_STATUS, "View Settings", b -> {
             displayResponse(List.of(
                 Text.literal("--- Rival System Settings ---").formatted(Formatting.GOLD),
                 Text.literal("Notification Cooldown: 60 seconds").formatted(Formatting.AQUA),
@@ -827,7 +827,7 @@ public class PokeNotifierCustomScreen extends Screen {
             systemToggleText = PokeNotifierClient.isGlobalHuntSystemEnabled ? "Disable System" : "Enable System";
         }
         
-        IconButton systemToggleButton = new IconButton(x, currentY, width / 2 - 2, 20, systemToggleIcon, systemToggleText, b -> {
+        IconButton systemToggleButton = new IconButton(x, currentY, width / 2 - 2, 18, systemToggleIcon, systemToggleText, b -> {
             if (!hasActiveEvent) {
                 com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
                     new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
@@ -848,7 +848,7 @@ public class PokeNotifierCustomScreen extends Screen {
         addDrawableChild(systemToggleButton);
         
         // Event Status
-        addDrawableChild(new IconButton(x + width / 2 + 2, currentY, width / 2 - 2, 20, GuiIcons.SYSTEM_STATUS, "Status", b -> {
+        addDrawableChild(new IconButton(x + width / 2 + 2, currentY, width / 2 - 2, 18, GuiIcons.SYSTEM_STATUS, "Status", b -> {
             com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
                 new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
                     com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.GLOBAL_HUNT_STATUS, "");
@@ -863,13 +863,13 @@ public class PokeNotifierCustomScreen extends Screen {
         this.pokemonNameField.setPlaceholder(Text.literal("Pokémon for Event"));
         addDrawableChild(this.pokemonNameField);
         
-        addDrawableChild(new IconButton(x + width - 35, currentY, 30, 20, GuiIcons.SHINY, "", b -> {
+        addDrawableChild(new IconButton(x + width - 25, currentY, 20, 18, GuiIcons.SHINY, "", b -> {
             // Toggle shiny state
         }));
         
         currentY += 25;
         
-        IconButton startEventButton = new IconButton(x, currentY, width / 2 - 2, 20, GuiIcons.START_EVENT, "Start Event", b -> {
+        IconButton startEventButton = new IconButton(x, currentY, width / 2 - 2, 18, GuiIcons.START_EVENT, "Start Event", b -> {
             String pokemonName = this.pokemonNameField.getText().trim();
             if (!pokemonName.isEmpty()) {
                 String parameter = pokemonName;
@@ -890,7 +890,7 @@ public class PokeNotifierCustomScreen extends Screen {
         }
         addDrawableChild(startEventButton);
         
-        IconButton cancelEventButton = new IconButton(x + width / 2 + 2, currentY, width / 2 - 2, 20, GuiIcons.OFF, "Cancel Event", b -> {
+        IconButton cancelEventButton = new IconButton(x + width / 2 + 2, currentY, width / 2 - 2, 18, GuiIcons.OFF, "Cancel Event", b -> {
             com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
                 new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
                     com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.CANCEL_GLOBAL_HUNT, "");
@@ -914,9 +914,9 @@ public class PokeNotifierCustomScreen extends Screen {
         // Active Event Status
         if (PokeNotifierClient.hasActiveGlobalHunt && !PokeNotifierClient.activeGlobalHuntPokemon.isEmpty()) {
             Text activeEventTitle = Text.literal("🎯 Active Event").formatted(Formatting.GREEN);
-            addDrawableChild(ButtonWidget.builder(activeEventTitle, b -> {}).dimensions(x, currentY, width, 20).build()).active = false;
+            addDrawableChild(ButtonWidget.builder(activeEventTitle, b -> {}).dimensions(x, currentY, width, 18).build()).active = false;
             
-            currentY += 25;
+            currentY += 21;
             
             Text activePokemon = Text.literal("Target: " + PokeNotifierClient.activeGlobalHuntPokemon).formatted(Formatting.GOLD);
             addDrawableChild(ButtonWidget.builder(activePokemon, b -> {
@@ -925,14 +925,14 @@ public class PokeNotifierCustomScreen extends Screen {
                         com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.GLOBAL_HUNT_STATUS, "");
                 net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
                 displayResponse(List.of(Text.literal("Requesting detailed event status...").formatted(Formatting.YELLOW)));
-            }).dimensions(x, currentY, width, 20).build());
+            }).dimensions(x, currentY, width, 18).build());
             
-            currentY += 30;
+            currentY += 26;
         } else {
             Text noActiveEvent = Text.literal("No Active Event").formatted(Formatting.GRAY);
-            addDrawableChild(ButtonWidget.builder(noActiveEvent, b -> {}).dimensions(x, currentY, width, 20).build()).active = false;
+            addDrawableChild(ButtonWidget.builder(noActiveEvent, b -> {}).dimensions(x, currentY, width, 18).build()).active = false;
             
-            currentY += 30;
+            currentY += 26;
         }
     }
     
@@ -976,7 +976,7 @@ public class PokeNotifierCustomScreen extends Screen {
             } else {
                 displayResponse(List.of(Text.literal("Please enter a player name first.").formatted(Formatting.RED)));
             }
-        }).dimensions(x, y + 25, width, 20).build();
+        }).dimensions(x, y + 23, width, 18).build();
         addDrawableChild(autocompleteButton);
 
         // Rollback Progress button
@@ -995,7 +995,7 @@ public class PokeNotifierCustomScreen extends Screen {
             } else {
                 displayResponse(List.of(Text.literal("Please enter a player name first.").formatted(Formatting.RED)));
             }
-        }).dimensions(x, y + 50, width, 20).build();
+        }).dimensions(x, y + 46, width, 18).build();
         addDrawableChild(rollbackButton);
     }
 
@@ -1021,7 +1021,7 @@ public class PokeNotifierCustomScreen extends Screen {
             } else {
                 displayResponse(List.of(Text.literal("Please enter a Pokémon name first.").formatted(Formatting.RED)));
             }
-        }).dimensions(x, y + 50, width, 20).build());
+        }).dimensions(x, y + 48, width, 18).build());
     }
 
 
