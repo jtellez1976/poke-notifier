@@ -69,13 +69,34 @@ public class AutocompleteTextFieldWidget extends TextFieldWidget {
      */
     public void renderSuggestions(DrawContext context, int mouseX, int mouseY) {
         if (isFocused() && this.visible && currentSuggestions != null && !currentSuggestions.isEmpty()) {
-            int boxX = getX(); // Position below the text field
-            int boxY = getY() + getHeight() + 2;
+            int boxX = getX();
             int boxWidth = getWidth();
             int maxSuggestions = Math.min(3, currentSuggestions.size());
             int boxHeight = maxSuggestions * (MinecraftClient.getInstance().textRenderer.fontHeight + 1) + 3;
+            
+            // Smart positioning: check available space below and above
+            int screenHeight = MinecraftClient.getInstance().getWindow().getScaledHeight();
+            int spaceBelow = screenHeight - (getY() + getHeight() + 2);
+            int spaceAbove = getY() - 2;
+            
+            int boxY;
+            if (spaceBelow >= boxHeight) {
+                // Enough space below - position normally
+                boxY = getY() + getHeight() + 2;
+            } else if (spaceAbove >= boxHeight) {
+                // Not enough space below but enough above - position above
+                boxY = getY() - boxHeight - 2;
+            } else {
+                // Limited space both ways - use below but limit height
+                boxY = getY() + getHeight() + 2;
+                int availableHeight = Math.max(20, spaceBelow - 5);
+                maxSuggestions = Math.min(maxSuggestions, availableHeight / (MinecraftClient.getInstance().textRenderer.fontHeight + 1));
+                boxHeight = maxSuggestions * (MinecraftClient.getInstance().textRenderer.fontHeight + 1) + 3;
+            }
 
-            context.fill(boxX, boxY, boxX + boxWidth, boxY + boxHeight, 0xE0000000); // Darker background
+            // Draw background with border
+            context.fill(boxX, boxY, boxX + boxWidth, boxY + boxHeight, 0xE0000000);
+            context.drawBorder(boxX, boxY, boxWidth, boxHeight, 0xFF888888);
 
             for (int i = 0; i < maxSuggestions; i++) {
                 String suggestion = currentSuggestions.get(i);
@@ -93,11 +114,29 @@ public class AutocompleteTextFieldWidget extends TextFieldWidget {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (isFocused() && currentSuggestions != null && !currentSuggestions.isEmpty()) {
             int boxX = getX();
-            int boxY = getY() + getHeight() + 2;
+            int boxWidth = getWidth();
             int maxSuggestions = Math.min(3, currentSuggestions.size());
+            int boxHeight = maxSuggestions * (MinecraftClient.getInstance().textRenderer.fontHeight + 1) + 3;
+            
+            // Use same positioning logic as render
+            int screenHeight = MinecraftClient.getInstance().getWindow().getScaledHeight();
+            int spaceBelow = screenHeight - (getY() + getHeight() + 2);
+            int spaceAbove = getY() - 2;
+            
+            int boxY;
+            if (spaceBelow >= boxHeight) {
+                boxY = getY() + getHeight() + 2;
+            } else if (spaceAbove >= boxHeight) {
+                boxY = getY() - boxHeight - 2;
+            } else {
+                boxY = getY() + getHeight() + 2;
+                int availableHeight = Math.max(20, spaceBelow - 5);
+                maxSuggestions = Math.min(maxSuggestions, availableHeight / (MinecraftClient.getInstance().textRenderer.fontHeight + 1));
+            }
+            
             for (int i = 0; i < maxSuggestions; i++) {
                 int suggestionY = boxY + 1 + i * (MinecraftClient.getInstance().textRenderer.fontHeight + 1);
-                if (mouseX >= boxX && mouseX < boxX + getWidth() && mouseY >= suggestionY && mouseY < suggestionY + MinecraftClient.getInstance().textRenderer.fontHeight + 1) {
+                if (mouseX >= boxX && mouseX < boxX + boxWidth && mouseY >= suggestionY && mouseY < suggestionY + MinecraftClient.getInstance().textRenderer.fontHeight + 1) {
                     setText(currentSuggestions.get(i));
                     currentSuggestions = null;
                     return true;
