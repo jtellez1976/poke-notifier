@@ -26,6 +26,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+
+
 public class PokeNotifierCustomScreen extends Screen {
     private final Screen parent;
     private AutocompleteTextFieldWidget pokemonNameField;
@@ -133,11 +135,11 @@ public class PokeNotifierCustomScreen extends Screen {
         int navY = panelY + 55;
         int navWidth = 100;
 
-        addDrawableChild(createSubNavButton(navX, navY, navWidth, "🔔 Notifications", UserSubCategory.NOTIFICATIONS, currentUserSubCategory));
-        addDrawableChild(createSubNavButton(navX, navY + 22, navWidth, "🎯 Custom Hunt", UserSubCategory.CUSTOM_HUNT, currentUserSubCategory));
-        addDrawableChild(createSubNavButton(navX, navY + 44, navWidth, "🏆 Catch 'em All", UserSubCategory.CATCH_EM_ALL, currentUserSubCategory));
-        addDrawableChild(createSubNavButton(navX, navY + 66, navWidth, "🗺️ Map Settings", UserSubCategory.MAP_SETTINGS, currentUserSubCategory));
-        addDrawableChild(createSubNavButton(navX, navY + 88, navWidth, "ℹ️ Info & Help", UserSubCategory.INFO, currentUserSubCategory));
+        addDrawableChild(createIconButton(navX, navY, navWidth, GuiIcons.NOTIFICATIONS, "Notifications", UserSubCategory.NOTIFICATIONS, currentUserSubCategory));
+        addDrawableChild(createIconButton(navX, navY + 22, navWidth, GuiIcons.SUCCESS, "Custom Hunt", UserSubCategory.CUSTOM_HUNT, currentUserSubCategory));
+        addDrawableChild(createIconButton(navX, navY + 44, navWidth, GuiIcons.WARNING, "Catch 'em All", UserSubCategory.CATCH_EM_ALL, currentUserSubCategory));
+        addDrawableChild(createIconButton(navX, navY + 66, navWidth, GuiIcons.SETTINGS, "Map Settings", UserSubCategory.MAP_SETTINGS, currentUserSubCategory));
+        addDrawableChild(createIconButton(navX, navY + 88, navWidth, GuiIcons.INFO, "Info & Help", UserSubCategory.INFO, currentUserSubCategory));
 
         int contentX = panelX + navWidth + 20;
         int contentY = panelY + 55;
@@ -199,10 +201,10 @@ public class PokeNotifierCustomScreen extends Screen {
         int navY = panelY + 55;
         int navWidth = 110;
 
-        addDrawableChild(createSubNavButton(navX, navY, navWidth, "📊 System Status", AdminSubCategory.SYSTEM_STATUS, currentAdminSubCategory));
-        addDrawableChild(createSubNavButton(navX, navY + 22, navWidth, "⚙️ Server Control", AdminSubCategory.SERVER_CONTROL, currentAdminSubCategory));
-        addDrawableChild(createSubNavButton(navX, navY + 44, navWidth, "👤 Player Data", AdminSubCategory.PLAYER_DATA, currentAdminSubCategory));
-        addDrawableChild(createSubNavButton(navX, navY + 66, navWidth, "🔬 Testing", AdminSubCategory.TESTING, currentAdminSubCategory));
+        addDrawableChild(createSubNavButton(navX, navY, navWidth, Text.literal("📊 System Status"), AdminSubCategory.SYSTEM_STATUS, currentAdminSubCategory));
+        addDrawableChild(createSubNavButton(navX, navY + 22, navWidth, Text.literal("⚙️ Server Control"), AdminSubCategory.SERVER_CONTROL, currentAdminSubCategory));
+        addDrawableChild(createSubNavButton(navX, navY + 44, navWidth, Text.literal("👤 Player Data"), AdminSubCategory.PLAYER_DATA, currentAdminSubCategory));
+        addDrawableChild(createSubNavButton(navX, navY + 66, navWidth, Text.literal("🔬 Testing"), AdminSubCategory.TESTING, currentAdminSubCategory));
 
         int contentX = panelX + navWidth + 20;
         int contentY = panelY + 55;
@@ -216,9 +218,9 @@ public class PokeNotifierCustomScreen extends Screen {
         }
     }
 
-    private <T extends Enum<T>> ButtonWidget createSubNavButton(int x, int y, int width, String text, T category, T current) {
+    private <T extends Enum<T>> ButtonWidget createSubNavButton(int x, int y, int width, Text text, T category, T current) {
         String tooltip = getTooltipForCategory(category);
-        ButtonWidget button = ButtonWidget.builder(Text.literal(text), b -> {
+        ButtonWidget button = ButtonWidget.builder(text, b -> {
             if (category instanceof UserSubCategory) this.currentUserSubCategory = (UserSubCategory) category;
             if (category instanceof EventSubCategory) this.currentEventSubCategory = (EventSubCategory) category;
             if (category instanceof AdminSubCategory) this.currentAdminSubCategory = (AdminSubCategory) category;
@@ -229,6 +231,20 @@ public class PokeNotifierCustomScreen extends Screen {
         button.active = !category.equals(current);
         return button;
     }
+    
+    private <T extends Enum<T>> ButtonWidget createIconButton(int x, int y, int width, net.minecraft.util.Identifier iconId, String labelText, T category, T current) {
+        String tooltip = getTooltipForCategory(category);
+        IconButton button = new IconButton(x, y, width, 18, iconId, labelText, b -> {
+            if (category instanceof UserSubCategory) this.currentUserSubCategory = (UserSubCategory) category;
+            if (category instanceof EventSubCategory) this.currentEventSubCategory = (EventSubCategory) category;
+            if (category instanceof AdminSubCategory) this.currentAdminSubCategory = (AdminSubCategory) category;
+            this.clearAndInit();
+        });
+        button.active = !category.equals(current);
+        return button;
+    }
+    
+
     
     private <T extends Enum<T>> String getTooltipForCategory(T category) {
         if (category instanceof UserSubCategory) {
@@ -1038,12 +1054,11 @@ public class PokeNotifierCustomScreen extends Screen {
     // --- HELPER METHODS ---
 
     private ButtonWidget createToggleButton(String label, boolean currentValue, java.util.function.Consumer<Boolean> configUpdater, int x, int y, int width) {
-        Text message = Text.literal(label + ": ").append(currentValue ? Text.literal("ON").formatted(Formatting.GREEN) : Text.literal("OFF").formatted(Formatting.RED));
+        Text message = Text.literal(label + ": " + (currentValue ? "ON" : "OFF")).formatted(currentValue ? Formatting.GREEN : Formatting.RED);
         return ButtonWidget.builder(message, button -> {
             boolean newValue = !currentValue;
             configUpdater.accept(newValue);
-            button.setMessage(Text.literal(label + ": ").append(newValue ? Text.literal("ON").formatted(Formatting.GREEN) : Text.literal("OFF").formatted(Formatting.RED)));
-            // FIX: Display feedback for user toggles
+            button.setMessage(Text.literal(label + ": " + (newValue ? "ON" : "OFF")).formatted(newValue ? Formatting.GREEN : Formatting.RED));
             displayResponse(List.of(Text.literal("Settings updated.").formatted(Formatting.GREEN)));
         }).dimensions(x, y, width, 18).build();
     }
