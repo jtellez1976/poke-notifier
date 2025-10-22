@@ -144,17 +144,15 @@ public class SwarmEventManager {
 
     private BlockPos generateRemoteLocation() {
         ServerWorld overworld = server.getOverworld();
-        List<ServerPlayerEntity> players = server.getPlayerManager().getPlayerList();
+        List<ServerPlayerEntity> players = server.getPlayerManager().getPlayerList().stream()
+                .filter(p -> p.getServerWorld().getRegistryKey() == net.minecraft.server.world.ServerWorld.OVERWORLD)
+                .toList();
         
         if (players.isEmpty()) {
-            return new BlockPos(
-                ThreadLocalRandom.current().nextInt(-10000, 10000),
-                64,
-                ThreadLocalRandom.current().nextInt(-10000, 10000)
-            );
+            return generateFallbackLocation(overworld);
         }
 
-        for (int attempt = 0; attempt < 50; attempt++) {
+        for (int attempt = 0; attempt < 100; attempt++) {
             ServerPlayerEntity randomPlayer = players.get(ThreadLocalRandom.current().nextInt(players.size()));
             BlockPos playerPos = randomPlayer.getBlockPos();
             
@@ -164,23 +162,71 @@ public class SwarmEventManager {
             int x = playerPos.getX() + (int) (Math.cos(angle) * distance);
             int z = playerPos.getZ() + (int) (Math.sin(angle) * distance);
             
-            BlockPos candidate = new BlockPos(x, 64, z);
-            
-            boolean validLocation = true;
-            for (ServerPlayerEntity player : players) {
-                if (player.getBlockPos().getSquaredDistance(candidate) < config.swarm_min_distance * config.swarm_min_distance) {
-                    validLocation = false;
-                    break;
-                }
-            }
-            
-            if (validLocation) {
-                int y = overworld.getTopY(net.minecraft.world.Heightmap.Type.WORLD_SURFACE, candidate.getX(), candidate.getZ());
-                return new BlockPos(candidate.getX(), y, candidate.getZ());
+            BlockPos candidate = validateAndAdjustLocation(overworld, x, z);
+            if (candidate != null && isValidSwarmLocation(candidate, players)) {
+                return candidate;
             }
         }
         
-        return null;
+        return generateFallbackLocation(overworld);
+    }
+    
+    private BlockPos generateFallbackLocation(ServerWorld world) {
+        for (int attempt = 0; attempt < 20; attempt++) {
+            int x = ThreadLocalRandom.current().nextInt(-5000, 5000);
+            int z = ThreadLocalRandom.current().nextInt(-5000, 5000);
+            BlockPos candidate = validateAndAdjustLocation(world, x, z);
+            if (candidate != null) {
+                return candidate;
+            }
+        }
+        return new BlockPos(0, 64, 0); // Ultimate fallback
+    }
+    
+    private BlockPos validateAndAdjustLocation(ServerWorld world, int x, int z) {
+        // Force chunk loading to get accurate terrain data
+        world.getChunk(x >> 4, z >> 4);
+        
+        int y = world.getTopY(net.minecraft.world.Heightmap.Type.WORLD_SURFACE, x, z);
+        BlockPos pos = new BlockPos(x, y, z);
+        
+        // Check if location is safe (not in lava, void, etc.)
+        if (y < world.getSeaLevel() - 10 || y > world.getTopY() - 5) {
+            return null;
+        }
+        
+        // Check for lava or dangerous blocks
+        net.minecraft.block.BlockState blockBelow = world.getBlockState(pos.down());
+        net.minecraft.block.BlockState blockAt = world.getBlockState(pos);
+        
+        if (blockBelow.getBlock() == net.minecraft.block.Blocks.LAVA ||
+            blockAt.getBlock() == net.minecraft.block.Blocks.LAVA ||
+            blockBelow.getBlock() == net.minecraft.block.Blocks.WATER) {
+            // Try to find nearby safe ground
+            for (int dx = -5; dx <= 5; dx++) {
+                for (int dz = -5; dz <= 5; dz++) {
+                    BlockPos testPos = new BlockPos(x + dx, world.getTopY(net.minecraft.world.Heightmap.Type.WORLD_SURFACE, x + dx, z + dz), z + dz);
+                    net.minecraft.block.BlockState testBelow = world.getBlockState(testPos.down());
+                    if (testBelow.isSolidBlock(world, testPos.down()) && 
+                        testBelow.getBlock() != net.minecraft.block.Blocks.LAVA) {
+                        return testPos;
+                    }
+                }
+            }
+            return null;
+        }
+        
+        return pos;
+    }
+    
+    private boolean isValidSwarmLocation(BlockPos pos, List<ServerPlayerEntity> players) {
+        for (ServerPlayerEntity player : players) {
+            double distance = player.getBlockPos().getSquaredDistance(pos);
+            if (distance < config.swarm_min_distance * config.swarm_min_distance) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void announceSwarmStart() {
@@ -305,28 +351,33 @@ public class SwarmEventManager {
     private void spawnSwarmPokemon(BlockPos centerLocation, String pokemonName) {
         try {
             net.minecraft.server.world.ServerWorld overworld = server.getOverworld();
-            com.cobblemon.mod.common.api.pokemon.PokemonProperties props = 
-                com.cobblemon.mod.common.api.pokemon.PokemonProperties.Companion.parse(pokemonName);
             
-            // Spawn multiple Pokémon in the area
-            int spawnCount = config.swarm_spawn_multiplier + java.util.concurrent.ThreadLocalRandom.current().nextInt(5);
+            // Use configurable spawn count
+            int spawnCount = ThreadLocalRandom.current().nextInt(
+                config.swarm_pokemon_count_min, 
+                config.swarm_pokemon_count_max + 1
+            );
+            
+            boolean shinySpawned = false;
             
             for (int i = 0; i < spawnCount; i++) {
-                // Random position within swarm radius
-                double angle = Math.random() * 2 * Math.PI;
-                double distance = Math.random() * config.swarm_radius_blocks;
+                com.cobblemon.mod.common.api.pokemon.PokemonProperties props = 
+                    com.cobblemon.mod.common.api.pokemon.PokemonProperties.Companion.parse(pokemonName);
                 
-                int x = centerLocation.getX() + (int) (Math.cos(angle) * distance);
-                int z = centerLocation.getZ() + (int) (Math.sin(angle) * distance);
-                int y = overworld.getTopY(net.minecraft.world.Heightmap.Type.WORLD_SURFACE, x, z);
+                // Guarantee one shiny in the swarm
+                boolean shouldBeShiny = !shinySpawned && (i == spawnCount - 1 || 
+                    Math.random() < (1.0 / 4096.0) * config.swarm_shiny_multiplier);
                 
-                // Apply shiny multiplier
-                if (Math.random() < (1.0 / 4096.0) * config.swarm_shiny_multiplier) {
+                if (shouldBeShiny) {
                     props.setShiny(true);
+                    shinySpawned = true;
                 }
                 
+                BlockPos spawnPos = findSafeSpawnLocation(overworld, centerLocation);
+                if (spawnPos == null) continue;
+                
                 com.cobblemon.mod.common.entity.pokemon.PokemonEntity entity = props.createEntity(overworld);
-                entity.refreshPositionAndAngles(x, y, z, 0, 0);
+                entity.refreshPositionAndAngles(spawnPos.getX(), spawnPos.getY(), spawnPos.getZ(), 0, 0);
                 
                 // Mark as swarm spawn
                 entity.getPokemon().getPersistentData().putBoolean("pokenotifier_swarm_spawn", true);
@@ -334,10 +385,41 @@ public class SwarmEventManager {
                 overworld.spawnEntity(entity);
             }
             
-            PokeNotifier.LOGGER.info("Spawned {} {} for swarm at {}", spawnCount, pokemonName, centerLocation);
+            PokeNotifier.LOGGER.info("Spawned {} {} for swarm at {} (shiny guaranteed: {})", 
+                spawnCount, pokemonName, centerLocation, shinySpawned);
             
         } catch (Exception e) {
             PokeNotifier.LOGGER.error("Failed to spawn swarm Pokémon", e);
         }
+    }
+    
+    private BlockPos findSafeSpawnLocation(net.minecraft.server.world.ServerWorld world, BlockPos center) {
+        for (int attempt = 0; attempt < 20; attempt++) {
+            double angle = Math.random() * 2 * Math.PI;
+            double distance = Math.random() * config.swarm_radius_blocks;
+            
+            int x = center.getX() + (int) (Math.cos(angle) * distance);
+            int z = center.getZ() + (int) (Math.sin(angle) * distance);
+            
+            // Force chunk loading
+            world.getChunk(x >> 4, z >> 4);
+            
+            int y = world.getTopY(net.minecraft.world.Heightmap.Type.WORLD_SURFACE, x, z);
+            BlockPos pos = new BlockPos(x, y, z);
+            
+            // Validate spawn location
+            net.minecraft.block.BlockState blockBelow = world.getBlockState(pos.down());
+            net.minecraft.block.BlockState blockAt = world.getBlockState(pos);
+            
+            if (blockBelow.isSolidBlock(world, pos.down()) && 
+                blockBelow.getBlock() != net.minecraft.block.Blocks.LAVA &&
+                blockAt.isAir() &&
+                y > world.getSeaLevel() - 5) {
+                return pos;
+            }
+        }
+        
+        // Fallback to center location
+        return center;
     }
 }
