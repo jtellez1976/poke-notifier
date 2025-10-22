@@ -39,6 +39,20 @@ public class GuiIcons {
     public static final Identifier SWARM_EVENTS = Identifier.of("poke-notifier", "textures/gui/icons/swarm_events.png");
     public static final Identifier RIVAL_BATTLES = Identifier.of("poke-notifier", "textures/gui/icons/rival_battles.png");
     
+    // Action icons
+    public static final Identifier ADD = Identifier.of("poke-notifier", "textures/gui/icons/add.png");
+    public static final Identifier CLEAR = Identifier.of("poke-notifier", "textures/gui/icons/clear.png");
+    public static final Identifier VIEW_LIST = Identifier.of("poke-notifier", "textures/gui/icons/view_list.png");
+    public static final Identifier TRACK_GEN = Identifier.of("poke-notifier", "textures/gui/icons/track_gen.png");
+    public static final Identifier START_EVENT = Identifier.of("poke-notifier", "textures/gui/icons/start_event.png");
+    public static final Identifier SHINY = Identifier.of("poke-notifier", "textures/gui/icons/shiny.png");
+    public static final Identifier REFRESH = Identifier.of("poke-notifier", "textures/gui/icons/refresh.png");
+    
+    // Main tab icons
+    public static final Identifier USER_TOOLS = Identifier.of("poke-notifier", "textures/gui/icons/user_tools.png");
+    public static final Identifier EVENTS = Identifier.of("poke-notifier", "textures/gui/icons/events.png");
+    public static final Identifier ADMIN = Identifier.of("poke-notifier", "textures/gui/icons/admin.png");
+    
     // Legacy aliases
     public static final Identifier SETTINGS = MAP_SETTINGS;
     public static final Identifier INFO = INFO_HELP;
