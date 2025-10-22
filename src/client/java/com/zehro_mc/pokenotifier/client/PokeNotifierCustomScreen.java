@@ -162,7 +162,7 @@ public class PokeNotifierCustomScreen extends Screen {
         // Event navigation buttons
         addDrawableChild(createEventNavButton(navX, navY, navWidth, "🌍 Global Hunt", EventSubCategory.GLOBAL_HUNT, PokeNotifierClient.isGlobalHuntSystemEnabled));
         addDrawableChild(createEventNavButton(navX, navY + 22, navWidth, "💰 Bounty System", EventSubCategory.BOUNTY_SYSTEM, PokeNotifierClient.isServerBountySystemEnabled));
-        addDrawableChild(createEventNavButton(navX, navY + 44, navWidth, "🌪️ Swarm Events", EventSubCategory.SWARM_EVENTS, false));
+        addDrawableChild(createEventNavButton(navX, navY + 44, navWidth, "🌪️ Swarm Events", EventSubCategory.SWARM_EVENTS, PokeNotifierClient.isSwarmSystemEnabled));
         addDrawableChild(createEventNavButton(navX, navY + 66, navWidth, "⚔️ Rival Battles", EventSubCategory.RIVAL_BATTLES, true));
         
         // Right details panel
@@ -396,7 +396,15 @@ public class PokeNotifierCustomScreen extends Screen {
             ConfigManager.saveClientConfigToFile();
             this.clearAndInit();
         }, x, currentY, width));
-        currentY += 25;
+        currentY += 20;
+        
+        // Event Waypoint Toggle
+        addDrawableChild(createToggleButton("Event Waypoints", clientConfig.event_waypoints_enabled, newValue -> {
+            clientConfig.event_waypoints_enabled = newValue;
+            ConfigManager.saveClientConfigToFile();
+            this.clearAndInit();
+        }, x, currentY, width));
+        currentY += 20;
         
         // Auto-Remove Waypoints Toggle
         addDrawableChild(createToggleButton("Auto-Remove Waypoints", clientConfig.auto_remove_waypoints, newValue -> {
@@ -404,7 +412,7 @@ public class PokeNotifierCustomScreen extends Screen {
             ConfigManager.saveClientConfigToFile();
             this.clearAndInit();
         }, x, currentY, width));
-        currentY += 25;
+        currentY += 20;
         
         // Auto-Waypoint Toggle with conflict detection
         boolean isCatchEmAllActive = PokeNotifierClient.currentCatchEmAllGeneration != null && !"none".equals(PokeNotifierClient.currentCatchEmAllGeneration);
@@ -439,7 +447,7 @@ public class PokeNotifierCustomScreen extends Screen {
                 displayResponse(List.of(Text.literal("Settings updated.").formatted(Formatting.GREEN)));
             }).dimensions(x, currentY, width, 18).build();
         addDrawableChild(autoWaypointButton);
-        currentY += 30;
+        currentY += 25;
         
         // Xaero's Integration Status
         boolean xaeroAvailable = com.zehro_mc.pokenotifier.client.compat.XaeroIntegration.isXaeroAvailable();
@@ -463,8 +471,8 @@ public class PokeNotifierCustomScreen extends Screen {
                 statusLines.add(Text.literal("→ Install Xaero's Minimap/Worldmap for waypoints").formatted(Formatting.GRAY));
             }
             displayResponse(statusLines);
-        }).dimensions(x, currentY, width, 20).build());
-        currentY += 25;
+        }).dimensions(x, currentY, width, 18).build());
+        currentY += 22;
         
         // Xaero-specific buttons
         if (xaeroAvailable) {
@@ -479,8 +487,8 @@ public class PokeNotifierCustomScreen extends Screen {
                 statsLines.add(Text.literal("Auto-Removal: " + (autoRemovalEnabled ? "Enabled" : "Disabled")).formatted(autoRemovalEnabled ? Formatting.GREEN : Formatting.RED));
                 statsLines.add(Text.literal("Waypoint Creation: " + (clientConfig.create_waypoints_enabled ? "Enabled" : "Disabled")).formatted(clientConfig.create_waypoints_enabled ? Formatting.GREEN : Formatting.RED));
                 displayResponse(statsLines);
-            }).dimensions(x, currentY, width, 20).build());
-            currentY += 25;
+            }).dimensions(x, currentY, width, 18).build());
+            currentY += 22;
             
             // Clear All Waypoints Button
             addDrawableChild(ButtonWidget.builder(Text.literal("Clear All Tracked Waypoints"), b -> {
@@ -496,7 +504,7 @@ public class PokeNotifierCustomScreen extends Screen {
                 } else {
                     displayResponse(List.of(Text.literal("No waypoints are currently being tracked.").formatted(Formatting.GRAY)));
                 }
-            }).dimensions(x, currentY, width, 20).build());
+            }).dimensions(x, currentY, width, 18).build());
         } else {
             // About Waypoint Features when Xaero's not available
             addDrawableChild(ButtonWidget.builder(Text.literal("About Waypoint Features"), b -> {
@@ -510,7 +518,7 @@ public class PokeNotifierCustomScreen extends Screen {
                 infoLines.add(Text.literal("").formatted(Formatting.WHITE));
                 infoLines.add(Text.literal("Without Xaero's: Coordinates are shown instead").formatted(Formatting.GRAY));
                 displayResponse(infoLines);
-            }).dimensions(x, currentY, width, 20).build());
+            }).dimensions(x, currentY, width, 18).build());
         }
     }
 
@@ -674,24 +682,102 @@ public class PokeNotifierCustomScreen extends Screen {
     }
     
     private void buildSwarmEventsDetailsPanel(int x, int y, int width) {
-        // Swarm controls
-        this.pokemonNameField = new AutocompleteTextFieldWidget(this.textRenderer, x, y, width - 40, 20, Text.literal(""), () -> PokeNotifierApi.getAllPokemonNames().toList());
-        this.pokemonNameField.setPlaceholder(Text.literal("Pokémon Name for Swarm"));
+        int currentY = y;
+        
+        // System Toggle - always allow toggle regardless of active swarm
+        Text systemToggleText = Text.literal(PokeNotifierClient.isSwarmSystemEnabled ? "🟢 Disable System" : "🔴 Enable System");
+        
+        ButtonWidget systemToggleButton = ButtonWidget.builder(systemToggleText, b -> {
+            com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
+                new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
+                    com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.TOGGLE_SWARM_SYSTEM, "");
+            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+            displayResponse(List.of(Text.literal("Toggling Swarm system...").formatted(Formatting.YELLOW)));
+            
+            PokeNotifierClient.isSwarmSystemEnabled = !PokeNotifierClient.isSwarmSystemEnabled;
+            this.clearAndInit(); // Refresh entire GUI to update all states
+        }).dimensions(x, currentY, width / 2 - 2, 20).build();
+        
+        addDrawableChild(systemToggleButton);
+        
+        // Swarm Status
+        addDrawableChild(ButtonWidget.builder(Text.literal("📊 Status"), b -> {
+            com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
+                new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
+                    com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.SWARM_STATUS, "");
+            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+            displayResponse(List.of(Text.literal("Requesting Swarm status...").formatted(Formatting.YELLOW)));
+        }).dimensions(x + width / 2 + 2, currentY, width / 2 - 2, 20).build());
+        
+        currentY += 25;
+        
+        // Manual Swarm Controls
+        this.pokemonNameField = new AutocompleteTextFieldWidget(this.textRenderer, x, currentY, width - 40, 20, Text.literal(""), () -> PokeNotifierApi.getAllPokemonNames().toList());
+        this.pokemonNameField.setPlaceholder(Text.literal("Pokémon for Swarm"));
         addDrawableChild(this.pokemonNameField);
-
-        addDrawableChild(ButtonWidget.builder(Text.literal("🌪️ Start Swarm"), b -> {
+        
+        this.shinyCheckbox = CheckboxWidget.builder(Text.literal("✨"), this.textRenderer).pos(x + width - 35, currentY).checked(false).build();
+        addDrawableChild(this.shinyCheckbox);
+        
+        currentY += 25;
+        
+        ButtonWidget startSwarmButton = ButtonWidget.builder(Text.literal("🌪️ Start Swarm"), b -> {
             String pokemonName = this.pokemonNameField.getText().trim();
             if (!pokemonName.isEmpty()) {
+                String parameter = pokemonName + (this.shinyCheckbox.isChecked() ? " shiny" : "");
                 com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
                     new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
-                        com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.START_SWARM, pokemonName);
+                        com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.START_SWARM, parameter);
                 net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
-                displayResponse(List.of(Text.literal("Starting swarm of ").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append("...").formatted(Formatting.YELLOW)));
+                displayResponse(List.of(Text.literal("Starting swarm of ").append(Text.literal((this.shinyCheckbox.isChecked() ? "Shiny " : "") + pokemonName).formatted(Formatting.GOLD)).append("...").formatted(Formatting.YELLOW)));
                 this.pokemonNameField.setText("");
             } else {
                 displayResponse(List.of(Text.literal("Please enter a Pokémon name first.").formatted(Formatting.RED)));
             }
-        }).dimensions(x, y + 25, width, 20).build());
+        }).dimensions(x, currentY, width / 2 - 2, 20).build();
+        
+        // Only disable if system is disabled
+        if (!PokeNotifierClient.isSwarmSystemEnabled) {
+            startSwarmButton.active = false;
+        }
+        addDrawableChild(startSwarmButton);
+        
+        ButtonWidget cancelSwarmButton = ButtonWidget.builder(Text.literal("❌ Cancel Swarm"), b -> {
+            com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
+                new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
+                    com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.CANCEL_SWARM, "");
+            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+            displayResponse(List.of(Text.literal("Cancelling active Swarm...").formatted(Formatting.YELLOW)));
+            
+            // Update client state immediately
+            PokeNotifierClient.hasActiveSwarm = false;
+            PokeNotifierClient.activeSwarmPokemon = "";
+            this.clearAndInit(); // Refresh GUI to show updated state
+        }).dimensions(x + width / 2 + 2, currentY, width / 2 - 2, 20).build();
+        
+        addDrawableChild(cancelSwarmButton);
+        
+        currentY += 30;
+        
+        // Active Swarm Status
+        if (PokeNotifierClient.hasActiveSwarm && !PokeNotifierClient.activeSwarmPokemon.isEmpty()) {
+            Text activeSwarmTitle = Text.literal("🌪️ Active Swarm").formatted(Formatting.GREEN);
+            addDrawableChild(ButtonWidget.builder(activeSwarmTitle, b -> {}).dimensions(x, currentY, width, 20).build()).active = false;
+            
+            currentY += 25;
+            
+            Text activePokemon = Text.literal("Target: " + PokeNotifierClient.activeSwarmPokemon).formatted(Formatting.GOLD);
+            addDrawableChild(ButtonWidget.builder(activePokemon, b -> {
+                com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
+                    new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
+                        com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.SWARM_STATUS, "");
+                net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+                displayResponse(List.of(Text.literal("Requesting detailed swarm status...").formatted(Formatting.YELLOW)));
+            }).dimensions(x, currentY, width, 20).build());
+        } else {
+            Text noActiveSwarm = Text.literal("No Active Swarm").formatted(Formatting.GRAY);
+            addDrawableChild(ButtonWidget.builder(noActiveSwarm, b -> {}).dimensions(x, currentY, width, 20).build()).active = false;
+        }
     }
     
     private void buildRivalBattlesDetailsPanel(int x, int y, int width) {
@@ -1028,6 +1114,7 @@ public class PokeNotifierCustomScreen extends Screen {
         lines.add(createStatusLine("  Xaero's Mods Detected", xaeroAvailable));
         lines.add(createStatusLine("  Waypoint Creation", clientConfig.create_waypoints_enabled));
         lines.add(createStatusLine("  Auto-Waypoint", clientConfig.auto_waypoint_enabled));
+        lines.add(createStatusLine("  Event Waypoints", clientConfig.event_waypoints_enabled));
         lines.add(createStatusLine("  Auto-Remove Waypoints", clientConfig.auto_remove_waypoints));
         if (xaeroAvailable) {
             int trackedCount = com.zehro_mc.pokenotifier.client.compat.WaypointTracker.getTrackedWaypointCount();
@@ -1068,6 +1155,15 @@ public class PokeNotifierCustomScreen extends Screen {
             lines.add(Text.literal("  Global Hunt: ").append(Text.literal("ACTIVE (" + PokeNotifierClient.activeGlobalHuntPokemon + ")").formatted(Formatting.GREEN)));
         } else {
             lines.add(Text.literal("  Global Hunt: ").append(Text.literal("NO ACTIVE EVENT").formatted(Formatting.GRAY)));
+        }
+        
+        if (PokeNotifierClient.hasActiveSwarm && !PokeNotifierClient.activeSwarmPokemon.isEmpty()) {
+            lines.add(Text.literal("  Swarm: ").append(Text.literal("ACTIVE (" + PokeNotifierClient.activeSwarmPokemon + ")").formatted(Formatting.GREEN)));
+            if (PokeNotifierClient.swarmRemainingMinutes > 0) {
+                lines.add(Text.literal("    Time Left: " + PokeNotifierClient.swarmRemainingMinutes + " minutes").formatted(Formatting.AQUA));
+            }
+        } else {
+            lines.add(Text.literal("  Swarm: ").append(Text.literal("NO ACTIVE SWARM").formatted(Formatting.GRAY)));
         }
         
         if (serverConfig.active_bounty != null && !serverConfig.active_bounty.isEmpty()) {

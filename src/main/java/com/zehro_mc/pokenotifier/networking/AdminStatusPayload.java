@@ -20,8 +20,11 @@ public record AdminStatusPayload(
     boolean isTestMode,
     boolean isBountySystemEnabled,
     boolean isGlobalHuntSystemEnabled,
+    boolean isSwarmSystemEnabled,
     boolean hasActiveGlobalHunt,
-    String activeGlobalHuntPokemon
+    String activeGlobalHuntPokemon,
+    boolean hasActiveSwarm,
+    String activeSwarmPokemon
 ) implements CustomPayload {
     public static final Id<AdminStatusPayload> ID = new Id<>(Identifier.of(PokeNotifier.MOD_ID, "admin_status_payload"));
 
@@ -29,7 +32,7 @@ public record AdminStatusPayload(
     public static final PacketCodec<RegistryByteBuf, AdminStatusPayload> CODEC = PacketCodec.of(AdminStatusPayload::write, AdminStatusPayload::new);
 
     public AdminStatusPayload(RegistryByteBuf buf) {
-        this(buf.readBoolean(), buf.readBoolean(), buf.readBoolean(), buf.readBoolean(), buf.readBoolean(), buf.readBoolean(), buf.readString());
+        this(buf.readBoolean(), buf.readBoolean(), buf.readBoolean(), buf.readBoolean(), buf.readBoolean(), buf.readBoolean(), buf.readBoolean(), buf.readString(), buf.readBoolean(), buf.readString());
     }
 
     public void write(RegistryByteBuf buf) {
@@ -38,8 +41,11 @@ public record AdminStatusPayload(
         buf.writeBoolean(isTestMode);
         buf.writeBoolean(isBountySystemEnabled);
         buf.writeBoolean(isGlobalHuntSystemEnabled);
+        buf.writeBoolean(isSwarmSystemEnabled);
         buf.writeBoolean(hasActiveGlobalHunt);
         buf.writeString(activeGlobalHuntPokemon);
+        buf.writeBoolean(hasActiveSwarm);
+        buf.writeString(activeSwarmPokemon);
     }
 
     @Override

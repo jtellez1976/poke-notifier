@@ -32,6 +32,7 @@ import com.zehro_mc.pokenotifier.util.UpdateChecker;
 import com.zehro_mc.pokenotifier.util.RarityUtil;
 import com.zehro_mc.pokenotifier.util.MessageUtils;
 import com.zehro_mc.pokenotifier.globalhunt.GlobalHuntManager;
+import com.zehro_mc.pokenotifier.events.SwarmEventManager;
 import kotlin.Unit;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.loader.api.FabricLoader;
@@ -166,6 +167,8 @@ public class PokeNotifier implements ModInitializer {
             server = startedServer;
             // Initialize Global Hunt Manager
             GlobalHuntManager.getInstance().initialize(startedServer);
+            // Initialize Swarm Event Manager
+            new SwarmEventManager(startedServer);
             
             // Log server configuration status
             ConfigServer config = ConfigManager.getServerConfig();
@@ -515,8 +518,11 @@ public class PokeNotifier implements ModInitializer {
                     config.enable_test_mode,
                     config.bounty_system_enabled,
                     globalHuntEnabled,
+                    config.swarm_system_enabled,
                     hasActiveEvent,
-                    activePokemon));
+                    activePokemon,
+                    false, // hasActiveSwarm - TODO: implement swarm manager
+                    "")); // activeSwarmPokemon
             
             // --- NEW: Sync update source with client ---
             ServerPlayNetworking.send(player, new UpdateSourceSyncPayload(config.update_checker_source));
@@ -585,6 +591,11 @@ public class PokeNotifier implements ModInitializer {
 
             // Tick the swarm system scheduler.
             tickSwarmSystem(currentServer);
+            
+            // Tick the new Swarm Event Manager
+            if (SwarmEventManager.getInstance() != null) {
+                SwarmEventManager.getInstance().tick();
+            }
         });
 
         // --- Enhanced Success Banner ---
@@ -709,6 +720,13 @@ public class PokeNotifier implements ModInitializer {
                             clearActiveBounty(false);
                         }
                     }
+                    case TOGGLE_SWARM_SYSTEM -> {
+                        ConfigServer config = ConfigManager.getServerConfig();
+                        config.swarm_system_enabled = !config.swarm_system_enabled;
+                        ConfigManager.saveServerConfigToFile();
+                        List<Text> lines = new ArrayList<>(List.of(Text.literal("Swarm system ").append(config.swarm_system_enabled ? Text.literal("enabled").formatted(Formatting.GREEN) : Text.literal("disabled").formatted(Formatting.RED))));
+                        ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                    }
                     case SERVER_STATUS -> {
                         ConfigServer config = ConfigManager.getServerConfig();
                         List<Text> lines = new ArrayList<>();
@@ -749,11 +767,50 @@ public class PokeNotifier implements ModInitializer {
                     case START_SWARM -> {
                         String pokemonName = payload.parameter().trim();
                         if (!pokemonName.isEmpty()) {
-                            boolean success = executeSwarmStart(player, pokemonName);
-                            if (success) {
-                                List<Text> lines = new ArrayList<>(List.of(Text.literal("Attempting to start a swarm of ").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append("...").formatted(Formatting.GREEN)));
-                                ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                            SwarmEventManager swarmManager = SwarmEventManager.getInstance();
+                            if (swarmManager != null) {
+                                boolean success = swarmManager.startManualSwarm(pokemonName);
+                                if (success) {
+                                    List<Text> lines = new ArrayList<>(List.of(Text.literal("Started swarm of ").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append("!").formatted(Formatting.GREEN)));
+                                    ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                                } else {
+                                    List<Text> lines = new ArrayList<>(List.of(Text.literal("Failed to start swarm. Check if one is already active.").formatted(Formatting.RED)));
+                                    ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                                }
                             }
+                        }
+                    }
+                    case SWARM_STATUS -> {
+                        List<Text> lines = new ArrayList<>();
+                        lines.add(Text.literal("--- Swarm Status ---").formatted(Formatting.GOLD));
+                        lines.add(Text.literal("System: ").append(ConfigManager.getServerConfig().swarm_system_enabled ? Text.literal("Enabled").formatted(Formatting.GREEN) : Text.literal("Disabled").formatted(Formatting.RED)));
+                        
+                        SwarmEventManager swarmManager = SwarmEventManager.getInstance();
+                        if (swarmManager != null && swarmManager.hasActiveSwarm()) {
+                            lines.add(Text.literal("Active Swarm: ").append(Text.literal(swarmManager.getActiveSwarmPokemon()).formatted(Formatting.GOLD)));
+                            BlockPos loc = swarmManager.getActiveSwarmLocation();
+                            lines.add(Text.literal("Location: ").append(Text.literal("X: " + loc.getX() + ", Z: " + loc.getZ()).formatted(Formatting.AQUA)));
+                            lines.add(Text.literal("Biome: ").append(Text.literal(swarmManager.getActiveSwarmBiome()).formatted(Formatting.GREEN)));
+                            lines.add(Text.literal("Remaining: ").append(Text.literal(swarmManager.getRemainingMinutes() + " minutes").formatted(Formatting.YELLOW)));
+                        } else {
+                            lines.add(Text.literal("Active Swarm: None").formatted(Formatting.GRAY));
+                        }
+                        
+                        ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                    }
+                    case CANCEL_SWARM -> {
+                        SwarmEventManager swarmManager = SwarmEventManager.getInstance();
+                        if (swarmManager != null && swarmManager.hasActiveSwarm()) {
+                            swarmManager.endCurrentSwarm();
+                            List<Text> lines = new ArrayList<>(List.of(Text.literal("Active swarm cancelled by admin").formatted(Formatting.YELLOW)));
+                            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
+                            
+                            // Notify all players
+                            Text announcement = Text.literal("The active swarm has been cancelled by an administrator.").formatted(Formatting.YELLOW);
+                            context.server().getPlayerManager().broadcast(announcement, false);
+                        } else {
+                            List<Text> lines = new ArrayList<>(List.of(Text.literal("No active swarm to cancel").formatted(Formatting.RED)));
+                            ServerPlayNetworking.send(player, new GuiResponsePayload(lines));
                         }
                     }
                     case START_GLOBAL_HUNT -> {

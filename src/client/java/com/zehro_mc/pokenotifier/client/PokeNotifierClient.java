@@ -59,8 +59,16 @@ public class PokeNotifierClient implements ClientModInitializer {
     public static boolean isGlobalHuntSystemEnabled = false; // Will be synced from server
     public static boolean hasActiveGlobalHunt = false; // NEW: Track active Global Hunt event
     public static String activeGlobalHuntPokemon = ""; // NEW: Track active Global Hunt Pokemon
+    public static boolean isSwarmSystemEnabled = true; // NEW: Track Swarm System status
     public static String lastGlobalHuntWinner = ""; // NEW: Track last Global Hunt winner
     public static String currentUpdateSource = null; // NEW: Track current update source
+    
+    // --- NEW: Swarm Event Manager tracking ---
+    public static boolean hasActiveSwarm = false;
+    public static String activeSwarmPokemon = "";
+    public static String activeSwarmLocation = "";
+    public static String activeSwarmBiome = "";
+    public static int swarmRemainingMinutes = 0;
 
     @Override
     public void onInitializeClient() {
@@ -120,10 +128,13 @@ public class PokeNotifierClient implements ClientModInitializer {
                 isServerTestMode = payload.isTestMode();
                 isServerBountySystemEnabled = payload.isBountySystemEnabled();
                 isGlobalHuntSystemEnabled = payload.isGlobalHuntSystemEnabled();
+                isSwarmSystemEnabled = payload.isSwarmSystemEnabled();
                 hasActiveGlobalHunt = payload.hasActiveGlobalHunt();
                 activeGlobalHuntPokemon = payload.activeGlobalHuntPokemon();
+                hasActiveSwarm = payload.hasActiveSwarm();
+                activeSwarmPokemon = payload.activeSwarmPokemon();
                 
-                LOGGER.info("[CLIENT] Received admin status - Global Hunt System: {}", isGlobalHuntSystemEnabled);
+                LOGGER.info("[CLIENT] Received admin status - Swarm System: {}, Active Swarm: {}", isSwarmSystemEnabled, hasActiveSwarm);
             });
         });
         
@@ -139,6 +150,20 @@ public class PokeNotifierClient implements ClientModInitializer {
             context.client().execute(() -> {
                 // Handle Global Hunt events on client side
                 LOGGER.info("Received Global Hunt event: {} for {}", payload.action(), payload.pokemon());
+            });
+        });
+        
+        // --- NEW: Receive Swarm status updates ---
+        ClientPlayNetworking.registerGlobalReceiver(SwarmStatusPayload.ID, (payload, context) -> {
+            context.client().execute(() -> {
+                hasActiveSwarm = payload.hasActiveSwarm();
+                activeSwarmPokemon = payload.pokemonName();
+                activeSwarmLocation = payload.location();
+                activeSwarmBiome = payload.biome();
+                swarmRemainingMinutes = payload.remainingMinutes();
+                
+                LOGGER.info("[CLIENT] Swarm status updated: {} - {}", 
+                    hasActiveSwarm ? "ACTIVE" : "INACTIVE", activeSwarmPokemon);
             });
         });
 
@@ -218,8 +243,14 @@ public class PokeNotifierClient implements ClientModInitializer {
                         chatMessage.append(com.zehro_mc.pokenotifier.client.util.ClientMessageUtils.createLocationText(
                                 pokemonName, x, y, z, payload.color()));
                     } else {
-                        // Just show coordinates for CAUGHT Pokémon
+                        // Show coordinates with Add button for CAUGHT Pokémon
                         chatMessage.append(XaeroIntegration.createCoordinateFallback(x, y, z));
+                        
+                        // Add waypoint button for all Pokemon if Xaero's is available
+                        if (ConfigManager.getClientConfig().create_waypoints_enabled && XaeroIntegration.isXaeroAvailable()) {
+                            chatMessage.append(Text.literal(" ").formatted(Formatting.WHITE));
+                            chatMessage.append(XaeroIntegration.createWaypointButton(pokemonName, x, y, z, payload.color()));
+                        }
                     }
                     
                     chatMessage.append(Text.literal(" (").formatted(Formatting.YELLOW));

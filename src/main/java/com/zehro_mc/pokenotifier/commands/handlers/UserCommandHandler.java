@@ -54,8 +54,11 @@ public class UserCommandHandler {
                                 config.enable_test_mode,
                                 config.bounty_system_enabled,
                                 globalHuntEnabled,
+                                config.swarm_system_enabled,
                                 hasActiveEvent,
-                                activePokemon));
+                                activePokemon,
+                                false, // hasActiveSwarm - TODO: implement swarm manager
+                                "")); // activeSwarmPokemon
                         ServerPlayNetworking.send(player, new OpenGuiPayload());
                     }
                     return 1;

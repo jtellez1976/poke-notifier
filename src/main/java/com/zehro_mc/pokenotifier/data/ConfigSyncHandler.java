@@ -55,8 +55,11 @@ public class ConfigSyncHandler {
                 config.enable_test_mode,
                 config.bounty_system_enabled,
                 globalHuntEnabled,
+                config.swarm_system_enabled,
                 false, // hasActiveEvent,
-                "")); // activePokemon));
+                "", // activePokemon
+                false, // hasActiveSwarm
+                "")); // activeSwarmPokemon
         
         // Sync update source with client
         // ServerPlayNetworking.send(player, new UpdateSourceSyncPayload(config.update_checker_source));
@@ -95,8 +98,11 @@ public class ConfigSyncHandler {
                             config.enable_test_mode,
                             config.bounty_system_enabled,
                             globalHuntEnabled,
+                            config.swarm_system_enabled,
                             false, // hasActiveEvent,
-                            "")); // activePokemon));
+                            "", // activePokemon
+                            false, // hasActiveSwarm
+                            "")); // activeSwarmPokemon
                 }
             }
         }

@@ -20,6 +20,7 @@ public class PokeNotifierPayloads {
         PayloadTypeRegistry.playS2C().register(AdminStatusPayload.ID, AdminStatusPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(GlobalHuntPayload.ID, GlobalHuntPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(UpdateSourceSyncPayload.ID, UpdateSourceSyncPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(SwarmStatusPayload.ID, SwarmStatusPayload.CODEC);
 
         // These payloads are sent from the client to the server.
         // They must also be registered on both sides.
