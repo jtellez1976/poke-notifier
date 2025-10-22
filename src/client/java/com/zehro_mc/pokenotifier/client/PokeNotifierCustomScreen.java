@@ -336,7 +336,9 @@ public class PokeNotifierCustomScreen extends Screen {
             int buttonX = x + col * (buttonWidth + 5);
             int buttonY = y + row * (buttonHeight + 5);
 
-            ButtonWidget button = ButtonWidget.builder(Text.literal(getGenerationDisplayName(gen)), b -> {
+            net.minecraft.util.Identifier genIcon = gen.equals(PokeNotifierClient.currentCatchEmAllGeneration) ? GuiIcons.TRACK_GEN : null;
+            
+            IconButton button = new IconButton(buttonX, buttonY, buttonWidth, buttonHeight, genIcon, getGenerationDisplayName(gen), b -> {
                 // Check if Auto-Waypoint is enabled and warn user
                 if (clientConfig.auto_waypoint_enabled) {
                     displayResponse(List.of(
@@ -357,20 +359,15 @@ public class PokeNotifierCustomScreen extends Screen {
                 // Update the current generation immediately for visual feedback
                 PokeNotifierClient.currentCatchEmAllGeneration = gen;
                 this.clearAndInit(); // Refresh the GUI to update button colors
-            }).dimensions(buttonX, buttonY, buttonWidth, buttonHeight).build();
+            });
 
             addDrawableChild(button);
-            
-            // Add icon overlay for active generation
-            if (gen.equals(PokeNotifierClient.currentCatchEmAllGeneration)) {
-                addDrawableChild(new IconButton(buttonX + buttonWidth - 18, buttonY + 1, 16, 16, GuiIcons.TRACK_GEN, "", b -> {}));
-            }
         }
 
         int statusY = y + 5 * (buttonHeight + 5);
         
         // Stop Tracking button
-        addDrawableChild(new IconButton(x, statusY, width, 20, GuiIcons.OFF, "Stop Tracking", b -> {
+        IconButton stopTrackingButton = new IconButton(x, statusY, width, 20, GuiIcons.OFF, "Stop Tracking", b -> {
             if (PokeNotifierClient.currentCatchEmAllGeneration != null && !"none".equals(PokeNotifierClient.currentCatchEmAllGeneration)) {
                 com.zehro_mc.pokenotifier.networking.CatchemallUpdatePayload payload = 
                     new com.zehro_mc.pokenotifier.networking.CatchemallUpdatePayload(
@@ -379,7 +376,10 @@ public class PokeNotifierCustomScreen extends Screen {
                 net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
                 displayResponse(List.of(Text.literal("Requesting to disable tracking...").formatted(Formatting.YELLOW)));
             }
-        }));
+        });
+        // Only enable if there's an active generation being tracked
+        stopTrackingButton.active = PokeNotifierClient.currentCatchEmAllGeneration != null && !"none".equals(PokeNotifierClient.currentCatchEmAllGeneration);
+        addDrawableChild(stopTrackingButton);
         
         // View Status button
         addDrawableChild(new IconButton(x, statusY + 25, width, 20, GuiIcons.SYSTEM_STATUS, "View Status", b -> {

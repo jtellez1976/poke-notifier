@@ -31,6 +31,9 @@ public class IconButton extends ButtonWidget {
         // Render button background
         super.renderWidget(context, mouseX, mouseY, delta);
         
+        net.minecraft.client.MinecraftClient client = net.minecraft.client.MinecraftClient.getInstance();
+        Text labelTextComponent = Text.literal(labelText);
+        
         if (iconId != null) {
             // Render icon on the left
             int iconX = this.getX() + 4;
@@ -38,10 +41,14 @@ public class IconButton extends ButtonWidget {
             GuiIcons.renderIcon(context, iconId, iconX, iconY, 12);
             
             // Render text next to icon
-            Text labelTextComponent = Text.literal(labelText);
             int textX = this.getX() + 20; // Space for icon + padding
             int textY = this.getY() + (this.height - 8) / 2;
-            net.minecraft.client.MinecraftClient client = net.minecraft.client.MinecraftClient.getInstance();
+            context.drawText(client.textRenderer, labelTextComponent, textX, textY, 0xFFFFFF, false);
+        } else {
+            // Render text centered when no icon
+            int textWidth = client.textRenderer.getWidth(labelTextComponent);
+            int textX = this.getX() + (this.width - textWidth) / 2;
+            int textY = this.getY() + (this.height - 8) / 2;
             context.drawText(client.textRenderer, labelTextComponent, textX, textY, 0xFFFFFF, false);
         }
     }
