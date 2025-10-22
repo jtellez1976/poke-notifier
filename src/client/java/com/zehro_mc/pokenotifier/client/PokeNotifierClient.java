@@ -164,8 +164,7 @@ public class PokeNotifierClient implements ClientModInitializer {
                 swarmRemainingMinutes = payload.remainingMinutes();
                 swarmRemainingEntities = payload.remainingEntities();
                 
-                LOGGER.info("[CLIENT] Swarm status updated: {} - {} (entities: {})", 
-                    hasActiveSwarm ? "ACTIVE" : "INACTIVE", activeSwarmPokemon, swarmRemainingEntities);
+                // Debug logging removed to reduce spam
             });
         });
 

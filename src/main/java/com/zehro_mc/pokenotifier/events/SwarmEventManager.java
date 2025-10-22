@@ -34,6 +34,10 @@ public class SwarmEventManager {
     private long lastSwarmEndTime = 0;
     private int swarmCheckTimer = 0;
     private final Set<java.util.UUID> swarmEntities = new HashSet<>();
+    
+    // Lazy loading system
+    private boolean entitiesSpawned = false;
+    private static final int PLAYER_DETECTION_RADIUS = 64; // blocks
 
     public SwarmEventManager(MinecraftServer server) {
         this.server = server;
@@ -69,12 +73,19 @@ public class SwarmEventManager {
         if (!swarmConfig.system_enabled) return;
 
         if (SwarmStatistics.hasActiveSwarm()) {
-            updateSwarmEntities();
+            // Check for nearby players and spawn if needed (every 3 seconds)
+            if (swarmCheckTimer % 60 == 0) {
+                checkForNearbyPlayersAndSpawn();
+            }
+            
+            // Validate entities every 5 seconds (100 ticks)
+            if (swarmCheckTimer % 100 == 0) {
+                validateAndSyncEntities();
+            }
             
             if (isSwarmExpired()) {
                 endCurrentSwarm("time");
             }
-            // Remove automatic ending by entities - let admin decide when to end
         }
 
         swarmCheckTimer++;
@@ -129,18 +140,20 @@ public class SwarmEventManager {
     
     public void startSwarmWithShiny(String pokemonName, BlockPos location, String biomeName, String triggeredBy, boolean forceShiny) {
         swarmEntities.clear();
+        entitiesSpawned = false;
 
         announceSwarmStart(pokemonName, biomeName, location);
-        int spawnedCount = spawnSwarmPokemon(location, pokemonName, forceShiny);
         
-        // Record statistics after spawning to get accurate count
+        // Record statistics with pending spawn count
         String swarmType = biomeName.equals("Admin Location") ? "MANUAL" : "AUTOMATIC";
-        SwarmStatistics.recordSwarmStart(pokemonName, swarmType, triggeredBy, location, biomeName, spawnedCount);
+        int pendingCount = ThreadLocalRandom.current().nextInt(swarmConfig.pokemon_count_min, swarmConfig.pokemon_count_max + 1);
+        SwarmStatistics.recordSwarmStart(pokemonName, swarmType, triggeredBy, location, biomeName, pendingCount);
         
+        // Start monitoring for nearby players
         syncStatusWithClients();
 
-        PokeNotifier.LOGGER.info("[SwarmManager] Started {} swarm: {} by {} (spawned: {}, shiny forced: {})", 
-            biomeName.equals("Admin Location") ? "manual" : "automatic", pokemonName, triggeredBy, spawnedCount, forceShiny);
+        PokeNotifier.LOGGER.info("[SwarmManager] Started {} swarm: {} by {} ({} entities pending)", 
+            biomeName.equals("Admin Location") ? "manual" : "automatic", pokemonName, triggeredBy, pendingCount);
     }
 
     public boolean startManualSwarm(String pokemonName) {
@@ -208,6 +221,11 @@ public class SwarmEventManager {
             return;
         }
 
+        // Clean up remaining swarm entities if they were spawned
+        if (entitiesSpawned) {
+            cleanupSwarmEntities();
+        }
+
         // Record statistics before clearing data
         long duration = System.currentTimeMillis() - current.startTimestamp;
         int durationMinutes = (int) (duration / (60 * 1000));
@@ -217,6 +235,7 @@ public class SwarmEventManager {
 
         lastSwarmEndTime = System.currentTimeMillis();
         swarmEntities.clear();
+        entitiesSpawned = false;
 
         syncStatusWithClients();
         PokeNotifier.LOGGER.info("[SwarmManager] Ended swarm (reason: {})", reason);
@@ -447,11 +466,11 @@ public class SwarmEventManager {
         return Math.max(0, (int) (remaining / (60 * 1000)));
     }
     public int getRemainingEntities() { 
-        int count = swarmEntities.size();
-        if (ConfigManager.getServerConfig().debug_mode_enabled) {
-            PokeNotifier.LOGGER.debug("[SwarmManager] getRemainingEntities() returning: {}", count);
+        if (!entitiesSpawned) {
+            SwarmStatistics.CurrentSwarm current = SwarmStatistics.getCurrentSwarm();
+            return current != null ? current.totalEntitiesSpawned : 0;
         }
-        return count;
+        return swarmEntities.size();
     }
     public int getTotalSpawnedCount() { 
         SwarmStatistics.CurrentSwarm current = SwarmStatistics.getCurrentSwarm();
@@ -477,12 +496,91 @@ public class SwarmEventManager {
             if (current != null) {
                 int newCapturedCount = current.entitiesCaptured + 1;
                 SwarmStatistics.updateCurrentSwarm(swarmEntities.size(), newCapturedCount);
-                // Reduced logging
                 
-                // Don't auto-end swarm - let admin decide when to end it
+                if (ConfigManager.getServerConfig().debug_mode_enabled) {
+                    PokeNotifier.LOGGER.debug("[SwarmManager] Captured swarm entity, {} remaining", swarmEntities.size());
+                }
+                
+                // Check if swarm should end naturally
+                if (swarmEntities.isEmpty()) {
+                    server.execute(() -> endCurrentSwarm("entities"));
+                }
             }
             syncStatusWithClients();
         }
+    }
+    
+    private void checkForNearbyPlayersAndSpawn() {
+        if (entitiesSpawned) return; // Already spawned
+        
+        SwarmStatistics.CurrentSwarm current = SwarmStatistics.getCurrentSwarm();
+        if (current == null) return;
+        
+        BlockPos eventLocation = new BlockPos(current.location.x, current.location.y, current.location.z);
+        
+        // Check if any player is near the event location
+        boolean playerNearby = false;
+        for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
+            double distance = player.getPos().distanceTo(eventLocation.toCenterPos());
+            if (distance <= PLAYER_DETECTION_RADIUS) {
+                playerNearby = true;
+                PokeNotifier.LOGGER.info("[SwarmManager] Player {} detected near swarm - spawning entities", 
+                    player.getName().getString());
+                break;
+            }
+        }
+
+        if (playerNearby) {
+            int spawnedCount = spawnSwarmPokemon(eventLocation, current.pokemonName, false);
+            entitiesSpawned = true;
+            
+            // Update statistics with actual spawned count
+            SwarmStatistics.updateCurrentSwarm(swarmEntities.size(), current.entitiesCaptured);
+            
+            PokeNotifier.LOGGER.info("[SwarmManager] Spawned {} entities due to player proximity", spawnedCount);
+        }
+    }
+
+    /**
+     * Validates tracked entities and syncs with clients
+     */
+    private void validateAndSyncEntities() {
+        if (!SwarmStatistics.hasActiveSwarm()) {
+            return;
+        }
+        
+        if (!entitiesSpawned) {
+            // Entities not spawned yet - just sync status
+            syncStatusWithClients();
+            return;
+        }
+        
+        ServerWorld overworld = server.getOverworld();
+        int previousCount = swarmEntities.size();
+        
+        // Validate all tracked entities exist and are alive
+        Set<java.util.UUID> validUUIDs = new HashSet<>();
+        for (java.util.UUID uuid : swarmEntities) {
+            com.cobblemon.mod.common.entity.pokemon.PokemonEntity entity = 
+                (com.cobblemon.mod.common.entity.pokemon.PokemonEntity) overworld.getEntity(uuid);
+            
+            if (entity != null && entity.isAlive() && !entity.isRemoved()) {
+                validUUIDs.add(uuid);
+            }
+        }
+        
+        // Update tracked set with only valid entities
+        swarmEntities.clear();
+        swarmEntities.addAll(validUUIDs);
+        
+        // Check if swarm should end due to no entities remaining
+        if (previousCount > 0 && swarmEntities.isEmpty()) {
+            PokeNotifier.LOGGER.info("[SwarmManager] All swarm entities gone - ending event");
+            endCurrentSwarm("entities");
+            return;
+        }
+        
+        syncStatusWithClients();
     }
     
     /**
@@ -493,8 +591,14 @@ public class SwarmEventManager {
         String locationStr = current != null ? 
             "X: " + current.location.x + ", Z: " + current.location.z : "";
         
-        // Get current entity count from our tracked set
-        int currentEntityCount = swarmEntities.size();
+        int currentEntityCount;
+        if (!entitiesSpawned) {
+            // Show total expected count while waiting for players
+            currentEntityCount = current != null ? current.totalEntitiesSpawned : 0;
+        } else {
+            // Show actual tracked count after spawning
+            currentEntityCount = swarmEntities.size();
+        }
         
         SwarmStatusPayload payload = new SwarmStatusPayload(
             current != null,
@@ -502,13 +606,10 @@ public class SwarmEventManager {
             locationStr,
             current != null ? current.biome : "",
             getRemainingMinutes(),
-            currentEntityCount // Use the actual tracked count
+            currentEntityCount
         );
         
-        if (ConfigManager.getServerConfig().debug_mode_enabled) {
-            PokeNotifier.LOGGER.debug("[SwarmManager] Syncing status - Active: {}, Entities: {}, Pokemon: {}", 
-                current != null, currentEntityCount, current != null ? current.pokemonName : "none");
-        }
+
         
         for (net.minecraft.server.network.ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
             net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(player, payload);
@@ -592,14 +693,21 @@ public class SwarmEventManager {
                 
                 // Spawn entity first, then track it
                 if (overworld.spawnEntity(entity)) {
-                    // Track this entity only if spawn was successful
-                    swarmEntities.add(entity.getUuid());
+                    // Ensure entity is fully loaded before tracking
+                    java.util.UUID entityUUID = entity.getUuid();
+                    swarmEntities.add(entityUUID);
                     actualSpawned++;
-                    PokeNotifier.LOGGER.debug("[SwarmManager] Spawned and tracked entity: {} (UUID: {})", pokemonName, entity.getUuid());
+                    
+                    if (ConfigManager.getServerConfig().debug_mode_enabled) {
+                        PokeNotifier.LOGGER.debug("[SwarmManager] Spawned entity: {} (Level: {})", 
+                            pokemonName, entity.getPokemon().getLevel());
+                    }
+                } else {
+                    PokeNotifier.LOGGER.warn("[SwarmManager] FAILED to spawn entity for {}", pokemonName);
                 }
             }
             
-            PokeNotifier.LOGGER.info("[SwarmManager] Spawned {} {} entities (1 shiny guaranteed), tracking {} entities", 
+            PokeNotifier.LOGGER.info("[SwarmManager] Spawned {} {} entities, tracking {} entities", 
                 actualSpawned, pokemonName, swarmEntities.size());
             
             return actualSpawned;
@@ -702,6 +810,52 @@ public class SwarmEventManager {
             return result.toString().trim();
         } catch (Exception e) {
             return "Unknown Biome";
+        }
+    }
+    
+    /**
+     * Clean up remaining swarm entities when the event ends
+     */
+    private void cleanupSwarmEntities() {
+        if (swarmEntities.isEmpty()) {
+            PokeNotifier.LOGGER.debug("[SwarmManager] No entities to cleanup");
+            return;
+        }
+        
+        ServerWorld overworld = server.getOverworld();
+        int removedCount = 0;
+        
+        for (java.util.UUID uuid : new HashSet<>(swarmEntities)) {
+            try {
+                com.cobblemon.mod.common.entity.pokemon.PokemonEntity entity = 
+                    (com.cobblemon.mod.common.entity.pokemon.PokemonEntity) overworld.getEntity(uuid);
+                
+                if (entity != null && entity.isAlive() && !entity.isRemoved()) {
+                    // Check if this is actually a swarm Pokemon
+                    if (entity.getPokemon().getPersistentData().getBoolean("pokenotifier_swarm_spawn")) {
+                        // Remove the entity with a nice particle effect
+                        entity.discard();
+                        removedCount++;
+                        
+                        if (ConfigManager.getServerConfig().debug_mode_enabled) {
+                            PokeNotifier.LOGGER.debug("[SwarmManager] Removed swarm entity: {} (UUID: {})", 
+                                entity.getPokemon().getDisplayName().getString(), uuid);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                PokeNotifier.LOGGER.warn("[SwarmManager] Error removing entity {}: {}", uuid, e.getMessage());
+            }
+        }
+        
+        if (removedCount > 0) {
+            PokeNotifier.LOGGER.info("[SwarmManager] Cleaned up {} remaining swarm entities", removedCount);
+            
+            // Notify players about the cleanup
+            Text cleanupMessage = Text.literal("🌪️ The remaining swarm Pokémon have dispersed into the wild...").formatted(Formatting.GRAY);
+            for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
+                player.sendMessage(cleanupMessage, false);
+            }
         }
     }
     
