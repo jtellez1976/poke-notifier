@@ -1279,6 +1279,10 @@ public class PokeNotifierCustomScreen extends Screen {
         // Draw title centered
         context.drawCenteredTextWithShadow(this.textRenderer, this.title, this.width / 2, panelY + 10, 0xFFFFFF);
         
+        // Draw version in bottom right corner with small text
+        Text versionText = Text.literal("v1.4.0");
+        context.drawText(this.textRenderer, versionText, panelX + panelWidth - this.textRenderer.getWidth(versionText) - 3, panelY + panelHeight - 10, 0x80FFFFFF, false);
+        
         // Render System Status text box if in System Status panel
         if (currentMainCategory == MainCategory.ADMIN_TOOLS && currentAdminSubCategory == AdminSubCategory.SYSTEM_STATUS) {
             int contentX = panelX + 120 + 20; // After navigation

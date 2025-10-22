@@ -94,8 +94,8 @@ public class AutocompleteTextFieldWidget extends TextFieldWidget {
                 boxHeight = maxSuggestions * (MinecraftClient.getInstance().textRenderer.fontHeight + 1) + 3;
             }
 
-            // Draw background with border
-            context.fill(boxX, boxY, boxX + boxWidth, boxY + boxHeight, 0xE0000000);
+            // Draw background with border - solid black for better readability
+            context.fill(boxX, boxY, boxX + boxWidth, boxY + boxHeight, 0xFF000000);
             context.drawBorder(boxX, boxY, boxWidth, boxHeight, 0xFF888888);
 
             for (int i = 0; i < maxSuggestions; i++) {
