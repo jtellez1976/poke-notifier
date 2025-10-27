@@ -1,3 +1,4 @@
 {
-  "block.poke-notifier.trophy_pedestal": "Trophy Pedestal"
+  "block.poke-notifier.trophy_pedestal": "Trophy Pedestal",
+  "block.poke-notifier.trophy_pedestal.tooltip": "§7From: §bPoke Notifier§r\n§7Place trophies to activate blessings"
 }

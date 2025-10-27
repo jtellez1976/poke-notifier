@@ -6,16 +6,21 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-package com.zehro_mc.pokenotifier.blocks;
+package com.zehro_mc.pokenotifier.block;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockRenderType;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.ShapeContext;
+import net.minecraft.block.entity.BlockEntity;
+import org.jetbrains.annotations.Nullable;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.tooltip.TooltipType;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
@@ -23,6 +28,10 @@ import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.util.shape.VoxelShapes;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldView;
+
+import java.util.List;
+import java.util.ArrayList;
 
 public class TrophyPedestalBlock extends Block {
     
@@ -51,16 +60,37 @@ public class TrophyPedestalBlock extends Block {
     }
     
     @Override
+    public void appendTooltip(ItemStack stack, Item.TooltipContext context, List<Text> tooltip, TooltipType options) {
+        tooltip.add(Text.literal("Place trophies to activate blessings").formatted(Formatting.GOLD));
+        tooltip.add(Text.empty());
+        tooltip.add(Text.literal("From: ").formatted(Formatting.GRAY).append(Text.literal("Poke Notifier").formatted(Formatting.AQUA)));
+        super.appendTooltip(stack, context, tooltip, options);
+    }
+    
+    @Override
+    public ItemStack getPickStack(WorldView world, BlockPos pos, BlockState state) {
+        return new ItemStack(this);
+    }
+    
+    @Override
+    public BlockState onBreak(World world, BlockPos pos, BlockState state, PlayerEntity player) {
+        if (!world.isClient && !player.isCreative()) {
+            dropStack(world, pos, new ItemStack(this));
+        }
+        return super.onBreak(world, pos, state, player);
+    }
+    
+    @Override
     protected ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, BlockHitResult hit) {
         if (!world.isClient) {
             ItemStack heldItem = player.getStackInHand(Hand.MAIN_HAND);
             
             // Verificar si el jugador tiene un trofeo
             if (isTrophy(heldItem)) {
-                player.sendMessage(Text.literal("¡Trofeo detectado! " + heldItem.getName().getString()));
+                player.sendMessage(Text.literal("Trophy detected! " + heldItem.getName().getString()));
                 return ActionResult.SUCCESS;
             } else {
-                player.sendMessage(Text.literal("Necesitas un trofeo para usar este pedestal."));
+                player.sendMessage(Text.literal("You need a trophy to use this pedestal."));
                 return ActionResult.CONSUME;
             }
         }
