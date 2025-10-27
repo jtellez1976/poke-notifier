@@ -79,6 +79,68 @@ public class PokeNotifierCustomScreen extends Screen {
     public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
         // No hacer nada - evita el blur automático
     }
+    
+    private void drawTabs(DrawContext context, int panelX, int panelY, int panelWidth) {
+        int tabWidth = PokeNotifierClient.isPlayerAdmin ? 85 : 120;
+        int tabHeight = 20;
+        int tabY = panelY + 5;
+        
+        // Dibujar barra de pestañas completa
+        context.fill(panelX, tabY, panelX + panelWidth, tabY + tabHeight, 0xFF1A1A1A);
+        context.fill(panelX, tabY, panelX + panelWidth, tabY + 1, 0xFF3C3C3C);
+        
+        // User Tools tab
+        int userTabX = panelX + 5;
+        boolean userActive = currentMainCategory == MainCategory.USER_TOOLS;
+        drawTab(context, userTabX, tabY, tabWidth, tabHeight, userActive);
+        
+        if (PokeNotifierClient.isPlayerAdmin) {
+            // Events tab
+            int eventsTabX = panelX + 8 + tabWidth;
+            boolean eventsActive = currentMainCategory == MainCategory.EVENTS;
+            drawTab(context, eventsTabX, tabY, tabWidth, tabHeight, eventsActive);
+            
+            // Admin tab
+            int adminTabX = panelX + 11 + tabWidth * 2;
+            boolean adminActive = currentMainCategory == MainCategory.ADMIN_TOOLS;
+            drawTab(context, adminTabX, tabY, tabWidth, tabHeight, adminActive);
+        }
+    }
+    
+    private void drawTab(DrawContext context, int x, int y, int width, int height, boolean active) {
+        String tabText;
+        if (x == (this.width - 420) / 2 + 5) {
+            tabText = "User Tools";
+        } else if (PokeNotifierClient.isPlayerAdmin && x == (this.width - 420) / 2 + 8 + (PokeNotifierClient.isPlayerAdmin ? 85 : 120)) {
+            tabText = "Events";
+        } else {
+            tabText = "Admin";
+        }
+        
+        if (active) {
+            // Pestaña activa - elevada y conectada
+            context.fill(x, y - 2, x + width, y + height, 0xFF2D2D30);
+            context.fill(x, y - 2, x + width, y - 1, 0xFF4A4A4A);
+            context.fill(x, y - 2, x + 1, y + height, 0xFF4A4A4A);
+            context.fill(x + width - 1, y - 2, x + width, y + height, 0xFF0F0F0F);
+            
+            // Texto de pestaña activa
+            int textX = x + (width - this.textRenderer.getWidth(tabText)) / 2;
+            int textY = y + (height - this.textRenderer.fontHeight) / 2 - 1;
+            context.drawText(this.textRenderer, tabText, textX, textY, 0xFFFFFF, false);
+        } else {
+            // Pestaña inactiva - hundida
+            context.fill(x + 1, y + 1, x + width - 1, y + height - 1, 0xFF1F1F1F);
+            context.fill(x + 1, y + 1, x + width - 1, y + 2, 0xFF2A2A2A);
+            context.fill(x + 1, y + 1, x + 2, y + height - 1, 0xFF2A2A2A);
+            context.fill(x + width - 2, y + 1, x + width - 1, y + height - 1, 0xFF0A0A0A);
+            
+            // Texto de pestaña inactiva
+            int textX = x + (width - this.textRenderer.getWidth(tabText)) / 2;
+            int textY = y + (height - this.textRenderer.fontHeight) / 2 + 1;
+            context.drawText(this.textRenderer, tabText, textX, textY, 0xAAAAAA, false);
+        }
+    }
 
 
 
@@ -89,31 +151,7 @@ public class PokeNotifierCustomScreen extends Screen {
         int panelX = (this.width - panelWidth) / 2;
         int panelY = (this.height - panelHeight) / 2;
 
-        // --- Main Tabs (Top) ---
-        int tabY = panelY + 25;
-        int tabWidth = PokeNotifierClient.isPlayerAdmin ? 75 : 95;
-        IconButton userTab = new IconButton(panelX + 5, tabY, tabWidth, 18, GuiIcons.USER_TOOLS, "User Tools", b -> {
-            this.currentMainCategory = MainCategory.USER_TOOLS;
-            this.clearAndInit();
-        });
-        userTab.active = this.currentMainCategory != MainCategory.USER_TOOLS;
-        addDrawableChild(userTab);
-
-        if (PokeNotifierClient.isPlayerAdmin) {
-            IconButton eventsTab = new IconButton(panelX + 10 + tabWidth, tabY, tabWidth, 18, GuiIcons.EVENTS, "Events", b -> {
-                this.currentMainCategory = MainCategory.EVENTS;
-                this.clearAndInit();
-            });
-            eventsTab.active = this.currentMainCategory != MainCategory.EVENTS;
-            addDrawableChild(eventsTab);
-
-            IconButton adminTab = new IconButton(panelX + 15 + tabWidth * 2, tabY, tabWidth, 18, GuiIcons.ADMIN, "Admin", b -> {
-                this.currentMainCategory = MainCategory.ADMIN_TOOLS;
-                this.clearAndInit();
-            });
-            adminTab.active = this.currentMainCategory != MainCategory.ADMIN_TOOLS;
-            addDrawableChild(adminTab);
-        }
+        // Las pestañas se dibujan visualmente en render() y se manejan clics en mouseClicked()
 
         // --- Build Content based on Main Tab ---
         if (currentMainCategory == MainCategory.USER_TOOLS) {
@@ -132,9 +170,10 @@ public class PokeNotifierCustomScreen extends Screen {
 
     // --- USER TOOLS LAYOUT ---
     private void buildUserToolsLayout(int panelX, int panelY, int panelWidth, int panelHeight) {
+        // Panel izquierdo - solo navegación
         int navX = panelX + 10;
-        int navY = panelY + 55;
-        int navWidth = 95;
+        int navY = panelY + 35;
+        int navWidth = 110;
 
         addDrawableChild(createIconButton(navX, navY, navWidth, GuiIcons.NOTIFICATIONS, "Notifications", UserSubCategory.NOTIFICATIONS, currentUserSubCategory));
         addDrawableChild(createIconButton(navX, navY + 22, navWidth, GuiIcons.CUSTOM_HUNT, "Custom Hunt", UserSubCategory.CUSTOM_HUNT, currentUserSubCategory));
@@ -142,9 +181,10 @@ public class PokeNotifierCustomScreen extends Screen {
         addDrawableChild(createIconButton(navX, navY + 66, navWidth, GuiIcons.MAP_SETTINGS, "Map Settings", UserSubCategory.MAP_SETTINGS, currentUserSubCategory));
         addDrawableChild(createIconButton(navX, navY + 88, navWidth, GuiIcons.INFO_HELP, "Info & Help", UserSubCategory.INFO, currentUserSubCategory));
 
-        int contentX = panelX + navWidth + 20;
-        int contentY = panelY + 55;
-        int contentWidth = panelWidth - navWidth - 35;
+        // Panel derecho - contenido
+        int contentX = panelX + navWidth + 25;
+        int contentY = panelY + 35;
+        int contentWidth = panelWidth - navWidth - 40;
 
         switch (currentUserSubCategory) {
             case NOTIFICATIONS -> buildNotificationsPanel(contentX, contentY, contentWidth);
@@ -157,28 +197,26 @@ public class PokeNotifierCustomScreen extends Screen {
 
     // --- EVENTS LAYOUT ---
     private void buildEventsLayout(int panelX, int panelY, int panelWidth, int panelHeight) {
-        // Left navigation panel for events
+        // Panel izquierdo - navegación de eventos
         int navX = panelX + 10;
-        int navY = panelY + 55;
+        int navY = panelY + 35;
         int navWidth = 110;
         
-        // Event navigation buttons
         addDrawableChild(createEventIconButton(navX, navY, navWidth, GuiIcons.GLOBAL_HUNT, "Global Hunt", EventSubCategory.GLOBAL_HUNT, PokeNotifierClient.isGlobalHuntSystemEnabled));
         addDrawableChild(createEventIconButton(navX, navY + 22, navWidth, GuiIcons.BOUNTY_SYSTEM, "Bounty System", EventSubCategory.BOUNTY_SYSTEM, PokeNotifierClient.isServerBountySystemEnabled));
         addDrawableChild(createEventIconButton(navX, navY + 44, navWidth, GuiIcons.SWARM_EVENTS, "Swarm Events", EventSubCategory.SWARM_EVENTS, PokeNotifierClient.isSwarmSystemEnabled));
         addDrawableChild(createEventIconButton(navX, navY + 66, navWidth, GuiIcons.RIVAL_BATTLES, "Rival Battles", EventSubCategory.RIVAL_BATTLES, true));
         
-        // Right details panel
-        int detailsX = panelX + navWidth + 20;
-        int detailsY = panelY + 55;
-        int detailsWidth = panelWidth - navWidth - 35;
+        // Panel derecho - detalles del evento
+        int contentX = panelX + navWidth + 25;
+        int contentY = panelY + 35;
+        int contentWidth = panelWidth - navWidth - 40;
         
-        // Build details panel based on selected event
         switch (currentEventSubCategory) {
-            case GLOBAL_HUNT -> buildGlobalHuntDetailsPanel(detailsX, detailsY, detailsWidth);
-            case BOUNTY_SYSTEM -> buildBountySystemDetailsPanel(detailsX, detailsY, detailsWidth);
-            case SWARM_EVENTS -> buildSwarmEventsDetailsPanel(detailsX, detailsY, detailsWidth);
-            case RIVAL_BATTLES -> buildRivalBattlesDetailsPanel(detailsX, detailsY, detailsWidth);
+            case GLOBAL_HUNT -> buildGlobalHuntDetailsPanel(contentX, contentY, contentWidth);
+            case BOUNTY_SYSTEM -> buildBountySystemDetailsPanel(contentX, contentY, contentWidth);
+            case SWARM_EVENTS -> buildSwarmEventsDetailsPanel(contentX, contentY, contentWidth);
+            case RIVAL_BATTLES -> buildRivalBattlesDetailsPanel(contentX, contentY, contentWidth);
         }
     }
     
@@ -194,18 +232,20 @@ public class PokeNotifierCustomScreen extends Screen {
 
     // --- ADMIN TOOLS LAYOUT ---
     private void buildAdminToolsLayout(int panelX, int panelY, int panelWidth, int panelHeight) {
+        // Panel izquierdo - navegación admin
         int navX = panelX + 10;
-        int navY = panelY + 55;
-        int navWidth = 100;
+        int navY = panelY + 35;
+        int navWidth = 110;
 
         addDrawableChild(createIconButton(navX, navY, navWidth, GuiIcons.SYSTEM_STATUS, "System Status", AdminSubCategory.SYSTEM_STATUS, currentAdminSubCategory));
         addDrawableChild(createIconButton(navX, navY + 22, navWidth, GuiIcons.SERVER_CONTROL, "Server Control", AdminSubCategory.SERVER_CONTROL, currentAdminSubCategory));
         addDrawableChild(createIconButton(navX, navY + 44, navWidth, GuiIcons.PLAYER_DATA, "Player Data", AdminSubCategory.PLAYER_DATA, currentAdminSubCategory));
         addDrawableChild(createIconButton(navX, navY + 66, navWidth, GuiIcons.TESTING, "Testing", AdminSubCategory.TESTING, currentAdminSubCategory));
 
-        int contentX = panelX + navWidth + 20;
-        int contentY = panelY + 55;
-        int contentWidth = panelWidth - navWidth - 35;
+        // Panel derecho - contenido admin
+        int contentX = panelX + navWidth + 25;
+        int contentY = panelY + 35;
+        int contentWidth = panelWidth - navWidth - 40;
 
         switch (currentAdminSubCategory) {
             case SYSTEM_STATUS -> buildSystemStatusPanel(contentX, contentY, contentWidth);
@@ -591,18 +631,15 @@ public class PokeNotifierCustomScreen extends Screen {
     // --- ADMIN PANEL BUILDERS ---
 
     private void buildSystemStatusPanel(int x, int y, int width) {
-        // System Status Text Box - integrated into main panel
-        int textBoxHeight = 140;
-        
-        // Create a scrollable text area background
-        // This will be rendered in the render method
-        
-        // Refresh button at the bottom
-        addDrawableChild(new IconButton(x, y + textBoxHeight + 5, width, 18, GuiIcons.REFRESH, "Refresh Status", b -> {
+        // Refresh button at the top
+        addDrawableChild(new IconButton(x, y, width, 18, GuiIcons.REFRESH, "Refresh Status", b -> {
             systemStatusLines = getSystemStatusLines();
             systemStatusTimer = 600; // Show for 30 seconds (600 ticks)
             systemStatusScrollOffset = 0; // Reset scroll
         }));
+        
+        // System Status Text Box - starts below the button
+        // The text box will be rendered in the render method
     }
 
     private void buildServerControlPanel(int x, int y, int width) {
@@ -1264,18 +1301,27 @@ public class PokeNotifierCustomScreen extends Screen {
         // Draw clean solid background
         context.fill(0, 0, this.width, this.height, 0xC0101010);
         
-        // Panel principal - cuadro con borde sólido
+        // Panel principal con pestañas
         int mainPanelWidth = 420;
         int mainPanelHeight = 260;
         int mainPanelX = (this.width - mainPanelWidth) / 2;
         int mainPanelY = (this.height - mainPanelHeight) / 2;
         
-        // Dibujar panel con borde sólido
-        context.fill(mainPanelX, mainPanelY, mainPanelX + mainPanelWidth, mainPanelY + mainPanelHeight, 0xFF2D2D30); // Fondo gris oscuro
-        context.fill(mainPanelX, mainPanelY, mainPanelX + mainPanelWidth, mainPanelY + 1, 0xFF3C3C3C); // Borde superior
-        context.fill(mainPanelX, mainPanelY, mainPanelX + 1, mainPanelY + mainPanelHeight, 0xFF3C3C3C); // Borde izquierdo
-        context.fill(mainPanelX + mainPanelWidth - 1, mainPanelY, mainPanelX + mainPanelWidth, mainPanelY + mainPanelHeight, 0xFF1E1E1E); // Borde derecho
-        context.fill(mainPanelX, mainPanelY + mainPanelHeight - 1, mainPanelX + mainPanelWidth, mainPanelY + mainPanelHeight, 0xFF1E1E1E); // Borde inferior
+        // Dibujar pestañas
+        drawTabs(context, mainPanelX, mainPanelY, mainPanelWidth);
+        
+        // Dibujar panel principal conectado a pestañas
+        context.fill(mainPanelX, mainPanelY + 25, mainPanelX + mainPanelWidth, mainPanelY + mainPanelHeight, 0xFF2D2D30);
+        context.fill(mainPanelX, mainPanelY + 25, mainPanelX + mainPanelWidth, mainPanelY + 26, 0xFF4A4A4A);
+        context.fill(mainPanelX, mainPanelY + 25, mainPanelX + 1, mainPanelY + mainPanelHeight, 0xFF4A4A4A);
+        context.fill(mainPanelX + mainPanelWidth - 1, mainPanelY + 25, mainPanelX + mainPanelWidth, mainPanelY + mainPanelHeight, 0xFF0F0F0F);
+        context.fill(mainPanelX, mainPanelY + mainPanelHeight - 1, mainPanelX + mainPanelWidth, mainPanelY + mainPanelHeight, 0xFF0F0F0F);
+        
+        // Dibujar división vertical centrada entre navegación y contenido
+        int navEndX = mainPanelX + 10 + 110; // Final del panel de navegación
+        int contentStartX = mainPanelX + 10 + 110 + 25; // Inicio del contenido
+        int dividerX = navEndX + 12; // Centrado en el espacio de 25px
+        context.fill(dividerX, mainPanelY + 30, dividerX + 1, mainPanelY + mainPanelHeight - 30, 0xFF1A1A1A);
 
         super.render(context, mouseX, mouseY, delta);
 
@@ -1284,8 +1330,8 @@ public class PokeNotifierCustomScreen extends Screen {
         int panelX = (this.width - panelWidth) / 2;
         int panelY = (this.height - panelHeight) / 2;
 
-        // Draw title centered
-        context.drawCenteredTextWithShadow(this.textRenderer, this.title, this.width / 2, panelY + 10, 0xFFFFFF);
+        // Draw title centered relative to panel
+        context.drawCenteredTextWithShadow(this.textRenderer, this.title, mainPanelX + mainPanelWidth / 2, mainPanelY - 12, 0xFFFFFF);
         
         // Draw version in bottom right corner with small text
         Text versionText = Text.literal("v1.4.0");
@@ -1293,10 +1339,10 @@ public class PokeNotifierCustomScreen extends Screen {
         
         // Render System Status text box if in System Status panel
         if (currentMainCategory == MainCategory.ADMIN_TOOLS && currentAdminSubCategory == AdminSubCategory.SYSTEM_STATUS) {
-            int contentX = panelX + 120 + 20; // After navigation
-            int contentY = panelY + 55;
-            int contentWidth = panelWidth - 120 - 35;
-            int textBoxHeight = 140;
+            int contentX = panelX + 135; // After navigation and divider
+            int contentY = panelY + 58; // Below the refresh button
+            int contentWidth = panelWidth - 150; // Account for divider
+            int textBoxHeight = 115; // Smaller to fit below button
             
             renderSystemStatusTextBox(context, contentX, contentY, contentWidth, textBoxHeight);
         }
@@ -1391,6 +1437,42 @@ public class PokeNotifierCustomScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        // Detectar clics en pestañas
+        if (button == 0) {
+            int panelWidth = 420;
+            int panelX = (this.width - panelWidth) / 2;
+            int panelY = (this.height - 260) / 2;
+            int tabWidth = PokeNotifierClient.isPlayerAdmin ? 85 : 120;
+            int tabY = panelY + 5;
+            int tabHeight = 20;
+            
+            // User Tools tab
+            int userTabX = panelX + 5;
+            if (mouseX >= userTabX && mouseX <= userTabX + tabWidth && mouseY >= tabY - 2 && mouseY <= tabY + tabHeight) {
+                this.currentMainCategory = MainCategory.USER_TOOLS;
+                this.clearAndInit();
+                return true;
+            }
+            
+            if (PokeNotifierClient.isPlayerAdmin) {
+                // Events tab
+                int eventsTabX = panelX + 8 + tabWidth;
+                if (mouseX >= eventsTabX && mouseX <= eventsTabX + tabWidth && mouseY >= tabY - 2 && mouseY <= tabY + tabHeight) {
+                    this.currentMainCategory = MainCategory.EVENTS;
+                    this.clearAndInit();
+                    return true;
+                }
+                
+                // Admin tab
+                int adminTabX = panelX + 11 + tabWidth * 2;
+                if (mouseX >= adminTabX && mouseX <= adminTabX + tabWidth && mouseY >= tabY - 2 && mouseY <= tabY + tabHeight) {
+                    this.currentMainCategory = MainCategory.ADMIN_TOOLS;
+                    this.clearAndInit();
+                    return true;
+                }
+            }
+        }
+        
         if (button == 0 && !responseLines.isEmpty()) {
             int panelWidth = 600;
             int panelHeight = 320;
@@ -1459,10 +1541,10 @@ public class PokeNotifierCustomScreen extends Screen {
             int panelHeight = 260;
             int panelX = (this.width - panelWidth) / 2;
             int panelY = (this.height - panelHeight) / 2;
-            int contentX = panelX + 120 + 20;
-            int contentY = panelY + 55;
-            int contentWidth = panelWidth - 120 - 35;
-            int textBoxHeight = 140;
+            int contentX = panelX + 135; // After navigation and divider
+            int contentY = panelY + 58; // Below the refresh button
+            int contentWidth = panelWidth - 150; // Account for divider
+            int textBoxHeight = 115; // Smaller to fit below button
             
             // Check if mouse is over the text box
             if (mouseX >= contentX && mouseX <= contentX + contentWidth && mouseY >= contentY && mouseY <= contentY + textBoxHeight) {
@@ -1471,7 +1553,7 @@ public class PokeNotifierCustomScreen extends Screen {
                 int contentHeight = textBoxHeight - 10; // Account for padding
                 
                 if (totalContentHeight > contentHeight) {
-                    int scrollAmount = (int) (verticalAmount * 15); // Scroll speed
+                    int scrollAmount = (int) (verticalAmount * 20); // Increased scroll speed
                     systemStatusScrollOffset = Math.max(0, Math.min(totalContentHeight - contentHeight, systemStatusScrollOffset - scrollAmount));
                     return true;
                 }
