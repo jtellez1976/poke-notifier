@@ -313,7 +313,7 @@ public class PokeNotifierCustomScreen extends Screen {
 
         // Create the Silent Mode button with improved logic
         net.minecraft.util.Identifier silentModeIcon = clientConfig.silent_mode_enabled ? GuiIcons.ON : GuiIcons.OFF;
-        addDrawableChild(new IconButton(x, y + 85, width, 18, silentModeIcon, "Silent Mode", button -> {
+        IconButton silentModeButton = new IconButton(x, y + 85, width, 18, silentModeIcon, "Silent Mode", button -> {
             clientConfig.silent_mode_enabled = !clientConfig.silent_mode_enabled;
             if (clientConfig.silent_mode_enabled) {
                 // When silent mode is turned ON, turn off all other alerts
@@ -329,7 +329,9 @@ public class PokeNotifierCustomScreen extends Screen {
             // Re-initialize the screen to update all button states
             this.clearAndInit();
             displayResponse(List.of(Text.literal("Settings updated.").formatted(Formatting.GREEN)));
-        }));
+        });
+        silentModeButton.setTooltip(net.minecraft.client.gui.tooltip.Tooltip.of(Text.literal("Disable all notifications at once")));
+        addDrawableChild(silentModeButton);
 
         addDrawableChild(createToggleButton("Searching", clientConfig.searching_enabled, newValue -> clientConfig.searching_enabled = newValue, x, y + 105, width));
     }
@@ -340,7 +342,7 @@ public class PokeNotifierCustomScreen extends Screen {
         addDrawableChild(this.pokemonNameField);
 
         // Add button
-        addDrawableChild(new IconButton(x, y + 25, width, 18, GuiIcons.ADD, "Add", b -> {
+        IconButton addButton = new IconButton(x, y + 25, width, 18, GuiIcons.ADD, "Add", b -> {
             String pokemonName = this.pokemonNameField.getText().trim();
             if (!pokemonName.isEmpty()) {
                 com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload payload = 
@@ -350,25 +352,31 @@ public class PokeNotifierCustomScreen extends Screen {
                 displayResponse(List.of(Text.literal("Request sent to add ").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append(" to your custom list.").formatted(Formatting.YELLOW)));
                 this.pokemonNameField.setText("");
             }
-        }));
+        });
+        addButton.setTooltip(net.minecraft.client.gui.tooltip.Tooltip.of(Text.literal("Add the entered Pokémon to your hunt list")));
+        addDrawableChild(addButton);
 
         // Clear List button
-        addDrawableChild(new IconButton(x, y + 48, width, 18, GuiIcons.CLEAR, "Clear List", b -> {
+        IconButton clearButton = new IconButton(x, y + 48, width, 18, GuiIcons.CLEAR, "Clear List", b -> {
             com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload payload = 
                 new com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload(
                     com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload.Action.CLEAR, "");
             net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
             displayResponse(List.of(Text.literal("Request sent to clear your custom list.").formatted(Formatting.YELLOW)));
-        }));
+        });
+        clearButton.setTooltip(net.minecraft.client.gui.tooltip.Tooltip.of(Text.literal("Remove all Pokémon from your hunt list")));
+        addDrawableChild(clearButton);
         
         // View List button
-        addDrawableChild(new IconButton(x, y + 71, width, 18, GuiIcons.VIEW_LIST, "View List", b -> {
+        IconButton viewButton = new IconButton(x, y + 71, width, 18, GuiIcons.VIEW_LIST, "View List", b -> {
             com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload payload = 
                 new com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload(
                     com.zehro_mc.pokenotifier.networking.CustomListUpdatePayload.Action.LIST, "");
             net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
             displayResponse(List.of(Text.literal("Requesting your custom list from the server...").formatted(Formatting.YELLOW)));
-        }));
+        });
+        viewButton.setTooltip(net.minecraft.client.gui.tooltip.Tooltip.of(Text.literal("Display all Pokémon currently in your hunt list")));
+        addDrawableChild(viewButton);
     }
 
     private void buildCatchEmAllPanel(int x, int y, int width) {
@@ -424,18 +432,21 @@ public class PokeNotifierCustomScreen extends Screen {
                 displayResponse(List.of(Text.literal("Requesting to disable tracking...").formatted(Formatting.YELLOW)));
             }
         });
+        stopTrackingButton.setTooltip(net.minecraft.client.gui.tooltip.Tooltip.of(Text.literal("Stop tracking the currently active generation")));
         // Only enable if there's an active generation being tracked
         stopTrackingButton.active = PokeNotifierClient.currentCatchEmAllGeneration != null && !"none".equals(PokeNotifierClient.currentCatchEmAllGeneration);
         addDrawableChild(stopTrackingButton);
         
         // View Status button
-        addDrawableChild(new IconButton(x, statusY + 23, width, 18, GuiIcons.SYSTEM_STATUS, "View Status", b -> {
+        IconButton statusButton = new IconButton(x, statusY + 23, width, 18, GuiIcons.SYSTEM_STATUS, "View Status", b -> {
             com.zehro_mc.pokenotifier.networking.CatchemallUpdatePayload payload = 
                 new com.zehro_mc.pokenotifier.networking.CatchemallUpdatePayload(
                     com.zehro_mc.pokenotifier.networking.CatchemallUpdatePayload.Action.LIST, "");
             net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
             displayResponse(List.of(Text.literal("Requesting your active Catch 'em All modes...").formatted(Formatting.YELLOW)));
-        }));
+        });
+        statusButton.setTooltip(net.minecraft.client.gui.tooltip.Tooltip.of(Text.literal("View your current Catch 'em All progress and status")));
+        addDrawableChild(statusButton);
     }
 
     private void buildMapSettingsPanel(int x, int y, int width) {
@@ -632,11 +643,13 @@ public class PokeNotifierCustomScreen extends Screen {
 
     private void buildSystemStatusPanel(int x, int y, int width) {
         // Refresh button at the top
-        addDrawableChild(new IconButton(x, y, width, 18, GuiIcons.REFRESH, "Refresh Status", b -> {
+        IconButton refreshButton = new IconButton(x, y, width, 18, GuiIcons.REFRESH, "Refresh Status", b -> {
             systemStatusLines = getSystemStatusLines();
             systemStatusTimer = 600; // Show for 30 seconds (600 ticks)
             systemStatusScrollOffset = 0; // Reset scroll
-        }));
+        });
+        refreshButton.setTooltip(net.minecraft.client.gui.tooltip.Tooltip.of(Text.literal("Load current system status and configuration information")));
+        addDrawableChild(refreshButton);
         
         // System Status Text Box - starts below the button
         // The text box will be rendered in the render method
@@ -645,7 +658,7 @@ public class PokeNotifierCustomScreen extends Screen {
     private void buildServerControlPanel(int x, int y, int width) {
         // Debug Mode toggle
         net.minecraft.util.Identifier debugModeIcon = PokeNotifierClient.isServerDebugMode ? GuiIcons.ON : GuiIcons.OFF;
-        addDrawableChild(new IconButton(x, y, width, 18, debugModeIcon, "Debug Mode", b -> {
+        IconButton debugButton = new IconButton(x, y, width, 18, debugModeIcon, "Debug Mode", b -> {
             com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
                 new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
                     com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.TOGGLE_DEBUG_MODE, "");
@@ -655,11 +668,13 @@ public class PokeNotifierCustomScreen extends Screen {
             // Immediate visual feedback
             PokeNotifierClient.isServerDebugMode = !PokeNotifierClient.isServerDebugMode;
             this.clearAndInit(); // Refresh to update icon
-        }));
+        });
+        debugButton.setTooltip(net.minecraft.client.gui.tooltip.Tooltip.of(Text.literal("Enable detailed logging for troubleshooting")));
+        addDrawableChild(debugButton);
         
         // Test Mode toggle
         net.minecraft.util.Identifier testModeIcon = PokeNotifierClient.isServerTestMode ? GuiIcons.ON : GuiIcons.OFF;
-        addDrawableChild(new IconButton(x, y + 23, width, 18, testModeIcon, "Test Mode", b -> {
+        IconButton testButton = new IconButton(x, y + 23, width, 18, testModeIcon, "Test Mode", b -> {
             com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
                 new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
                     com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.TOGGLE_TEST_MODE, "");
@@ -669,7 +684,9 @@ public class PokeNotifierCustomScreen extends Screen {
             // Immediate visual feedback
             PokeNotifierClient.isServerTestMode = !PokeNotifierClient.isServerTestMode;
             this.clearAndInit(); // Refresh to update icon
-        }));
+        });
+        testButton.setTooltip(net.minecraft.client.gui.tooltip.Tooltip.of(Text.literal("Mark spawned Pokémon as test entities for identification")));
+        addDrawableChild(testButton);
 
         // Server Status button
         addDrawableChild(ButtonWidget.builder(Text.literal("Server Status"), b -> {

@@ -15,7 +15,7 @@ import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.cobblemon.mod.common.api.storage.PokemonStore;
 import com.cobblemon.mod.common.Cobblemon;
-import com.zehro_mc.pokenotifier.block.ModBlocks;
+import com.zehro_mc.pokenotifier.blocks.ModBlocks;
 import com.zehro_mc.pokenotifier.block.entity.ModBlockEntities;
 import com.zehro_mc.pokenotifier.component.ModDataComponents;
 import com.zehro_mc.pokenotifier.api.PokeNotifierApi;
