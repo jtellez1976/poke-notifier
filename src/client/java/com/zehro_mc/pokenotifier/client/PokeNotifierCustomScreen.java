@@ -75,6 +75,13 @@ public class PokeNotifierCustomScreen extends Screen {
         buildLayout();
     }
 
+    @Override
+    public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
+        // No hacer nada - evita el blur automático
+    }
+
+
+
     private void buildLayout() {
         // Compact centered panel design
         int panelWidth = 420;
@@ -1191,8 +1198,8 @@ public class PokeNotifierCustomScreen extends Screen {
     private void renderSystemStatusTextBox(DrawContext context, int x, int y, int width, int height) {
         if (systemStatusLines.isEmpty()) {
             // Show placeholder text
-            context.fill(x, y, x + width, y + height, 0xE0000000);
-            context.drawBorder(x, y, width, height, 0xFF888888);
+            context.fill(x, y, x + width, y + height, 0xFF000000);
+            context.drawBorder(x, y, width, height, 0xFFFFFFFF);
             
             Text placeholder = Text.literal("Click 'Refresh Status' to view system information").formatted(Formatting.GRAY);
             int textX = x + (width - this.textRenderer.getWidth(placeholder)) / 2;
@@ -1202,8 +1209,8 @@ public class PokeNotifierCustomScreen extends Screen {
         }
         
         // Draw text box background
-        context.fill(x, y, x + width, y + height, 0xE0000000);
-        context.drawBorder(x, y, width, height, 0xFF888888);
+        context.fill(x, y, x + width, y + height, 0xFF000000);
+        context.drawBorder(x, y, width, height, 0xFFFFFFFF);
         
         // Draw timer indicator in top-right
         if (systemStatusTimer > 0) {
@@ -1254,21 +1261,28 @@ public class PokeNotifierCustomScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        this.renderBackground(context, mouseX, mouseY, delta);
+        // Draw clean solid background
+        context.fill(0, 0, this.width, this.height, 0xC0101010);
+        
+        // Panel principal - cuadro con borde sólido
+        int mainPanelWidth = 420;
+        int mainPanelHeight = 260;
+        int mainPanelX = (this.width - mainPanelWidth) / 2;
+        int mainPanelY = (this.height - mainPanelHeight) / 2;
+        
+        // Dibujar panel con borde sólido
+        context.fill(mainPanelX, mainPanelY, mainPanelX + mainPanelWidth, mainPanelY + mainPanelHeight, 0xFF2D2D30); // Fondo gris oscuro
+        context.fill(mainPanelX, mainPanelY, mainPanelX + mainPanelWidth, mainPanelY + 1, 0xFF3C3C3C); // Borde superior
+        context.fill(mainPanelX, mainPanelY, mainPanelX + 1, mainPanelY + mainPanelHeight, 0xFF3C3C3C); // Borde izquierdo
+        context.fill(mainPanelX + mainPanelWidth - 1, mainPanelY, mainPanelX + mainPanelWidth, mainPanelY + mainPanelHeight, 0xFF1E1E1E); // Borde derecho
+        context.fill(mainPanelX, mainPanelY + mainPanelHeight - 1, mainPanelX + mainPanelWidth, mainPanelY + mainPanelHeight, 0xFF1E1E1E); // Borde inferior
+
+        super.render(context, mouseX, mouseY, delta);
 
         int panelWidth = 420;
         int panelHeight = 260;
         int panelX = (this.width - panelWidth) / 2;
         int panelY = (this.height - panelHeight) / 2;
-        
-        // Draw main panel background
-        context.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, 0xE01A1A1A);
-        context.drawBorder(panelX, panelY, panelWidth, panelHeight, 0xFF888888);
-        
-        // Draw separator line below title
-        context.fill(panelX, panelY + 48, panelX + panelWidth, panelY + 49, 0xFF888888);
-
-        super.render(context, mouseX, mouseY, delta);
 
         // Draw title centered
         context.drawCenteredTextWithShadow(this.textRenderer, this.title, this.width / 2, panelY + 10, 0xFFFFFF);
@@ -1306,9 +1320,9 @@ public class PokeNotifierCustomScreen extends Screen {
             }
             int responsePanelHeight = Math.max(24, 8 + totalTextHeight); // Minimum height and padding
 
-            // Draw background matching main panel style
-            context.fill(panelX, responsePanelY, panelX + panelWidth, responsePanelY + responsePanelHeight, 0xE01A1A1A);
-            context.drawBorder(panelX, responsePanelY, panelWidth, responsePanelHeight, 0xFF888888);
+            // Draw background matching main panel style - solid black with white border
+            context.fill(panelX, responsePanelY, panelX + panelWidth, responsePanelY + responsePanelHeight, 0xFF000000);
+            context.drawBorder(panelX, responsePanelY, panelWidth, responsePanelHeight, 0xFFFFFFFF);
             
             // Add subtle inner border for depth
             context.fill(panelX + 1, responsePanelY + 1, panelX + panelWidth - 1, responsePanelY + 2, 0x40FFFFFF);
