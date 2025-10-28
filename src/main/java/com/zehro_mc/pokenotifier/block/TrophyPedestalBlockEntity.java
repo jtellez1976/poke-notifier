@@ -36,6 +36,9 @@ public class TrophyPedestalBlockEntity extends BlockEntity {
         inventory.set(0, trophy);
         markDirty();
         if (world != null && !world.isClient) {
+            // Get position name from nearby altar
+            String positionName = getPositionName();
+            
             // Forzar actualización completa del cliente
             BlockState state = getCachedState();
             world.updateListeners(pos, state, state, 3);
@@ -45,6 +48,22 @@ public class TrophyPedestalBlockEntity extends BlockEntity {
                 serverWorld.getChunkManager().markForUpdate(pos);
             }
         }
+    }
+    
+    private String getPositionName() {
+        if (world == null) return "Unknown";
+        
+        // Find nearby altar within 5 blocks
+        for (int x = -5; x <= 5; x++) {
+            for (int z = -5; z <= 5; z++) {
+                BlockPos altarPos = pos.add(x, 0, z);
+                if (world.getBlockEntity(altarPos) instanceof TrophyAltarBlockEntity altar) {
+                    return altar.getPositionName(pos);
+                }
+            }
+        }
+        
+        return "Unknown";
     }
 
     public boolean hasTrophy() {

@@ -124,7 +124,8 @@ public class TrophyPedestalBlock extends BlockWithEntity {
             
             player.giveItemStack(trophy);
             String itemType = isTrophy(trophy) ? "Trophy" : "Pokéball";
-            player.sendMessage(Text.literal(itemType + " removed from pedestal."), false);
+            String positionName = getPositionName(world, pos);
+            player.sendMessage(Text.literal(itemType + " removed from pedestal " + positionName + "."), false);
             return ActionResult.SUCCESS;
         }
         
@@ -152,7 +153,8 @@ public class TrophyPedestalBlock extends BlockWithEntity {
             }
             
             String itemType = isTrophy(trophyToPlace) ? "Trophy" : "Pokéball";
-            player.sendMessage(Text.literal(itemType + " placed on pedestal!"), false);
+            String positionName = getPositionName(world, pos);
+            player.sendMessage(Text.literal(itemType + " placed on pedestal " + positionName + "!"), false);
             return ActionResult.SUCCESS;
         }
         
@@ -185,6 +187,19 @@ public class TrophyPedestalBlock extends BlockWithEntity {
         
         String itemId = Registries.ITEM.getId(item.getItem()).toString();
         return itemId.startsWith("cobblemon:") && itemId.contains("_ball");
+    }
+    
+    private String getPositionName(World world, BlockPos pedestalPos) {
+        // Find nearby altar within 5 blocks
+        for (int x = -5; x <= 5; x++) {
+            for (int z = -5; z <= 5; z++) {
+                BlockPos altarPos = pedestalPos.add(x, 0, z);
+                if (world.getBlockEntity(altarPos) instanceof TrophyAltarBlockEntity altar) {
+                    return altar.getPositionName(pedestalPos);
+                }
+            }
+        }
+        return "";
     }
 
     @Nullable

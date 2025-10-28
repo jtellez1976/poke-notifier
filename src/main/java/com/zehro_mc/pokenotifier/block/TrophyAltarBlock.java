@@ -117,7 +117,7 @@ public class TrophyAltarBlock extends BlockWithEntity {
         if (heldItem.isEmpty()) {
             boolean isValid = blockEntity.validateStructureManually();
             if (isValid) {
-                // Intentar invocar Pokémon si hay 8 pokeballs (altar central opcional)
+                // Intentar invocar Pokémon con patrón válido
                 String[] pattern = blockEntity.getPokeballPattern();
                 if (blockEntity.isValidPattern(pattern)) {
                     player.sendMessage(Text.literal("✓ Summoning ritual ready! Activating...").formatted(net.minecraft.util.Formatting.GREEN), false);
@@ -127,8 +127,12 @@ public class TrophyAltarBlock extends BlockWithEntity {
                     for (String p : pattern) {
                         if (p != null && !p.equals("empty")) count++;
                     }
-                    player.sendMessage(Text.literal("⚠ Need exactly 8 Pokéballs in pedestals (found: " + count + ")").formatted(net.minecraft.util.Formatting.YELLOW), false);
-                    player.sendMessage(Text.literal("ℹ Altar trophy is optional for summoning").formatted(net.minecraft.util.Formatting.GRAY), false);
+                    if (count == 0) {
+                        player.sendMessage(Text.literal("⚠ No Pokéballs found in pedestals!").formatted(net.minecraft.util.Formatting.YELLOW), false);
+                    } else {
+                        player.sendMessage(Text.literal("⚠ Invalid pokeball pattern! Found " + count + " pokeballs but no matching Pokemon.").formatted(net.minecraft.util.Formatting.YELLOW), false);
+                    }
+                    player.sendMessage(Text.literal("ℹ Try different pokeball combinations in specific positions").formatted(net.minecraft.util.Formatting.GRAY), false);
                 }
             } else {
                 String error = blockEntity.getStructureError();

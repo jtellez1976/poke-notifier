@@ -1,0 +1,63 @@
+{
+  "LEGENDARIES": {
+    "Mewtwo": {
+      "north": "master_ball",
+      "east": "ultra_ball", 
+      "south": "timer_ball",
+      "west": "luxury_ball",
+      "northeast": "premier_ball",
+      "southeast": "repeat_ball",
+      "southwest": "dusk_ball",
+      "northwest": "quick_ball"
+    },
+    "Lucario": {
+      "north": "dusk_ball",
+      "east": "quick_ball", 
+      "south": "dusk_ball",
+      "west": "quick_ball",
+      "northeast": "dusk_ball",
+      "southeast": "quick_ball",
+      "southwest": "dusk_ball",
+      "northwest": "quick_ball"
+    },
+    "Articuno": {
+      "north": "master_ball",
+      "east": "dive_ball", 
+      "south": "premier_ball",
+      "west": "luxury_ball",
+      "northeast": "timer_ball",
+      "southeast": "repeat_ball",
+      "southwest": "net_ball",
+      "northwest": "nest_ball"
+    }
+  },
+  "MYTHICALS": {
+    "Mew": {
+      "north": "master_ball",
+      "east": "love_ball", 
+      "south": "friend_ball",
+      "west": "luxury_ball",
+      "northeast": "heal_ball",
+      "southeast": "premier_ball",
+      "southwest": "nest_ball",
+      "northwest": "moon_ball"
+    }
+  },
+  "RARE": {
+    "test_pokemon": {
+      "north": "quick_ball",
+      "east": "quick_ball", 
+      "south": "quick_ball",
+      "west": "quick_ball",
+      "northeast": "quick_ball",
+      "southeast": "quick_ball",
+      "southwest": "quick_ball",
+      "northwest": "quick_ball"
+    },
+    "Alakazam": {
+      "north": "quick_ball",
+      "east": "ultra_ball", 
+      "south": "luxury_ball"
+    }
+  }
+}
