@@ -31,6 +31,8 @@ import net.minecraft.util.shape.VoxelShapes;
 import net.minecraft.world.WorldView;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
+import net.minecraft.text.Text;
+import net.minecraft.text.MutableText;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -39,7 +41,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public class TrophyDisplayBlock extends BlockWithEntity {
 
-    private static final VoxelShape SHAPE = Block.createCuboidShape(4.0, 0.0, 4.0, 12.0, 8.0, 12.0);
+    private static final VoxelShape SHAPE = Block.createCuboidShape(4.0, 2.0, 4.0, 12.0, 10.0, 12.0);
 
     public TrophyDisplayBlock(Settings settings) {
         super(settings);
@@ -102,6 +104,23 @@ public class TrophyDisplayBlock extends BlockWithEntity {
         }
         return super.getPickStack(world, pos, state);
     }
+    
+    public MutableText getName() {
+        return Text.literal("Trophy Display");
+    }
+    
+    public Text getDisplayName(World world, BlockPos pos) {
+        if (world.getBlockEntity(pos) instanceof TrophyDisplayBlockEntity be) {
+            String trophyId = be.getTrophyId();
+            if (trophyId != null && !trophyId.isEmpty()) {
+                Item trophyItem = Registries.ITEM.get(Identifier.of(trophyId));
+                return trophyItem.getName();
+            }
+        }
+        return Text.literal("Trophy Display");
+    }
+    
+
 
     @Override
     public void randomDisplayTick(BlockState state, World world, BlockPos pos, Random random) {

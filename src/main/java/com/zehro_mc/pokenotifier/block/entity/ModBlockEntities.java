@@ -10,6 +10,8 @@ package com.zehro_mc.pokenotifier.block.entity;
 
 import com.zehro_mc.pokenotifier.PokeNotifier;
 import com.zehro_mc.pokenotifier.block.ModBlocks;
+import com.zehro_mc.pokenotifier.block.TrophyPedestalBlockEntity;
+import com.zehro_mc.pokenotifier.block.TrophyAltarBlockEntity;
 import com.mojang.datafixers.types.Type;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.registry.Registries;
@@ -24,6 +26,16 @@ public class ModBlockEntities {
             Registry.register(Registries.BLOCK_ENTITY_TYPE,
                     Identifier.of(PokeNotifier.MOD_ID, "trophy_display_block_entity"),
                     BlockEntityType.Builder.create(TrophyDisplayBlockEntity::new, ModBlocks.TROPHY_DISPLAY_BLOCK).build((Type) null));
+    
+    public static final BlockEntityType<TrophyPedestalBlockEntity> TROPHY_PEDESTAL = 
+            Registry.register(Registries.BLOCK_ENTITY_TYPE,
+                    Identifier.of(PokeNotifier.MOD_ID, "trophy_pedestal"),
+                    BlockEntityType.Builder.create(TrophyPedestalBlockEntity::new, ModBlocks.TROPHY_PEDESTAL).build((Type) null));
+    
+    public static final BlockEntityType<TrophyAltarBlockEntity> TROPHY_ALTAR = 
+            Registry.register(Registries.BLOCK_ENTITY_TYPE,
+                    Identifier.of(PokeNotifier.MOD_ID, "trophy_altar"),
+                    BlockEntityType.Builder.create(TrophyAltarBlockEntity::new, ModBlocks.TROPHY_ALTAR).build((Type) null));
 
     public static void registerBlockEntities() {}
 }

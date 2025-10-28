@@ -27,6 +27,13 @@ public class ModBlocks {
                     .strength(2.0f, 6.0f)
                     .sounds(BlockSoundGroup.STONE)
                     .requiresTool()));
+    
+    public static final Block TROPHY_ALTAR = registerBlock("trophy_altar",
+            new TrophyAltarBlock(AbstractBlock.Settings.create()
+                    .nonOpaque()
+                    .strength(3.0f, 8.0f)
+                    .sounds(BlockSoundGroup.STONE)
+                    .requiresTool()));
 
     private static Block registerBlock(String name, Block block) {
         registerBlockItem(name, block);

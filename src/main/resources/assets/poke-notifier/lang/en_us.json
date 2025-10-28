@@ -1,4 +1,14 @@
 {
+  "item.poke-notifier.kanto_trophy": "Kanto Trophy",
+  "item.poke-notifier.johto_trophy": "Johto Trophy",
+  "item.poke-notifier.hoenn_trophy": "Hoenn Trophy",
+  "item.poke-notifier.sinnoh_trophy": "Sinnoh Trophy",
+  "item.poke-notifier.unova_trophy": "Unova Trophy",
+  "item.poke-notifier.kalos_trophy": "Kalos Trophy",
+  "item.poke-notifier.alola_trophy": "Alola Trophy",
+  "item.poke-notifier.galar_trophy": "Galar Trophy",
+  "item.poke-notifier.paldea_trophy": "Paldea Trophy",
+  "block.poke-notifier.trophy_display_block": "Trophy Display",
   "block.poke-notifier.trophy_pedestal": "Trophy Pedestal",
-  "block.poke-notifier.trophy_pedestal.tooltip": "§7From: §bPoke Notifier§r\n§7Place trophies to activate blessings"
+  "block.poke-notifier.trophy_altar": "Trophy Altar"
 }
