@@ -47,6 +47,10 @@ public class TrophyPedestalBlockEntity extends BlockEntity {
     public ItemStack removeTrophy() {
         ItemStack trophy = getTrophy();
         setTrophy(ItemStack.EMPTY);
+        markDirty();
+        if (world != null && !world.isClient) {
+            world.updateListeners(pos, getCachedState(), getCachedState(), 3);
+        }
         return trophy;
     }
 

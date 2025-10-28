@@ -15,6 +15,7 @@ import net.minecraft.block.BlockWithEntity;
 import net.minecraft.block.ShapeContext;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
@@ -28,6 +29,8 @@ import net.minecraft.world.World;
 import net.minecraft.registry.Registries;
 import com.mojang.serialization.MapCodec;
 import org.jetbrains.annotations.Nullable;
+import net.minecraft.block.entity.BlockEntityTicker;
+import net.minecraft.block.entity.BlockEntityType;
 
 public class TrophyAltarBlock extends BlockWithEntity {
     
@@ -45,6 +48,26 @@ public class TrophyAltarBlock extends BlockWithEntity {
     }
     
     @Override
+    public void onPlaced(World world, BlockPos pos, BlockState state, net.minecraft.entity.LivingEntity placer, ItemStack itemStack) {
+        super.onPlaced(world, pos, state, placer, itemStack);
+        
+        // Mostrar preview automáticamente al colocar el altar
+        if (!world.isClient && world.getBlockEntity(pos) instanceof TrophyAltarBlockEntity blockEntity) {
+            // Mostrar inmediatamente sin delay
+            blockEntity.showStructurePreview();
+            blockEntity.showingPreview = true;
+            blockEntity.previewTimer = 0;
+            
+            if (placer instanceof net.minecraft.server.network.ServerPlayerEntity player) {
+                player.sendMessage(net.minecraft.text.Text.literal("🏰 Altar placed! Ghost blocks show required structure").formatted(net.minecraft.util.Formatting.AQUA), false);
+                player.sendMessage(net.minecraft.text.Text.literal("🔴 Red particles = Redstone Blocks needed below").formatted(net.minecraft.util.Formatting.RED), false);
+                player.sendMessage(net.minecraft.text.Text.literal("🟣 Purple particles = Trophy Pedestals needed").formatted(net.minecraft.util.Formatting.LIGHT_PURPLE), false);
+                player.sendMessage(net.minecraft.text.Text.literal("👁 Ghosts will show every 5 seconds until structure is complete").formatted(net.minecraft.util.Formatting.GRAY), false);
+            }
+        }
+    }
+    
+    @Override
     protected ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, BlockHitResult hit) {
         if (world.isClient) {
             return ActionResult.SUCCESS;
@@ -57,33 +80,36 @@ public class TrophyAltarBlock extends BlockWithEntity {
 
         ItemStack heldItem = player.getStackInHand(Hand.MAIN_HAND);
         
-        // Si el jugador tiene las manos vacías, intenta quitar el trofeo
+        // Si el jugador tiene las manos vacías, intenta quitar la pokeball
         if (heldItem.isEmpty() && blockEntity.hasTrophy()) {
-            ItemStack trophy = blockEntity.removeTrophy();
-            player.giveItemStack(trophy);
-            player.sendMessage(Text.literal("Trophy removed from altar."), false);
+            ItemStack pokeball = blockEntity.removeTrophy();
+            player.giveItemStack(pokeball);
+            String itemType = isPokeball(pokeball) ? "Pokéball" : "Trophy";
+            player.sendMessage(Text.literal(itemType + " removed from altar."), false);
             blockEntity.checkMultiblockStructure();
             return ActionResult.SUCCESS;
         }
         
-        // Si tiene un trofeo en la mano y el altar está vacío
-        if (isTrophy(heldItem) && !blockEntity.hasTrophy()) {
-            ItemStack trophyToPlace = heldItem.copy();
-            trophyToPlace.setCount(1);
-            blockEntity.setTrophy(trophyToPlace);
+        // Si tiene una pokeball o trofeo en la mano y el altar está vacío
+        if ((isPokeball(heldItem) || isTrophy(heldItem)) && !blockEntity.hasTrophy()) {
+            ItemStack pokeballToPlace = heldItem.copy();
+            pokeballToPlace.setCount(1);
+            blockEntity.setTrophy(pokeballToPlace);
             
             if (!player.getAbilities().creativeMode) {
                 heldItem.decrement(1);
             }
             
-            player.sendMessage(Text.literal("Trophy placed on altar!"), false);
+            String itemType = isPokeball(pokeballToPlace) ? "Pokéball" : "Trophy";
+            player.sendMessage(Text.literal(itemType + " placed on altar!"), false);
             blockEntity.checkMultiblockStructure();
             return ActionResult.SUCCESS;
         }
         
-        // Si el altar ya tiene un trofeo
+        // Si el altar ya tiene un item
         if (blockEntity.hasTrophy()) {
-            player.sendMessage(Text.literal("This altar already has a trophy."), false);
+            String itemType = isPokeball(blockEntity.getTrophy()) ? "Pokéball" : "Trophy";
+            player.sendMessage(Text.literal("This altar already has a " + itemType + "."), false);
             return ActionResult.FAIL;
         }
         
@@ -91,21 +117,47 @@ public class TrophyAltarBlock extends BlockWithEntity {
         if (heldItem.isEmpty()) {
             boolean isValid = blockEntity.validateStructureManually();
             if (isValid) {
-                player.sendMessage(Text.literal("✓ Multiblock structure is complete! Trophies: " + blockEntity.getTrophyCount()).formatted(net.minecraft.util.Formatting.GREEN), false);
+                // Intentar invocar Pokémon si hay 8 pokeballs (altar central opcional)
+                String[] pattern = blockEntity.getPokeballPattern();
+                if (blockEntity.isValidPattern(pattern)) {
+                    player.sendMessage(Text.literal("✓ Summoning ritual ready! Activating...").formatted(net.minecraft.util.Formatting.GREEN), false);
+                    blockEntity.attemptPokemonSummon();
+                } else {
+                    int count = 0;
+                    for (String p : pattern) {
+                        if (p != null && !p.equals("empty")) count++;
+                    }
+                    player.sendMessage(Text.literal("⚠ Need exactly 8 Pokéballs in pedestals (found: " + count + ")").formatted(net.minecraft.util.Formatting.YELLOW), false);
+                    player.sendMessage(Text.literal("ℹ Altar trophy is optional for summoning").formatted(net.minecraft.util.Formatting.GRAY), false);
+                }
             } else {
                 String error = blockEntity.getStructureError();
                 player.sendMessage(Text.literal("✗ Multiblock incomplete: " + error).formatted(net.minecraft.util.Formatting.RED), false);
+                
+                // Mostrar hologramas de bloques faltantes
+                blockEntity.showStructurePreview();
+                blockEntity.showingPreview = true;
+                blockEntity.previewTimer = 0;
+                player.sendMessage(Text.literal("👁 Ghost blocks shown - they'll repeat every 5 seconds").formatted(net.minecraft.util.Formatting.GRAY), false);
             }
             return ActionResult.SUCCESS;
         }
         
-        // Si no es un trofeo
-        player.sendMessage(Text.literal("You can only place trophies on this altar."), false);
+        // Si no es una pokeball o trofeo
+        player.sendMessage(Text.literal("You can only place Pokéballs or Trophies on this altar."), false);
         return ActionResult.FAIL;
+    }
+    
+    private boolean isPokeball(ItemStack item) {
+        if (item.isEmpty()) return false;
+        
+        String itemId = net.minecraft.registry.Registries.ITEM.getId(item.getItem()).toString();
+        return itemId.startsWith("cobblemon:") && itemId.contains("_ball");
     }
     
     private boolean isTrophy(ItemStack item) {
         if (item.isEmpty()) return false;
+        
         String itemName = item.getName().getString();
         return itemName.contains("Trophy");
     }
@@ -136,5 +188,11 @@ public class TrophyAltarBlock extends BlockWithEntity {
     @Override
     protected BlockRenderType getRenderType(BlockState state) {
         return BlockRenderType.MODEL;
+    }
+    
+    @Nullable
+    @Override
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(World world, BlockState state, BlockEntityType<T> type) {
+        return world.isClient ? null : validateTicker(type, com.zehro_mc.pokenotifier.block.entity.ModBlockEntities.TROPHY_ALTAR, TrophyAltarBlockEntity::tick);
     }
 }

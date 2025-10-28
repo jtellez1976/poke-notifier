@@ -89,6 +89,7 @@ public class PokeNotifierClient implements ClientModInitializer {
         registerClientPacketReceivers();
 
         BlockEntityRendererFactories.register(ModBlockEntities.TROPHY_DISPLAY_BLOCK_ENTITY, TrophyDisplayBlockEntityRenderer::new);
+        BlockEntityRendererFactories.register(ModBlockEntities.TROPHY_PEDESTAL, TrophyPedestalBlockEntityRenderer::new);
         ClientCommandRegistrationCallback.EVENT.register(ClientCommands::register);
 
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {

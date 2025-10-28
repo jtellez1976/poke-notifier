@@ -5,6 +5,7 @@ build/
 out/
 classes/
 AllPokemons.json
+.amazonq/*
 
 # eclipse
 

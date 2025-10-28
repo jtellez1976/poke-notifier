@@ -80,12 +80,15 @@ public class TrophyPedestalBlock extends BlockWithEntity {
     public BlockState onBreak(World world, BlockPos pos, BlockState state, PlayerEntity player) {
         TrophyPedestalBlockEntity blockEntity = (TrophyPedestalBlockEntity) world.getBlockEntity(pos);
         if (blockEntity != null && blockEntity.hasTrophy()) {
-            dropStack(world, pos, blockEntity.getTrophy());
+            ItemStack trophy = blockEntity.getTrophy();
+            dropStack(world, pos, trophy);
             
-            // Remover Trophy Display Block de encima si existe
-            BlockPos displayPos = pos.up();
-            if (world.getBlockState(displayPos).getBlock() == ModBlocks.TROPHY_DISPLAY_BLOCK) {
-                world.removeBlock(displayPos, false);
+            // Remover Trophy Display Block de encima solo si es un trofeo
+            if (isTrophy(trophy)) {
+                BlockPos displayPos = pos.up();
+                if (world.getBlockState(displayPos).getBlock() == ModBlocks.TROPHY_DISPLAY_BLOCK) {
+                    world.removeBlock(displayPos, false);
+                }
             }
         }
         if (!world.isClient && !player.isCreative()) {
@@ -107,35 +110,40 @@ public class TrophyPedestalBlock extends BlockWithEntity {
 
         ItemStack heldItem = player.getStackInHand(Hand.MAIN_HAND);
         
-        // Si el jugador tiene las manos vacías, intenta quitar el trofeo
+        // Si el jugador tiene las manos vacías, intenta quitar el item
         if (heldItem.isEmpty() && blockEntity.hasTrophy()) {
             ItemStack trophy = blockEntity.removeTrophy();
             
-            // Remover Trophy Display Block de encima
-            BlockPos displayPos = pos.up();
-            if (world.getBlockState(displayPos).getBlock() == ModBlocks.TROPHY_DISPLAY_BLOCK) {
-                world.removeBlock(displayPos, false);
+            // Remover Trophy Display Block de encima solo si era un trofeo
+            if (isTrophy(trophy)) {
+                BlockPos displayPos = pos.up();
+                if (world.getBlockState(displayPos).getBlock() == ModBlocks.TROPHY_DISPLAY_BLOCK) {
+                    world.removeBlock(displayPos, false);
+                }
             }
             
             player.giveItemStack(trophy);
-            player.sendMessage(Text.literal("Trophy removed from pedestal."), false);
+            String itemType = isTrophy(trophy) ? "Trophy" : "Pokéball";
+            player.sendMessage(Text.literal(itemType + " removed from pedestal."), false);
             return ActionResult.SUCCESS;
         }
         
-        // Si tiene un trofeo en la mano y el pedestal está vacío
-        if (isTrophy(heldItem) && !blockEntity.hasTrophy()) {
+        // Si tiene un trofeo o pokéball en la mano y el pedestal está vacío
+        if ((isTrophy(heldItem) || isPokeball(heldItem)) && !blockEntity.hasTrophy()) {
             ItemStack trophyToPlace = heldItem.copy();
             trophyToPlace.setCount(1);
             blockEntity.setTrophy(trophyToPlace);
             
-            // Crear Trophy Display Block encima para efectos
-            BlockPos displayPos = pos.up();
-            if (world.getBlockState(displayPos).isAir()) {
-                world.setBlockState(displayPos, ModBlocks.TROPHY_DISPLAY_BLOCK.getDefaultState());
-                if (world.getBlockEntity(displayPos) instanceof com.zehro_mc.pokenotifier.block.entity.TrophyDisplayBlockEntity displayEntity) {
-                    // Configurar el Trophy Display con los datos del trofeo
-                    String trophyId = "poke-notifier:" + getTrophyId(trophyToPlace);
-                    displayEntity.setTrophyData(trophyId, player.getUuidAsString());
+            // Crear Trophy Display Block encima solo para trofeos
+            if (isTrophy(trophyToPlace)) {
+                BlockPos displayPos = pos.up();
+                if (world.getBlockState(displayPos).isAir()) {
+                    world.setBlockState(displayPos, ModBlocks.TROPHY_DISPLAY_BLOCK.getDefaultState());
+                    if (world.getBlockEntity(displayPos) instanceof com.zehro_mc.pokenotifier.block.entity.TrophyDisplayBlockEntity displayEntity) {
+                        // Configurar el Trophy Display con los datos del trofeo
+                        String trophyId = "poke-notifier:" + getTrophyId(trophyToPlace);
+                        displayEntity.setTrophyData(trophyId, player.getUuidAsString());
+                    }
                 }
             }
             
@@ -143,18 +151,20 @@ public class TrophyPedestalBlock extends BlockWithEntity {
                 heldItem.decrement(1);
             }
             
-            player.sendMessage(Text.literal("Trophy placed on pedestal!"), false);
+            String itemType = isTrophy(trophyToPlace) ? "Trophy" : "Pokéball";
+            player.sendMessage(Text.literal(itemType + " placed on pedestal!"), false);
             return ActionResult.SUCCESS;
         }
         
-        // Si el pedestal ya tiene un trofeo
+        // Si el pedestal ya tiene un item
         if (blockEntity.hasTrophy()) {
-            player.sendMessage(Text.literal("This pedestal already has a trophy."), false);
+            String itemType = isTrophy(blockEntity.getTrophy()) ? "trophy" : "Pokéball";
+            player.sendMessage(Text.literal("This pedestal already has a " + itemType + "."), false);
             return ActionResult.FAIL;
         }
         
-        // Si no es un trofeo
-        player.sendMessage(Text.literal("You can only place trophies on this pedestal."), false);
+        // Si no es un trofeo o pokéball
+        player.sendMessage(Text.literal("You can only place trophies or Pokéballs on this pedestal."), false);
         return ActionResult.FAIL;
     }
     
@@ -168,6 +178,13 @@ public class TrophyPedestalBlock extends BlockWithEntity {
     private String getTrophyId(ItemStack trophy) {
         String itemId = Registries.ITEM.getId(trophy.getItem()).getPath();
         return itemId; // Returns something like "kanto_trophy"
+    }
+    
+    private boolean isPokeball(ItemStack item) {
+        if (item.isEmpty()) return false;
+        
+        String itemId = Registries.ITEM.getId(item.getItem()).toString();
+        return itemId.startsWith("cobblemon:") && itemId.contains("_ball");
     }
 
     @Nullable
