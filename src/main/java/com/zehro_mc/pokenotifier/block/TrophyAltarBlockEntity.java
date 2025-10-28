@@ -636,6 +636,9 @@ public class TrophyAltarBlockEntity extends BlockEntity {
             
             // Efectos visuales finales de invocación
             spawnSummonEffects();
+            
+            // Quemar los recursos - convertir redstone en campfires
+            burnRedstoneBlocks();
         }
     }
     
@@ -757,6 +760,10 @@ public class TrophyAltarBlockEntity extends BlockEntity {
     }
     
     private void consumePokeballs() {
+        if (world == null || world.isClient) return;
+        
+        net.minecraft.server.world.ServerWorld serverWorld = (net.minecraft.server.world.ServerWorld) world;
+        
         // Consumir todas las pokeballs de los pedestales
         int[][] pedestalOffsets = {
             {0, 0, -3}, {3, 0, 0}, {0, 0, 3}, {-3, 0, 0},
@@ -767,10 +774,20 @@ public class TrophyAltarBlockEntity extends BlockEntity {
             BlockPos pedestalPos = pos.add(offset[0], offset[1], offset[2]);
             if (world.getBlockEntity(pedestalPos) instanceof TrophyPedestalBlockEntity pedestal) {
                 if (pedestal.hasTrophy()) {
-                    pedestal.removeTrophy(); // Consumir la pokeball
-                    pedestal.markDirty(); // Marcar como sucio
-                    // Forzar actualización del cliente
-                    world.updateListeners(pedestalPos, world.getBlockState(pedestalPos), world.getBlockState(pedestalPos), 3);
+                    // Limpiar el inventario directamente
+                    pedestal.inventory.set(0, ItemStack.EMPTY);
+                    pedestal.markDirty();
+                    
+                    // Romper y recolocar el bloque para forzar actualización del render
+                    BlockState pedestalState = world.getBlockState(pedestalPos);
+                    world.removeBlock(pedestalPos, false);
+                    world.setBlockState(pedestalPos, pedestalState, 3);
+                    
+                    // Recrear el BlockEntity vacío
+                    if (world.getBlockEntity(pedestalPos) instanceof TrophyPedestalBlockEntity newPedestal) {
+                        newPedestal.setTrophy(ItemStack.EMPTY);
+                        newPedestal.markDirty();
+                    }
                 }
             }
         }
@@ -868,5 +885,65 @@ public class TrophyAltarBlockEntity extends BlockEntity {
             net.minecraft.sound.SoundCategory.BLOCKS, 1.0f, 0.8f);
         world.playSound(null, pos, net.minecraft.sound.SoundEvents.ENTITY_DRAGON_FIREBALL_EXPLODE, 
             net.minecraft.sound.SoundCategory.BLOCKS, 0.8f, 1.2f);
+    }
+    
+    private void burnRedstoneBlocks() {
+        if (world == null || world.isClient) return;
+        
+        // Posiciones de todos los bloques de redstone
+        int[][] redstoneOffsets = {
+            {0, -1, 0},   // Debajo del altar
+            {0, -1, -3},  // Debajo pedestal Norte
+            {3, -1, 0},   // Debajo pedestal Este
+            {0, -1, 3},   // Debajo pedestal Sur
+            {-3, -1, 0},  // Debajo pedestal Oeste
+            {2, -1, -2},  // Debajo pedestal Noreste
+            {2, -1, 2},   // Debajo pedestal Sureste
+            {-2, -1, 2},  // Debajo pedestal Suroeste
+            {-2, -1, -2}  // Debajo pedestal Noroeste
+        };
+        
+        net.minecraft.server.world.ServerWorld serverWorld = (net.minecraft.server.world.ServerWorld) world;
+        
+        for (int[] offset : redstoneOffsets) {
+            BlockPos redstonePos = pos.add(offset[0], offset[1], offset[2]);
+            
+            // Verificar que sea un bloque de redstone
+            if (world.getBlockState(redstonePos).getBlock() == net.minecraft.block.Blocks.REDSTONE_BLOCK) {
+                // Efectos de quemado antes de reemplazar
+                spawnBurnEffects(serverWorld, redstonePos);
+                
+                // Reemplazar con campfire encendido
+                world.setBlockState(redstonePos, net.minecraft.block.Blocks.CAMPFIRE.getDefaultState()
+                    .with(net.minecraft.block.CampfireBlock.LIT, true), 3);
+            }
+        }
+        
+        // Sonido de quemado
+        world.playSound(null, pos, net.minecraft.sound.SoundEvents.ITEM_FIRECHARGE_USE, 
+            net.minecraft.sound.SoundCategory.BLOCKS, 1.0f, 0.8f);
+        world.playSound(null, pos, net.minecraft.sound.SoundEvents.BLOCK_FIRE_AMBIENT, 
+            net.minecraft.sound.SoundCategory.BLOCKS, 0.8f, 1.0f);
+    }
+    
+    private void spawnBurnEffects(net.minecraft.server.world.ServerWorld serverWorld, BlockPos burnPos) {
+        // Partículas de fuego y humo
+        for (int i = 0; i < 20; i++) {
+            double x = burnPos.getX() + Math.random();
+            double y = burnPos.getY() + Math.random();
+            double z = burnPos.getZ() + Math.random();
+            
+            serverWorld.spawnParticles(net.minecraft.particle.ParticleTypes.FLAME, 
+                x, y, z, 1, 0, 0.1, 0, 0.02);
+            serverWorld.spawnParticles(net.minecraft.particle.ParticleTypes.SMOKE, 
+                x, y + 0.5, z, 1, 0, 0.1, 0, 0.05);
+        }
+        
+        // Partículas de lava para efecto más dramático
+        for (int i = 0; i < 10; i++) {
+            serverWorld.spawnParticles(net.minecraft.particle.ParticleTypes.LAVA, 
+                burnPos.getX() + 0.5, burnPos.getY() + 1, burnPos.getZ() + 0.5, 
+                1, 0.2, 0, 0.2, 0.1);
+        }
     }
 }
