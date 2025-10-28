@@ -410,7 +410,7 @@ public class TrophyAltarBlockEntity extends BlockEntity {
         if (server != null) {
             net.minecraft.text.Text message = net.minecraft.text.Text.literal("🎆 ").formatted(net.minecraft.util.Formatting.GOLD)
                 .append(net.minecraft.text.Text.literal(playerName).formatted(net.minecraft.util.Formatting.YELLOW))
-                .append(net.minecraft.text.Text.literal(" has summoned the legendary ").formatted(net.minecraft.util.Formatting.GOLD))
+                .append(net.minecraft.text.Text.literal(" has summoned the legendary ").formatted(net.minecraft.util.Formatting.WHITE))
                 .append(net.minecraft.text.Text.literal(pokemonName.toUpperCase()).formatted(net.minecraft.util.Formatting.LIGHT_PURPLE))
                 .append(net.minecraft.text.Text.literal("! 🎆").formatted(net.minecraft.util.Formatting.GOLD));
             
@@ -640,7 +640,9 @@ public class TrophyAltarBlockEntity extends BlockEntity {
                         new net.minecraft.util.math.Box(pos).expand(10), player -> true);
                 
                 for (net.minecraft.server.network.ServerPlayerEntity player : nearbyPlayers) {
-                    player.sendMessage(net.minecraft.text.Text.literal("✓ Multiblock structure complete! Ghosts disabled.").formatted(net.minecraft.util.Formatting.GREEN), false);
+                    player.sendMessage(net.minecraft.text.Text.literal("✓ ").formatted(net.minecraft.util.Formatting.GREEN)
+                        .append(net.minecraft.text.Text.literal("Multiblock structure complete! ").formatted(net.minecraft.util.Formatting.WHITE))
+                        .append(net.minecraft.text.Text.literal("Ghosts disabled.").formatted(net.minecraft.util.Formatting.GRAY)), false);
                 }
             }
             
@@ -659,7 +661,10 @@ public class TrophyAltarBlockEntity extends BlockEntity {
                             new net.minecraft.util.math.Box(pos).expand(15), player -> true);
                     
                     for (net.minecraft.server.network.ServerPlayerEntity player : nearbyPlayers) {
-                        player.sendMessage(net.minecraft.text.Text.literal("✨ The ritual is ready! Right-click the altar to summon! ✨").formatted(net.minecraft.util.Formatting.GOLD), false);
+                        player.sendMessage(net.minecraft.text.Text.literal("✨ ").formatted(net.minecraft.util.Formatting.GOLD)
+                            .append(net.minecraft.text.Text.literal("The ritual is ready! ").formatted(net.minecraft.util.Formatting.YELLOW))
+                            .append(net.minecraft.text.Text.literal("Right-click the altar to summon! ").formatted(net.minecraft.util.Formatting.WHITE))
+                            .append(net.minecraft.text.Text.literal("✨").formatted(net.minecraft.util.Formatting.GOLD)), false);
                     }
                 }
             }
@@ -698,9 +703,13 @@ public class TrophyAltarBlockEntity extends BlockEntity {
             
             for (net.minecraft.server.network.ServerPlayerEntity player : nearbyPlayers) {
                 if (pokeballCount == 0) {
-                    player.sendMessage(net.minecraft.text.Text.literal("⚠ No pokeballs found in pedestals!").formatted(net.minecraft.util.Formatting.RED), false);
+                    player.sendMessage(net.minecraft.text.Text.literal("⚠ ").formatted(net.minecraft.util.Formatting.RED)
+                        .append(net.minecraft.text.Text.literal("No pokeballs found in pedestals!").formatted(net.minecraft.util.Formatting.YELLOW)), false);
                 } else {
-                    player.sendMessage(net.minecraft.text.Text.literal("⚠ Invalid pokeball pattern! Found " + pokeballCount + " pokeballs but no matching Pokemon.").formatted(net.minecraft.util.Formatting.RED), false);
+                    player.sendMessage(net.minecraft.text.Text.literal("⚠ ").formatted(net.minecraft.util.Formatting.RED)
+                        .append(net.minecraft.text.Text.literal("Invalid pokeball pattern! Found ").formatted(net.minecraft.util.Formatting.YELLOW))
+                        .append(net.minecraft.text.Text.literal(String.valueOf(pokeballCount)).formatted(net.minecraft.util.Formatting.WHITE))
+                        .append(net.minecraft.text.Text.literal(" pokeballs but no matching Pokemon.").formatted(net.minecraft.util.Formatting.YELLOW)), false);
                 }
             }
             return;
@@ -716,7 +725,8 @@ public class TrophyAltarBlockEntity extends BlockEntity {
                     new net.minecraft.util.math.Box(pos).expand(15), player -> true);
             
             for (net.minecraft.server.network.ServerPlayerEntity player : nearbyPlayers) {
-                player.sendMessage(net.minecraft.text.Text.literal("✓ Summoning ritual ready! Activating...").formatted(net.minecraft.util.Formatting.GREEN), false);
+                player.sendMessage(net.minecraft.text.Text.literal("✨ ").formatted(net.minecraft.util.Formatting.GOLD)
+                    .append(net.minecraft.text.Text.literal("Summoning ritual ready! Activating...").formatted(net.minecraft.util.Formatting.GREEN)), false);
             }
             
             // Iniciar secuencia de invocación con efectos dramáticos
@@ -728,7 +738,8 @@ public class TrophyAltarBlockEntity extends BlockEntity {
                     new net.minecraft.util.math.Box(pos).expand(10), player -> true);
             
             for (net.minecraft.server.network.ServerPlayerEntity player : nearbyPlayers) {
-                player.sendMessage(net.minecraft.text.Text.literal("⚠ Unknown pokeball pattern! No Pokemon matches this combination").formatted(net.minecraft.util.Formatting.RED), false);
+                player.sendMessage(net.minecraft.text.Text.literal("⚠ ").formatted(net.minecraft.util.Formatting.RED)
+                    .append(net.minecraft.text.Text.literal("Unknown pokeball pattern! No Pokemon matches this combination.").formatted(net.minecraft.util.Formatting.YELLOW)), false);
             }
         }
     }
@@ -1027,9 +1038,14 @@ public class TrophyAltarBlockEntity extends BlockEntity {
                     if (summoner == null) summoner = player; // Primer jugador encontrado como invocador
                     
                     if (isLegendaryOrMythical) {
-                        player.sendMessage(net.minecraft.text.Text.literal("🎆 LEGENDARY SUMMONING! 🎆").formatted(net.minecraft.util.Formatting.GOLD), false);
+                        player.sendMessage(net.minecraft.text.Text.literal("🎆 ").formatted(net.minecraft.util.Formatting.GOLD)
+                            .append(net.minecraft.text.Text.literal("LEGENDARY SUMMONING!").formatted(net.minecraft.util.Formatting.LIGHT_PURPLE))
+                            .append(net.minecraft.text.Text.literal(" 🎆").formatted(net.minecraft.util.Formatting.GOLD)), false);
                     }
-                    player.sendMessage(net.minecraft.text.Text.literal("✨ " + pokemonName.toUpperCase() + " has been summoned! ✨").formatted(net.minecraft.util.Formatting.GOLD), false);
+                    player.sendMessage(net.minecraft.text.Text.literal("✨ ").formatted(net.minecraft.util.Formatting.GOLD)
+                        .append(net.minecraft.text.Text.literal(pokemonName.toUpperCase()).formatted(net.minecraft.util.Formatting.AQUA))
+                        .append(net.minecraft.text.Text.literal(" has been summoned! ").formatted(net.minecraft.util.Formatting.WHITE))
+                        .append(net.minecraft.text.Text.literal("✨").formatted(net.minecraft.util.Formatting.GOLD)), false);
                 }
                 
                 // Mensaje global para legendarios/míticos
@@ -1047,7 +1063,9 @@ public class TrophyAltarBlockEntity extends BlockEntity {
                     new net.minecraft.util.math.Box(pos).expand(10), player -> true);
             
             for (net.minecraft.server.network.ServerPlayerEntity player : nearbyPlayers) {
-                player.sendMessage(net.minecraft.text.Text.literal("⚠ Summoning failed: " + e.getMessage()).formatted(net.minecraft.util.Formatting.RED), false);
+                player.sendMessage(net.minecraft.text.Text.literal("⚠ ").formatted(net.minecraft.util.Formatting.RED)
+                    .append(net.minecraft.text.Text.literal("Summoning failed: ").formatted(net.minecraft.util.Formatting.YELLOW))
+                    .append(net.minecraft.text.Text.literal(e.getMessage()).formatted(net.minecraft.util.Formatting.WHITE)), false);
                 com.zehro_mc.pokenotifier.PokeNotifier.LOGGER.error("Pokemon summoning error: ", e);
             }
         }
