@@ -643,6 +643,9 @@ public class TrophyAltarBlockEntity extends BlockEntity {
                     player.sendMessage(net.minecraft.text.Text.literal("✓ ").formatted(net.minecraft.util.Formatting.GREEN)
                         .append(net.minecraft.text.Text.literal("Multiblock structure complete! ").formatted(net.minecraft.util.Formatting.WHITE))
                         .append(net.minecraft.text.Text.literal("Ghosts disabled.").formatted(net.minecraft.util.Formatting.GRAY)), false);
+                    
+                    // Entregar libro guía si no lo tiene
+                    blockEntity.giveGuideBookIfNeeded(player);
                 }
             }
             
@@ -662,7 +665,7 @@ public class TrophyAltarBlockEntity extends BlockEntity {
                     
                     for (net.minecraft.server.network.ServerPlayerEntity player : nearbyPlayers) {
                         player.sendMessage(net.minecraft.text.Text.literal("✨ ").formatted(net.minecraft.util.Formatting.GOLD)
-                            .append(net.minecraft.text.Text.literal("The ritual is ready! ").formatted(net.minecraft.util.Formatting.YELLOW))
+                            .append(net.minecraft.text.Text.literal("The ritual is ready! ").formatted(net.minecraft.util.Formatting.GOLD))
                             .append(net.minecraft.text.Text.literal("Right-click the altar to summon! ").formatted(net.minecraft.util.Formatting.WHITE))
                             .append(net.minecraft.text.Text.literal("✨").formatted(net.minecraft.util.Formatting.GOLD)), false);
                     }
@@ -704,12 +707,12 @@ public class TrophyAltarBlockEntity extends BlockEntity {
             for (net.minecraft.server.network.ServerPlayerEntity player : nearbyPlayers) {
                 if (pokeballCount == 0) {
                     player.sendMessage(net.minecraft.text.Text.literal("⚠ ").formatted(net.minecraft.util.Formatting.RED)
-                        .append(net.minecraft.text.Text.literal("No pokeballs found in pedestals!").formatted(net.minecraft.util.Formatting.YELLOW)), false);
+                        .append(net.minecraft.text.Text.literal("No pokeballs found in pedestals!").formatted(net.minecraft.util.Formatting.GOLD)), false);
                 } else {
                     player.sendMessage(net.minecraft.text.Text.literal("⚠ ").formatted(net.minecraft.util.Formatting.RED)
-                        .append(net.minecraft.text.Text.literal("Invalid pokeball pattern! Found ").formatted(net.minecraft.util.Formatting.YELLOW))
+                        .append(net.minecraft.text.Text.literal("Invalid pokeball pattern! Found ").formatted(net.minecraft.util.Formatting.GOLD))
                         .append(net.minecraft.text.Text.literal(String.valueOf(pokeballCount)).formatted(net.minecraft.util.Formatting.WHITE))
-                        .append(net.minecraft.text.Text.literal(" pokeballs but no matching Pokemon.").formatted(net.minecraft.util.Formatting.YELLOW)), false);
+                        .append(net.minecraft.text.Text.literal(" pokeballs but no matching Pokemon.").formatted(net.minecraft.util.Formatting.GOLD)), false);
                 }
             }
             return;
@@ -739,7 +742,7 @@ public class TrophyAltarBlockEntity extends BlockEntity {
             
             for (net.minecraft.server.network.ServerPlayerEntity player : nearbyPlayers) {
                 player.sendMessage(net.minecraft.text.Text.literal("⚠ ").formatted(net.minecraft.util.Formatting.RED)
-                    .append(net.minecraft.text.Text.literal("Unknown pokeball pattern! No Pokemon matches this combination.").formatted(net.minecraft.util.Formatting.YELLOW)), false);
+                    .append(net.minecraft.text.Text.literal("Unknown pokeball pattern! No Pokemon matches this combination.").formatted(net.minecraft.util.Formatting.GOLD)), false);
             }
         }
     }
@@ -1064,7 +1067,7 @@ public class TrophyAltarBlockEntity extends BlockEntity {
             
             for (net.minecraft.server.network.ServerPlayerEntity player : nearbyPlayers) {
                 player.sendMessage(net.minecraft.text.Text.literal("⚠ ").formatted(net.minecraft.util.Formatting.RED)
-                    .append(net.minecraft.text.Text.literal("Summoning failed: ").formatted(net.minecraft.util.Formatting.YELLOW))
+                    .append(net.minecraft.text.Text.literal("Summoning failed: ").formatted(net.minecraft.util.Formatting.GOLD))
                     .append(net.minecraft.text.Text.literal(e.getMessage()).formatted(net.minecraft.util.Formatting.WHITE)), false);
                 com.zehro_mc.pokenotifier.PokeNotifier.LOGGER.error("Pokemon summoning error: ", e);
             }
@@ -1086,20 +1089,11 @@ public class TrophyAltarBlockEntity extends BlockEntity {
             BlockPos pedestalPos = pos.add(offset[0], offset[1], offset[2]);
             if (world.getBlockEntity(pedestalPos) instanceof TrophyPedestalBlockEntity pedestal) {
                 if (pedestal.hasTrophy()) {
-                    // Limpiar el inventario directamente
-                    pedestal.inventory.set(0, ItemStack.EMPTY);
-                    pedestal.markDirty();
+                    // Usar el método setTrophy para sincronización correcta
+                    pedestal.setTrophy(ItemStack.EMPTY);
                     
-                    // Romper y recolocar el bloque para forzar actualización del render
-                    BlockState pedestalState = world.getBlockState(pedestalPos);
-                    world.removeBlock(pedestalPos, false);
-                    world.setBlockState(pedestalPos, pedestalState, 3);
-                    
-                    // Recrear el BlockEntity vacío
-                    if (world.getBlockEntity(pedestalPos) instanceof TrophyPedestalBlockEntity newPedestal) {
-                        newPedestal.setTrophy(ItemStack.EMPTY);
-                        newPedestal.markDirty();
-                    }
+                    // Forzar actualización inmediata del cliente
+                    serverWorld.getChunkManager().markForUpdate(pedestalPos);
                 }
             }
         }
@@ -1257,5 +1251,120 @@ public class TrophyAltarBlockEntity extends BlockEntity {
                 burnPos.getX() + 0.5, burnPos.getY() + 1, burnPos.getZ() + 0.5, 
                 1, 0.2, 0, 0.2, 0.1);
         }
+    }
+    
+    public void giveGuideBookIfNeeded(net.minecraft.server.network.ServerPlayerEntity player) {
+        // Verificar si ya tiene el libro en el inventario
+        if (hasGuideBook(player)) {
+            return; // Ya tiene el libro, no dar otro
+        }
+        
+        // Crear el libro guía
+        ItemStack guideBook = createGuideBook();
+        
+        // Intentar darlo al jugador
+        if (!player.giveItemStack(guideBook)) {
+            // Si el inventario está lleno, tirarlo al suelo
+            net.minecraft.entity.ItemEntity itemEntity = new net.minecraft.entity.ItemEntity(
+                world, pos.getX() + 0.5, pos.getY() + 1, pos.getZ() + 0.5, guideBook);
+            world.spawnEntity(itemEntity);
+        }
+        
+        // Notificar al jugador
+        player.sendMessage(net.minecraft.text.Text.literal("📚 ").formatted(net.minecraft.util.Formatting.GOLD)
+            .append(net.minecraft.text.Text.literal("You received the Pokemon Altar Guide! ").formatted(net.minecraft.util.Formatting.GREEN))
+            .append(net.minecraft.text.Text.literal("It contains 3 test patterns to get you started.").formatted(net.minecraft.util.Formatting.GOLD)), false);
+    }
+    
+    private boolean hasGuideBook(net.minecraft.server.network.ServerPlayerEntity player) {
+        // Buscar en el inventario principal
+        for (int i = 0; i < player.getInventory().size(); i++) {
+            ItemStack stack = player.getInventory().getStack(i);
+            if (isGuideBook(stack)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    private boolean isGuideBook(ItemStack stack) {
+        if (stack.isEmpty() || !stack.isOf(net.minecraft.item.Items.WRITTEN_BOOK)) {
+            return false;
+        }
+        
+        net.minecraft.component.type.NbtComponent customData = stack.getComponents().get(net.minecraft.component.DataComponentTypes.CUSTOM_DATA);
+        if (customData == null) return false;
+        
+        net.minecraft.nbt.NbtCompound nbt = customData.copyNbt();
+        return nbt.contains("poke_altar_guide") && nbt.getBoolean("poke_altar_guide");
+    }
+    
+    private ItemStack createGuideBook() {
+        ItemStack book = new ItemStack(net.minecraft.item.Items.WRITTEN_BOOK);
+        
+        // Create custom data component
+        net.minecraft.nbt.NbtCompound customData = new net.minecraft.nbt.NbtCompound();
+        customData.putBoolean("poke_altar_guide", true);
+        book.set(net.minecraft.component.DataComponentTypes.CUSTOM_DATA, net.minecraft.component.type.NbtComponent.of(customData));
+        
+        // Set book metadata
+        book.set(net.minecraft.component.DataComponentTypes.WRITTEN_BOOK_CONTENT, 
+            new net.minecraft.component.type.WrittenBookContentComponent(
+                net.minecraft.text.RawFilteredPair.of("Pokemon Altar Guide"),
+                "Poke Notifier",
+                0,
+                createBookPages(),
+                true
+            ));
+        
+        return book;
+    }
+    
+    private java.util.List<net.minecraft.text.RawFilteredPair<net.minecraft.text.Text>> createBookPages() {
+        java.util.List<net.minecraft.text.RawFilteredPair<net.minecraft.text.Text>> pages = new java.util.ArrayList<>();
+        
+        // Página 1: Introducción
+        pages.add(net.minecraft.text.RawFilteredPair.of(
+            net.minecraft.text.Text.literal("§6§lPokemon Altar Guide\n\n")
+                .append(net.minecraft.text.Text.literal("§rWelcome! You built the Pokemon Summoning Altar.\n\n"))
+                .append(net.minecraft.text.Text.literal("§6This guide has test patterns.\n\n"))
+                .append(net.minecraft.text.Text.literal("§7Each Pokemon needs specific pokeballs on pedestals."))));
+        
+        // Página 2: Cómo usar
+        pages.add(net.minecraft.text.RawFilteredPair.of(
+            net.minecraft.text.Text.literal("§6§lHow to Use:\n\n")
+                .append(net.minecraft.text.Text.literal("§r1. Place pokeballs on pedestals\n\n"))
+                .append(net.minecraft.text.Text.literal("§r2. Each has a position: N, E, S, W, NE, SE, SW, NW\n\n"))
+                .append(net.minecraft.text.Text.literal("§r3. Right-click altar to summon"))));
+        
+        // Página 3: Test Pattern 1 - Alakazam
+        pages.add(net.minecraft.text.RawFilteredPair.of(
+            net.minecraft.text.Text.literal("§6§lPattern 1: §b§lAlakazam\n\n")
+                .append(net.minecraft.text.Text.literal("§rN: Quick Ball\n"))
+                .append(net.minecraft.text.Text.literal("§rE: Ultra Ball\n"))
+                .append(net.minecraft.text.Text.literal("§rS: Luxury Ball\n"))
+                .append(net.minecraft.text.Text.literal("§rW: Timer Ball\n\n"))
+                .append(net.minecraft.text.Text.literal("§7Others empty.\n\n"))
+                .append(net.minecraft.text.Text.literal("§6RARE tier - needs 4 balls!"))));
+        
+        // Página 4: Test Pattern 2 - Lucario
+        pages.add(net.minecraft.text.RawFilteredPair.of(
+            net.minecraft.text.Text.literal("§6§lPattern 2: §d§lLucario\n\n")
+                .append(net.minecraft.text.Text.literal("§rN: Master, E: Friend\n"))
+                .append(net.minecraft.text.Text.literal("§rS: Ultra, W: Luxury\n"))
+                .append(net.minecraft.text.Text.literal("§rNE: Repeat, SE: Timer\n"))
+                .append(net.minecraft.text.Text.literal("§rSW: Dusk, NW: Quick\n\n"))
+                .append(net.minecraft.text.Text.literal("§6ULTRA_RARE - needs all 8!"))));
+        
+        // Página 5: Consejos
+        pages.add(net.minecraft.text.RawFilteredPair.of(
+            net.minecraft.text.Text.literal("§6§lTips:\n\n")
+                .append(net.minecraft.text.Text.literal("§r• RARE need 3-4 balls\n"))
+                .append(net.minecraft.text.Text.literal("§r• ULTRA_RARE+ need all 8\n"))
+                .append(net.minecraft.text.Text.literal("§r• Each has unique pattern\n"))
+                .append(net.minecraft.text.Text.literal("§r• Legendaries announce globally\n\n"))
+                .append(net.minecraft.text.Text.literal("§7Experiment to find more!"))));
+        
+        return pages;
     }
 }

@@ -36,16 +36,22 @@ public class TrophyPedestalBlockEntity extends BlockEntity {
         inventory.set(0, trophy);
         markDirty();
         if (world != null && !world.isClient) {
-            // Get position name from nearby altar
-            String positionName = getPositionName();
-            
-            // Forzar actualización completa del cliente
+            // Sincronización completa cliente-servidor
             BlockState state = getCachedState();
             world.updateListeners(pos, state, state, 3);
             
-            // Marcar chunk para actualización
+            // Forzar actualización del chunk
             if (world instanceof net.minecraft.server.world.ServerWorld serverWorld) {
                 serverWorld.getChunkManager().markForUpdate(pos);
+                
+                // Enviar paquete de actualización a todos los jugadores cercanos
+                java.util.List<net.minecraft.server.network.ServerPlayerEntity> nearbyPlayers = 
+                    world.getEntitiesByClass(net.minecraft.server.network.ServerPlayerEntity.class, 
+                        new net.minecraft.util.math.Box(pos).expand(32), player -> true);
+                
+                for (net.minecraft.server.network.ServerPlayerEntity player : nearbyPlayers) {
+                    player.networkHandler.sendPacket(toUpdatePacket());
+                }
             }
         }
     }

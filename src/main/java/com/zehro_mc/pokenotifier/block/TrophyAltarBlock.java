@@ -80,36 +80,39 @@ public class TrophyAltarBlock extends BlockWithEntity {
 
         ItemStack heldItem = player.getStackInHand(Hand.MAIN_HAND);
         
-        // Si el jugador tiene las manos vacías, intenta quitar la pokeball
+        // Si el jugador tiene las manos vacías, intenta quitar el trofeo
         if (heldItem.isEmpty() && blockEntity.hasTrophy()) {
-            ItemStack pokeball = blockEntity.removeTrophy();
-            player.giveItemStack(pokeball);
-            String itemType = isPokeball(pokeball) ? "Pokéball" : "Trophy";
-            player.sendMessage(Text.literal(itemType + " removed from altar."), false);
+            ItemStack trophy = blockEntity.removeTrophy();
+            player.giveItemStack(trophy);
+            player.sendMessage(Text.literal("Trophy removed from altar."), false);
             blockEntity.checkMultiblockStructure();
             return ActionResult.SUCCESS;
         }
         
-        // Si tiene una pokeball o trofeo en la mano y el altar está vacío
-        if ((isPokeball(heldItem) || isTrophy(heldItem)) && !blockEntity.hasTrophy()) {
-            ItemStack pokeballToPlace = heldItem.copy();
-            pokeballToPlace.setCount(1);
-            blockEntity.setTrophy(pokeballToPlace);
+        // Si tiene un trofeo en la mano y el altar está vacío
+        if (isTrophy(heldItem) && !blockEntity.hasTrophy()) {
+            ItemStack trophyToPlace = heldItem.copy();
+            trophyToPlace.setCount(1);
+            blockEntity.setTrophy(trophyToPlace);
             
             if (!player.getAbilities().creativeMode) {
                 heldItem.decrement(1);
             }
             
-            String itemType = isPokeball(pokeballToPlace) ? "Pokéball" : "Trophy";
-            player.sendMessage(Text.literal(itemType + " placed on altar!"), false);
+            player.sendMessage(Text.literal("Trophy placed on altar!"), false);
             blockEntity.checkMultiblockStructure();
             return ActionResult.SUCCESS;
         }
         
-        // Si el altar ya tiene un item
+        // Si intenta poner una pokeball en el altar
+        if (isPokeball(heldItem) && !blockEntity.hasTrophy()) {
+            player.sendMessage(Text.literal("⚠ Pokéballs go on pedestals, not the altar! The altar is only for trophies.").formatted(net.minecraft.util.Formatting.YELLOW), false);
+            return ActionResult.FAIL;
+        }
+        
+        // Si el altar ya tiene un trofeo
         if (blockEntity.hasTrophy()) {
-            String itemType = isPokeball(blockEntity.getTrophy()) ? "Pokéball" : "Trophy";
-            player.sendMessage(Text.literal("This altar already has a " + itemType + "."), false);
+            player.sendMessage(Text.literal("This altar already has a trophy."), false);
             return ActionResult.FAIL;
         }
         
@@ -147,8 +150,8 @@ public class TrophyAltarBlock extends BlockWithEntity {
             return ActionResult.SUCCESS;
         }
         
-        // Si no es una pokeball o trofeo
-        player.sendMessage(Text.literal("You can only place Pokéballs or Trophies on this altar."), false);
+        // Si no es un trofeo
+        player.sendMessage(Text.literal("You can only place Trophies on this altar. Pokéballs go on the pedestals.").formatted(net.minecraft.util.Formatting.YELLOW), false);
         return ActionResult.FAIL;
     }
     
