@@ -2,276 +2,194 @@
 
 ## Code Quality Standards
 
-### File Header Convention
-All source files must include the Mozilla Public License 2.0 header:
-```java
-/*
- * Copyright (C) 2024 ZeHrOx
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/.
- */
-```
+### File Headers and Copyright
+- **Consistent License Headers**: All Java files include Mozilla Public License 2.0 header with copyright notice
+- **Standard Format**: Copyright (C) 2024 ZeHrOx with MPL 2.0 reference and URL
+- **File Documentation**: Headers provide clear licensing and attribution information
 
-### Package Structure
-- **Main Package**: `com.zehro_mc.pokenotifier`
-- **Client Package**: `com.zehro_mc.pokenotifier.client`
-- **Subpackages**: Organized by functionality (events, networking, util, model, etc.)
+### Code Formatting Patterns
+- **Indentation**: 4-space indentation consistently used throughout codebase
+- **Line Length**: Generally kept under 120 characters with logical line breaks
+- **Brace Style**: Opening braces on same line, closing braces on new line
+- **Method Spacing**: Single blank line between methods, logical grouping with comments
 
 ### Naming Conventions
-- **Classes**: PascalCase (e.g., `PokeNotifierCustomScreen`, `SwarmEventManager`)
-- **Methods**: camelCase (e.g., `buildUserToolsLayout`, `onPokemonCaptured`)
-- **Constants**: UPPER_SNAKE_CASE (e.g., `MOD_ID`, `TRACKED_POKEMON`)
-- **Variables**: camelCase with descriptive names
-- **Files**: kebab-case for config files (e.g., `config-client.json`)
-
-### Documentation Standards
-- **Class Documentation**: Brief purpose and responsibility
-- **Method Documentation**: JavaDoc for public methods with complex logic
-- **Inline Comments**: Explain business logic, not obvious code
-- **TODO/FIX Comments**: Used extensively for tracking improvements and bug fixes
+- **Classes**: PascalCase (e.g., `PokeNotifier`, `SwarmEventManager`, `GlobalHuntEvent`)
+- **Methods**: camelCase with descriptive names (e.g., `onPokemonCaptured`, `validateStructure`)
+- **Variables**: camelCase for local variables, UPPER_CASE for constants
+- **Packages**: Lowercase with dots (e.g., `com.zehro_mc.pokenotifier.events`)
 
 ## Architectural Patterns
 
-### Configuration Management Pattern
+### Singleton Pattern Usage
+- **Manager Classes**: SwarmEventManager and GlobalHuntManager use singleton pattern
+- **Instance Management**: Static getInstance() methods with null checks
+- **Thread Safety**: Proper initialization in server context
+
 ```java
-// Centralized configuration through ConfigManager
-ConfigServer config = ConfigManager.getServerConfig();
-config.debug_mode_enabled = true;
-ConfigManager.saveServerConfigToFile();
+private static SwarmEventManager instance;
+public static SwarmEventManager getInstance() {
+    return instance;
+}
 ```
 
 ### Event-Driven Architecture
-- **Event Managers**: Specialized classes for each event type (GlobalHuntManager, SwarmEventManager)
-- **Event Lifecycle**: start() → active monitoring → completion/timeout → cleanup
-- **State Persistence**: Events save state to config files for server restarts
+- **Cobblemon Integration**: Subscribe to Cobblemon events with Priority.NORMAL
+- **Custom Events**: Create custom payload classes for client-server communication
+- **Event Handlers**: Separate listener classes for different event types
+
+### Configuration Management
+- **JSON-based Config**: Use JSON files for persistent configuration
+- **Hot Reload**: Support runtime configuration updates
+- **Validation**: Built-in validation for configuration values
 
 ### Client-Server Communication
-```java
-// Networking payload pattern
-ServerPlayNetworking.send(player, new AdminStatusPayload(
-    player.hasPermissionLevel(2),
-    config.debug_mode_enabled,
-    // ... other parameters
-));
-```
+- **Payload Pattern**: Custom payload classes for network communication
+- **Bidirectional**: Both client-to-server and server-to-client messaging
+- **Type Safety**: Strongly typed payload parameters
 
-### GUI Architecture Pattern
 ```java
-// Hierarchical GUI structure
-private enum MainCategory { USER_TOOLS, EVENTS, ADMIN_TOOLS }
-private enum UserSubCategory { NOTIFICATIONS, CUSTOM_HUNT, CATCH_EM_ALL }
-
-// Dynamic UI building based on permissions
-if (PokeNotifierClient.isPlayerAdmin) {
-    buildAdminToolsLayout(panelX, panelY, panelWidth, panelHeight);
+public record CustomListUpdatePayload(Action action, String pokemonName) implements CustomPayload {
+    public static final CustomPayload.Id<CustomListUpdatePayload> ID = new CustomPayload.Id<>(IDENTIFIER);
 }
 ```
 
-## Common Implementation Patterns
+## Semantic Patterns
 
-### Singleton Pattern for Managers
+### Error Handling and Logging
+- **Comprehensive Logging**: Use SLF4J logger with appropriate levels (info, warn, error, debug)
+- **Contextual Messages**: Include relevant context in log messages
+- **Exception Handling**: Try-catch blocks with meaningful error messages
+- **Debug Mode**: Conditional debug logging based on configuration
+
 ```java
-public class SwarmEventManager {
-    private static SwarmEventManager instance;
-    
-    public static SwarmEventManager getInstance() {
-        return instance;
-    }
+public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+if (ConfigManager.getServerConfig().debug_mode_enabled) {
+    LOGGER.debug("[SwarmManager] Debug information: {}", details);
 }
 ```
 
-### Builder Pattern for Complex Objects
+### Resource Management
+- **Proper Cleanup**: Always clean up resources in finally blocks or try-with-resources
+- **Entity Management**: Track and validate entity references, remove invalid ones
+- **Memory Management**: Clear collections and cancel scheduled tasks on shutdown
+
+### Null Safety and Validation
+- **Null Checks**: Consistent null checking before object usage
+- **Early Returns**: Use early returns to reduce nesting
+- **Validation Methods**: Separate validation logic into dedicated methods
+- **Optional Usage**: Use Optional where appropriate for nullable values
+
+## Internal API Usage Patterns
+
+### Minecraft/Fabric API Integration
+- **Server Execution**: Use `server.execute()` for thread-safe operations
+- **World Access**: Proper world and chunk loading before block operations
+- **Player Management**: Access players through server player manager
+- **Block State Management**: Use proper block state setting with update flags
+
 ```java
-ButtonWidget.builder(Text.literal("Debug Mode"), button -> {
-    // Action logic
-}).dimensions(x, y, width, height)
-.tooltip(Tooltip.of(Text.literal("Toggle debug mode")))
-.build();
-```
-
-### Lazy Loading Pattern
-```java
-public static ConfigClient getClientConfig() {
-    if (configClient == null) {
-        loadConfigClient();
-    }
-    return configClient;
-}
-```
-
-### Error Handling Pattern
-```java
-try {
-    // Risky operation
-} catch (Exception e) {
-    PokeNotifier.LOGGER.error("Operation failed: {}", e.getMessage(), e);
-    // Graceful fallback
-}
-```
-
-## Logging Standards
-
-### Logging Levels
-- **INFO**: System state changes, event lifecycle
-- **WARN**: Recoverable errors, deprecated usage
-- **ERROR**: Unrecoverable errors, exceptions
-- **DEBUG**: Detailed execution flow (when debug mode enabled)
-
-### Logging Format
-```java
-PokeNotifier.LOGGER.info("[SwarmManager] System toggled to: {}", swarmConfig.system_enabled);
-PokeNotifier.LOGGER.error("Failed to spawn Pokemon for Global Hunt: {}", e.getMessage(), e);
-```
-
-## Networking Patterns
-
-### Payload Structure
-```java
-public record AdminStatusPayload(
-    boolean isAdmin,
-    boolean debugMode,
-    boolean testMode
-    // ... other fields
-) implements CustomPayload {
-    public static final CustomPayload.Id<AdminStatusPayload> ID = 
-        new CustomPayload.Id<>(Identifier.of(PokeNotifier.MOD_ID, "admin_status"));
-}
-```
-
-### Server-Side Packet Handling
-```java
-ServerPlayNetworking.registerGlobalReceiver(PayloadType.ID, (payload, context) -> {
-    ServerPlayerEntity player = context.player();
-    context.server().execute(() -> {
-        // Handle payload on server thread
-    });
+world.getServer().execute(() -> {
+    // Thread-safe operations here
+    world.setBlockState(pos, state, 3); // Update flag 3 for client sync
 });
 ```
 
-## Configuration Patterns
+### Cobblemon API Integration
+- **Pokemon Creation**: Use PokemonProperties.Companion.parse() for Pokemon creation
+- **Storage Access**: Access party and PC through Cobblemon.INSTANCE.getStorage()
+- **Entity Spawning**: Create entities through props.createEntity(world)
+- **Data Persistence**: Use Pokemon.getPersistentData() for custom data
 
-### Version Migration
 ```java
-if (fileVersion < currentVersion) {
-    PokeNotifier.LOGGER.info("Migrating {} from version {} to {}", 
-        configName, fileVersion, currentVersion);
-    // Migration logic
+PokemonProperties props = PokemonProperties.Companion.parse(pokemonName);
+PokemonEntity entity = props.createEntity(world);
+entity.getPokemon().getPersistentData().putBoolean("custom_flag", true);
+```
+
+### GUI Development Patterns
+- **Screen Inheritance**: Extend Screen class for custom GUIs
+- **Widget Management**: Use addDrawableChild() for proper widget lifecycle
+- **State Management**: Implement clearAndInit() for dynamic GUI updates
+- **Event Handling**: Override mouse and keyboard event methods
+
+### Networking Patterns
+- **Payload Registration**: Register payloads in mod initialization
+- **Server Receivers**: Use ServerPlayNetworking.registerGlobalReceiver()
+- **Client Sending**: Use ClientPlayNetworking.send() for client-to-server
+- **Thread Safety**: Execute network operations on proper threads
+
+## Frequently Used Annotations
+
+### Fabric/Minecraft Annotations
+- `@Override`: Consistently used for method overrides
+- `@Nullable`: Used for methods that may return null
+- `@Environment(EnvType.CLIENT)`: For client-side only code
+
+### Custom Annotations
+- No custom annotations observed, relies on standard Java and Fabric annotations
+
+## Common Code Idioms
+
+### Configuration Access Pattern
+```java
+ConfigServer config = ConfigManager.getServerConfig();
+if (config.debug_mode_enabled) {
+    // Debug operations
 }
 ```
 
-### Secure Data Storage
+### Entity Validation Pattern
 ```java
-// Encrypt sensitive player data
-String encryptedData = DataSecurityUtil.encrypt(jsonProgress);
-Map<String, String> dataToSave = Map.of("data", encryptedData);
+swarmEntities.removeIf(uuid -> {
+    PokemonEntity entity = (PokemonEntity) world.getEntity(uuid);
+    return entity == null || !entity.isAlive() || entity.isRemoved();
+});
 ```
 
-## UI Development Guidelines
-
-### Responsive Layout
+### Player Notification Pattern
 ```java
-// Centered panel design
-int panelWidth = 420;
-int panelHeight = 260;
-int panelX = (this.width - panelWidth) / 2;
-int panelY = (this.height - panelHeight) / 2;
-```
-
-### Permission-Based UI
-```java
-// Show admin features only to operators
-if (PokeNotifierClient.isPlayerAdmin) {
-    addDrawableChild(createAdminButton());
+for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
+    player.sendMessage(message, false);
+    ServerPlayNetworking.send(player, payload);
 }
 ```
 
-### Interactive Feedback
+### Safe Block Operations Pattern
 ```java
-// Immediate visual feedback
-displayResponse(List.of(Text.literal("Settings updated.").formatted(Formatting.GREEN)));
+// Force chunk loading
+world.getChunk(x >> 4, z >> 4);
+// Validate position
+if (y >= world.getBottomY() && y <= world.getTopY()) {
+    world.setBlockState(pos, state);
+}
 ```
 
 ## Performance Considerations
 
-### Caching Strategy
-```java
-// Cache frequently accessed data
-private static final Map<UUID, PlayerCatchProgress> playerCatchProgress = new ConcurrentHashMap<>();
-```
+### Tick-based Operations
+- **Throttled Checks**: Use tick counters to limit expensive operations
+- **Batch Processing**: Group related operations together
+- **Conditional Execution**: Skip operations when not needed
 
-### Async Operations
-```java
-// Use server execute for thread safety
-world.getServer().execute(() -> {
-    // Minecraft operations on server thread
-});
-```
+### Memory Optimization
+- **Collection Management**: Regular cleanup of tracked entities and data
+- **Lazy Loading**: Load resources only when needed
+- **Weak References**: Use appropriate reference types for cached data
 
-### Resource Management
-```java
-// Proper resource cleanup
-if (scheduler != null && !scheduler.isShutdown()) {
-    scheduler.shutdown();
-}
-```
+### Network Optimization
+- **Payload Efficiency**: Send only necessary data in network packets
+- **Update Throttling**: Limit frequency of client updates
+- **Conditional Sync**: Only sync when state actually changes
 
 ## Testing and Debugging
 
 ### Debug Mode Integration
-```java
-if (ConfigManager.getServerConfig().debug_mode_enabled) {
-    PokeNotifier.LOGGER.debug("Debug information: {}", debugData);
-}
-```
+- **Configurable Logging**: Debug messages controlled by server configuration
+- **Test Mode**: Special test mode for spawning and validation
+- **Admin Commands**: Comprehensive admin interface for testing
 
-### Test Mode Features
-```java
-// Test spawns marked for identification
-pokemonEntity.getPokemon().getPersistentData().putBoolean("pokenotifier_test_spawn", true);
-```
-
-## Integration Patterns
-
-### Cobblemon API Usage
-```java
-// Standard Pokemon creation
-PokemonProperties props = PokemonProperties.Companion.parse(pokemonName);
-PokemonEntity entity = props.createEntity(world);
-```
-
-### Fabric API Integration
-```java
-// Event registration
-CobblemonEvents.POKEMON_CAPTURED.subscribe(Priority.NORMAL, event -> {
-    // Handle capture
-    return Unit.INSTANCE;
-});
-```
-
-### Optional Mod Integration
-```java
-// Runtime detection of optional dependencies
-boolean xaeroAvailable = XaeroIntegration.isXaeroAvailable();
-if (xaeroAvailable) {
-    // Use Xaero features
-}
-```
-
-## Code Organization Principles
-
-### Separation of Concerns
-- **Client**: UI, rendering, client-side state
-- **Server**: Game logic, data persistence, networking
-- **Common**: Shared models, utilities, constants
-
-### Modular Design
-- Each feature in separate package/class
-- Clear interfaces between components
-- Minimal coupling between modules
-
-### Configuration-Driven Development
-- Extensive use of configuration files
-- Runtime configuration changes
-- Environment-specific settings
+### Error Recovery
+- **Graceful Degradation**: Continue operation when non-critical components fail
+- **Fallback Values**: Provide sensible defaults when configuration is invalid
+- **State Validation**: Regular validation of internal state consistency

@@ -1,5 +1,35 @@
 {
   "LEGENDARIES": {
+    "Articuno": {
+      "north": "master_ball",
+      "east": "dive_ball", 
+      "south": "premier_ball",
+      "west": "luxury_ball",
+      "northeast": "timer_ball",
+      "southeast": "repeat_ball",
+      "southwest": "net_ball",
+      "northwest": "nest_ball"
+    },
+    "Zapdos": {
+      "north": "master_ball",
+      "east": "quick_ball", 
+      "south": "ultra_ball",
+      "west": "great_ball",
+      "northeast": "luxury_ball",
+      "southeast": "timer_ball",
+      "southwest": "fast_ball",
+      "northwest": "level_ball"
+    },
+    "Moltres": {
+      "north": "master_ball",
+      "east": "repeat_ball", 
+      "south": "luxury_ball",
+      "west": "ultra_ball",
+      "northeast": "great_ball",
+      "southeast": "timer_ball",
+      "southwest": "fast_ball",
+      "northwest": "level_ball"
+    },
     "Mewtwo": {
       "north": "master_ball",
       "east": "ultra_ball", 
@@ -10,25 +40,665 @@
       "southwest": "dusk_ball",
       "northwest": "quick_ball"
     },
-    "Lucario": {
-      "north": "dusk_ball",
+    "Raikou": {
+      "north": "master_ball",
       "east": "quick_ball", 
-      "south": "dusk_ball",
-      "west": "quick_ball",
-      "northeast": "dusk_ball",
-      "southeast": "quick_ball",
-      "southwest": "dusk_ball",
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "fast_ball",
+      "southwest": "level_ball",
+      "northwest": "repeat_ball"
+    },
+    "Entei": {
+      "north": "master_ball",
+      "east": "repeat_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "fast_ball",
+      "southwest": "level_ball",
       "northwest": "quick_ball"
     },
-    "Articuno": {
+    "Suicune": {
       "north": "master_ball",
       "east": "dive_ball", 
-      "south": "premier_ball",
-      "west": "luxury_ball",
-      "northeast": "timer_ball",
-      "southeast": "repeat_ball",
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "net_ball",
+      "southwest": "lure_ball",
+      "northwest": "quick_ball"
+    },
+    "Lugia": {
+      "north": "master_ball",
+      "east": "dive_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "premier_ball",
+      "southwest": "dusk_ball",
+      "northwest": "repeat_ball"
+    },
+    "Ho-Oh": {
+      "north": "master_ball",
+      "east": "repeat_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "premier_ball",
+      "southwest": "fast_ball",
+      "northwest": "level_ball"
+    },
+    "Regirock": {
+      "north": "master_ball",
+      "east": "heavy_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "dusk_ball",
+      "southwest": "repeat_ball",
+      "northwest": "quick_ball"
+    },
+    "Regice": {
+      "north": "master_ball",
+      "east": "dive_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "premier_ball",
       "southwest": "net_ball",
-      "northwest": "nest_ball"
+      "northwest": "repeat_ball"
+    },
+    "Registeel": {
+      "north": "master_ball",
+      "east": "heavy_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "dusk_ball",
+      "southwest": "repeat_ball",
+      "northwest": "premier_ball"
+    },
+    "Latias": {
+      "north": "master_ball",
+      "east": "love_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "premier_ball",
+      "southwest": "quick_ball",
+      "northwest": "repeat_ball"
+    },
+    "Latios": {
+      "north": "master_ball",
+      "east": "friend_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "premier_ball",
+      "southwest": "quick_ball",
+      "northwest": "repeat_ball"
+    },
+    "Kyogre": {
+      "north": "master_ball",
+      "east": "dive_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "net_ball",
+      "southwest": "lure_ball",
+      "northwest": "premier_ball"
+    },
+    "Groudon": {
+      "north": "master_ball",
+      "east": "heavy_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "repeat_ball",
+      "southwest": "dusk_ball",
+      "northwest": "level_ball"
+    },
+    "Rayquaza": {
+      "north": "master_ball",
+      "east": "friend_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "premier_ball",
+      "southwest": "fast_ball",
+      "northwest": "level_ball"
+    },
+    "Uxie": {
+      "north": "master_ball",
+      "east": "quick_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "dusk_ball",
+      "southwest": "repeat_ball",
+      "northwest": "premier_ball"
+    },
+    "Mesprit": {
+      "north": "master_ball",
+      "east": "love_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "quick_ball",
+      "southwest": "repeat_ball",
+      "northwest": "premier_ball"
+    },
+    "Azelf": {
+      "north": "master_ball",
+      "east": "friend_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "quick_ball",
+      "southwest": "repeat_ball",
+      "northwest": "premier_ball"
+    },
+    "Dialga": {
+      "north": "master_ball",
+      "east": "heavy_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "dusk_ball",
+      "southwest": "repeat_ball",
+      "northwest": "premier_ball"
+    },
+    "Palkia": {
+      "north": "master_ball",
+      "east": "dive_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "net_ball",
+      "southwest": "repeat_ball",
+      "northwest": "premier_ball"
+    },
+    "Heatran": {
+      "north": "master_ball",
+      "east": "repeat_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "dusk_ball",
+      "southwest": "heavy_ball",
+      "northwest": "level_ball"
+    },
+    "Regigigas": {
+      "north": "master_ball",
+      "east": "heavy_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "dusk_ball",
+      "southwest": "repeat_ball",
+      "northwest": "level_ball"
+    },
+    "Giratina": {
+      "north": "master_ball",
+      "east": "dusk_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "repeat_ball",
+      "southwest": "premier_ball",
+      "northwest": "quick_ball"
+    },
+    "Cresselia": {
+      "north": "master_ball",
+      "east": "moon_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "dusk_ball",
+      "southwest": "repeat_ball",
+      "northwest": "premier_ball"
+    },
+    "Cobalion": {
+      "north": "master_ball",
+      "east": "heavy_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "repeat_ball",
+      "southwest": "dusk_ball",
+      "northwest": "premier_ball"
+    },
+    "Terrakion": {
+      "north": "master_ball",
+      "east": "heavy_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "repeat_ball",
+      "southwest": "level_ball",
+      "northwest": "fast_ball"
+    },
+    "Virizion": {
+      "north": "master_ball",
+      "east": "friend_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "nest_ball",
+      "southwest": "repeat_ball",
+      "northwest": "premier_ball"
+    },
+    "Tornadus": {
+      "north": "master_ball",
+      "east": "quick_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "fast_ball",
+      "southwest": "repeat_ball",
+      "northwest": "premier_ball"
+    },
+    "Thundurus": {
+      "north": "master_ball",
+      "east": "quick_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "fast_ball",
+      "southwest": "repeat_ball",
+      "northwest": "level_ball"
+    },
+    "Reshiram": {
+      "north": "master_ball",
+      "east": "repeat_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "premier_ball",
+      "southwest": "fast_ball",
+      "northwest": "level_ball"
+    },
+    "Zekrom": {
+      "north": "master_ball",
+      "east": "quick_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "dusk_ball",
+      "southwest": "repeat_ball",
+      "northwest": "premier_ball"
+    },
+    "Landorus": {
+      "north": "master_ball",
+      "east": "heavy_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "level_ball",
+      "southwest": "repeat_ball",
+      "northwest": "premier_ball"
+    },
+    "Kyurem": {
+      "north": "master_ball",
+      "east": "dive_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "dusk_ball",
+      "southwest": "repeat_ball",
+      "northwest": "premier_ball"
+    },
+    "Xerneas": {
+      "north": "master_ball",
+      "east": "friend_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "nest_ball",
+      "southwest": "repeat_ball",
+      "northwest": "premier_ball"
+    },
+    "Yveltal": {
+      "north": "master_ball",
+      "east": "dusk_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "repeat_ball",
+      "southwest": "premier_ball",
+      "northwest": "quick_ball"
+    },
+    "Zygarde": {
+      "north": "master_ball",
+      "east": "friend_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "nest_ball",
+      "southwest": "dusk_ball",
+      "northwest": "repeat_ball"
+    },
+    "Silvally": {
+      "north": "master_ball",
+      "east": "premier_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "repeat_ball",
+      "southwest": "quick_ball",
+      "northwest": "dusk_ball"
+    },
+    "Tapu Koko": {
+      "north": "master_ball",
+      "east": "quick_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "fast_ball",
+      "southwest": "repeat_ball",
+      "northwest": "premier_ball"
+    },
+    "Tapu Lele": {
+      "north": "master_ball",
+      "east": "love_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "heal_ball",
+      "southwest": "repeat_ball",
+      "northwest": "premier_ball"
+    },
+    "Tapu Bulu": {
+      "north": "master_ball",
+      "east": "friend_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "nest_ball",
+      "southwest": "repeat_ball",
+      "northwest": "premier_ball"
+    },
+    "Tapu Fini": {
+      "north": "master_ball",
+      "east": "dive_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "net_ball",
+      "southwest": "repeat_ball",
+      "northwest": "premier_ball"
+    },
+    "Cosmog": {
+      "north": "master_ball",
+      "east": "moon_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "premier_ball",
+      "southwest": "love_ball",
+      "northwest": "heal_ball"
+    },
+    "Cosmoem": {
+      "north": "master_ball",
+      "east": "moon_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "premier_ball",
+      "southwest": "heavy_ball",
+      "northwest": "dusk_ball"
+    },
+    "Solgaleo": {
+      "north": "master_ball",
+      "east": "ultra_ball", 
+      "south": "timer_ball",
+      "west": "luxury_ball",
+      "northeast": "premier_ball",
+      "southeast": "repeat_ball",
+      "southwest": "fast_ball",
+      "northwest": "level_ball"
+    },
+    "Lunala": {
+      "north": "master_ball",
+      "east": "moon_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "dusk_ball",
+      "southwest": "repeat_ball",
+      "northwest": "premier_ball"
+    },
+    "Necrozma": {
+      "north": "master_ball",
+      "east": "dusk_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "repeat_ball",
+      "southwest": "premier_ball",
+      "northwest": "quick_ball"
+    },
+    "Zacian": {
+      "north": "master_ball",
+      "east": "friend_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "fast_ball",
+      "southwest": "repeat_ball",
+      "northwest": "premier_ball"
+    },
+    "Zamazenta": {
+      "north": "master_ball",
+      "east": "heavy_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "repeat_ball",
+      "southwest": "premier_ball",
+      "northwest": "dusk_ball"
+    },
+    "Eternatus": {
+      "north": "master_ball",
+      "east": "dusk_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "repeat_ball",
+      "southwest": "premier_ball",
+      "northwest": "quick_ball"
+    },
+    "Kubfu": {
+      "north": "master_ball",
+      "east": "friend_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "repeat_ball",
+      "southwest": "level_ball",
+      "northwest": "fast_ball"
+    },
+    "Urshifu": {
+      "north": "master_ball",
+      "east": "friend_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "repeat_ball",
+      "southwest": "level_ball",
+      "northwest": "dusk_ball"
+    },
+    "Regieleki": {
+      "north": "master_ball",
+      "east": "quick_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "fast_ball",
+      "southwest": "repeat_ball",
+      "northwest": "premier_ball"
+    },
+    "Regidrago": {
+      "north": "master_ball",
+      "east": "repeat_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "dusk_ball",
+      "southwest": "heavy_ball",
+      "northwest": "level_ball"
+    },
+    "Glastrier": {
+      "north": "master_ball",
+      "east": "dive_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "heavy_ball",
+      "southwest": "repeat_ball",
+      "northwest": "premier_ball"
+    },
+    "Spectrier": {
+      "north": "master_ball",
+      "east": "dusk_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "quick_ball",
+      "southwest": "repeat_ball",
+      "northwest": "premier_ball"
+    },
+    "Calyrex": {
+      "north": "master_ball",
+      "east": "friend_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "nest_ball",
+      "southwest": "repeat_ball",
+      "northwest": "premier_ball"
+    },
+    "Enamorus": {
+      "north": "master_ball",
+      "east": "love_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "friend_ball",
+      "southwest": "repeat_ball",
+      "northwest": "premier_ball"
+    },
+    "Wo-Chien": {
+      "north": "master_ball",
+      "east": "friend_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "nest_ball",
+      "southwest": "dusk_ball",
+      "northwest": "repeat_ball"
+    },
+    "Chien-Pao": {
+      "north": "master_ball",
+      "east": "dive_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "dusk_ball",
+      "southwest": "quick_ball",
+      "northwest": "repeat_ball"
+    },
+    "Ting-Lu": {
+      "north": "master_ball",
+      "east": "heavy_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "dusk_ball",
+      "southwest": "repeat_ball",
+      "northwest": "level_ball"
+    },
+    "Chi-Yu": {
+      "north": "master_ball",
+      "east": "repeat_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "fast_ball",
+      "southwest": "dusk_ball",
+      "northwest": "level_ball"
+    },
+    "Koraidon": {
+      "north": "master_ball",
+      "east": "repeat_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "fast_ball",
+      "southwest": "level_ball",
+      "northwest": "premier_ball"
+    },
+    "Miraidon": {
+      "north": "master_ball",
+      "east": "quick_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "fast_ball",
+      "southwest": "repeat_ball",
+      "northwest": "premier_ball"
+    },
+    "Okidogi": {
+      "north": "master_ball",
+      "east": "friend_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "repeat_ball",
+      "southwest": "dusk_ball",
+      "northwest": "heavy_ball"
+    },
+    "Munkidori": {
+      "north": "master_ball",
+      "east": "quick_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "repeat_ball",
+      "southwest": "dusk_ball",
+      "northwest": "premier_ball"
+    },
+    "Fezandipiti": {
+      "north": "master_ball",
+      "east": "love_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "repeat_ball",
+      "southwest": "heal_ball",
+      "northwest": "premier_ball"
+    },
+    "Ogerpon": {
+      "north": "master_ball",
+      "east": "friend_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "nest_ball",
+      "southwest": "repeat_ball",
+      "northwest": "love_ball"
+    },
+    "Terapagos": {
+      "north": "master_ball",
+      "east": "heavy_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "dusk_ball",
+      "southwest": "repeat_ball",
+      "northwest": "premier_ball"
     }
   },
   "MYTHICALS": {
@@ -41,23 +711,747 @@
       "southeast": "premier_ball",
       "southwest": "nest_ball",
       "northwest": "moon_ball"
+    },
+    "Celebi": {
+      "north": "master_ball",
+      "east": "friend_ball", 
+      "south": "nest_ball",
+      "west": "luxury_ball",
+      "northeast": "heal_ball",
+      "southeast": "love_ball",
+      "southwest": "safari_ball",
+      "northwest": "sport_ball"
+    },
+    "Jirachi": {
+      "north": "master_ball",
+      "east": "moon_ball", 
+      "south": "love_ball",
+      "west": "luxury_ball",
+      "northeast": "heal_ball",
+      "southeast": "friend_ball",
+      "southwest": "premier_ball",
+      "northwest": "safari_ball"
+    },
+    "Deoxys": {
+      "north": "master_ball",
+      "east": "quick_ball", 
+      "south": "ultra_ball",
+      "west": "luxury_ball",
+      "northeast": "dusk_ball",
+      "southeast": "repeat_ball",
+      "southwest": "timer_ball",
+      "northwest": "premier_ball"
+    },
+    "Phione": {
+      "north": "master_ball",
+      "east": "dive_ball", 
+      "south": "net_ball",
+      "west": "luxury_ball",
+      "northeast": "heal_ball",
+      "southeast": "love_ball",
+      "southwest": "lure_ball",
+      "northwest": "safari_ball"
+    },
+    "Manaphy": {
+      "north": "master_ball",
+      "east": "dive_ball", 
+      "south": "love_ball",
+      "west": "luxury_ball",
+      "northeast": "heal_ball",
+      "southeast": "net_ball",
+      "southwest": "lure_ball",
+      "northwest": "friend_ball"
+    },
+    "Darkrai": {
+      "north": "master_ball",
+      "east": "dusk_ball", 
+      "south": "moon_ball",
+      "west": "luxury_ball",
+      "northeast": "timer_ball",
+      "southeast": "repeat_ball",
+      "southwest": "quick_ball",
+      "northwest": "premier_ball"
+    },
+    "Shaymin": {
+      "north": "master_ball",
+      "east": "friend_ball", 
+      "south": "nest_ball",
+      "west": "luxury_ball",
+      "northeast": "heal_ball",
+      "southeast": "love_ball",
+      "southwest": "safari_ball",
+      "northwest": "sport_ball"
+    },
+    "Arceus": {
+      "north": "master_ball",
+      "east": "premier_ball", 
+      "south": "luxury_ball",
+      "west": "ultra_ball",
+      "northeast": "timer_ball",
+      "southeast": "repeat_ball",
+      "southwest": "dusk_ball",
+      "northwest": "quick_ball"
+    },
+    "Victini": {
+      "north": "master_ball",
+      "east": "repeat_ball", 
+      "south": "friend_ball",
+      "west": "luxury_ball",
+      "northeast": "heal_ball",
+      "southeast": "love_ball",
+      "southwest": "fast_ball",
+      "northwest": "level_ball"
+    },
+    "Keldeo": {
+      "north": "master_ball",
+      "east": "dive_ball", 
+      "south": "friend_ball",
+      "west": "luxury_ball",
+      "northeast": "heal_ball",
+      "southeast": "net_ball",
+      "southwest": "lure_ball",
+      "northwest": "love_ball"
+    },
+    "Meloetta": {
+      "north": "master_ball",
+      "east": "love_ball", 
+      "south": "heal_ball",
+      "west": "luxury_ball",
+      "northeast": "friend_ball",
+      "southeast": "moon_ball",
+      "southwest": "safari_ball",
+      "northwest": "sport_ball"
+    },
+    "Genesect": {
+      "north": "master_ball",
+      "east": "quick_ball", 
+      "south": "ultra_ball",
+      "west": "luxury_ball",
+      "northeast": "dusk_ball",
+      "southeast": "repeat_ball",
+      "southwest": "timer_ball",
+      "northwest": "heavy_ball"
+    },
+    "Diancie": {
+      "north": "master_ball",
+      "east": "love_ball", 
+      "south": "luxury_ball",
+      "west": "heal_ball",
+      "northeast": "friend_ball",
+      "southeast": "premier_ball",
+      "southwest": "moon_ball",
+      "northwest": "safari_ball"
+    },
+    "Hoopa": {
+      "north": "master_ball",
+      "east": "dusk_ball", 
+      "south": "quick_ball",
+      "west": "luxury_ball",
+      "northeast": "repeat_ball",
+      "southeast": "timer_ball",
+      "southwest": "ultra_ball",
+      "northwest": "premier_ball"
+    },
+    "Volcanion": {
+      "north": "master_ball",
+      "east": "repeat_ball", 
+      "south": "dive_ball",
+      "west": "luxury_ball",
+      "northeast": "heavy_ball",
+      "southeast": "dusk_ball",
+      "southwest": "timer_ball",
+      "northwest": "ultra_ball"
+    },
+    "Magearna": {
+      "north": "master_ball",
+      "east": "heavy_ball", 
+      "south": "luxury_ball",
+      "west": "premier_ball",
+      "northeast": "ultra_ball",
+      "southeast": "timer_ball",
+      "southwest": "repeat_ball",
+      "northwest": "dusk_ball"
+    },
+    "Marshadow": {
+      "north": "master_ball",
+      "east": "dusk_ball", 
+      "south": "moon_ball",
+      "west": "luxury_ball",
+      "northeast": "quick_ball",
+      "southeast": "repeat_ball",
+      "southwest": "timer_ball",
+      "northwest": "ultra_ball"
+    },
+    "Zeraora": {
+      "north": "master_ball",
+      "east": "quick_ball", 
+      "south": "fast_ball",
+      "west": "luxury_ball",
+      "northeast": "repeat_ball",
+      "southeast": "timer_ball",
+      "southwest": "ultra_ball",
+      "northwest": "level_ball"
+    },
+    "Meltan": {
+      "north": "master_ball",
+      "east": "heavy_ball", 
+      "south": "ultra_ball",
+      "west": "luxury_ball",
+      "northeast": "dusk_ball",
+      "southeast": "repeat_ball",
+      "southwest": "timer_ball",
+      "northwest": "premier_ball"
+    },
+    "Melmetal": {
+      "north": "master_ball",
+      "east": "heavy_ball", 
+      "south": "ultra_ball",
+      "west": "luxury_ball",
+      "northeast": "dusk_ball",
+      "southeast": "repeat_ball",
+      "southwest": "timer_ball",
+      "northwest": "level_ball"
+    },
+    "Zarude": {
+      "north": "master_ball",
+      "east": "friend_ball", 
+      "south": "nest_ball",
+      "west": "luxury_ball",
+      "northeast": "dusk_ball",
+      "southeast": "repeat_ball",
+      "southwest": "safari_ball",
+      "northwest": "sport_ball"
+    },
+    "Pecharunt": {
+      "north": "master_ball",
+      "east": "love_ball", 
+      "south": "heal_ball",
+      "west": "luxury_ball",
+      "northeast": "dusk_ball",
+      "southeast": "repeat_ball",
+      "southwest": "moon_ball",
+      "northwest": "friend_ball"
+    }
+  },
+  "ULTRA_BEASTS": {
+    "Nihilego": {
+      "north": "beast_ball",
+      "east": "ultra_ball", 
+      "south": "master_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "dusk_ball",
+      "southwest": "repeat_ball",
+      "northwest": "premier_ball"
+    },
+    "Buzzwole": {
+      "north": "beast_ball",
+      "east": "ultra_ball", 
+      "south": "master_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "heavy_ball",
+      "southwest": "repeat_ball",
+      "northwest": "level_ball"
+    },
+    "Pheromosa": {
+      "north": "beast_ball",
+      "east": "ultra_ball", 
+      "south": "master_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "quick_ball",
+      "southwest": "repeat_ball",
+      "northwest": "fast_ball"
+    },
+    "Xurkitree": {
+      "north": "beast_ball",
+      "east": "ultra_ball", 
+      "south": "master_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "quick_ball",
+      "southwest": "repeat_ball",
+      "northwest": "fast_ball"
+    },
+    "Celesteela": {
+      "north": "beast_ball",
+      "east": "ultra_ball", 
+      "south": "master_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "heavy_ball",
+      "southwest": "repeat_ball",
+      "northwest": "dusk_ball"
+    },
+    "Kartana": {
+      "north": "beast_ball",
+      "east": "ultra_ball", 
+      "south": "master_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "fast_ball",
+      "southwest": "repeat_ball",
+      "northwest": "level_ball"
+    },
+    "Guzzlord": {
+      "north": "beast_ball",
+      "east": "ultra_ball", 
+      "south": "master_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "heavy_ball",
+      "southwest": "repeat_ball",
+      "northwest": "dusk_ball"
+    },
+    "Poipole": {
+      "north": "beast_ball",
+      "east": "ultra_ball", 
+      "south": "master_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "quick_ball",
+      "southwest": "repeat_ball",
+      "northwest": "heal_ball"
+    },
+    "Naganadel": {
+      "north": "beast_ball",
+      "east": "ultra_ball", 
+      "south": "master_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "quick_ball",
+      "southwest": "repeat_ball",
+      "northwest": "fast_ball"
+    },
+    "Stakataka": {
+      "north": "beast_ball",
+      "east": "ultra_ball", 
+      "south": "master_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "heavy_ball",
+      "southwest": "repeat_ball",
+      "northwest": "dusk_ball"
+    },
+    "Blacephalon": {
+      "north": "beast_ball",
+      "east": "ultra_ball", 
+      "south": "master_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "repeat_ball",
+      "southwest": "dusk_ball",
+      "northwest": "quick_ball"
+    }
+  },
+  "PARADOX": {
+    "Great Tusk": {
+      "north": "master_ball",
+      "east": "heavy_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "dusk_ball",
+      "southwest": "repeat_ball",
+      "northwest": "level_ball"
+    },
+    "Scream Tail": {
+      "north": "master_ball",
+      "east": "love_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "heal_ball",
+      "southwest": "repeat_ball",
+      "northwest": "moon_ball"
+    },
+    "Brute Bonnet": {
+      "north": "master_ball",
+      "east": "friend_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "nest_ball",
+      "southwest": "repeat_ball",
+      "northwest": "dusk_ball"
+    },
+    "Flutter Mane": {
+      "north": "master_ball",
+      "east": "dusk_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "moon_ball",
+      "southwest": "repeat_ball",
+      "northwest": "love_ball"
+    },
+    "Slither Wing": {
+      "north": "master_ball",
+      "east": "net_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "dusk_ball",
+      "southwest": "repeat_ball",
+      "northwest": "quick_ball"
+    },
+    "Sandy Shocks": {
+      "north": "master_ball",
+      "east": "quick_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "fast_ball",
+      "southwest": "repeat_ball",
+      "northwest": "level_ball"
+    },
+    "Roaring Moon": {
+      "north": "master_ball",
+      "east": "moon_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "dusk_ball",
+      "southwest": "repeat_ball",
+      "northwest": "fast_ball"
+    },
+    "Walking Wake": {
+      "north": "master_ball",
+      "east": "dive_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "net_ball",
+      "southwest": "repeat_ball",
+      "northwest": "lure_ball"
+    },
+    "Gouging Fire": {
+      "north": "master_ball",
+      "east": "repeat_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "fast_ball",
+      "southwest": "level_ball",
+      "northwest": "dusk_ball"
+    },
+    "Raging Bolt": {
+      "north": "master_ball",
+      "east": "quick_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "fast_ball",
+      "southwest": "repeat_ball",
+      "northwest": "level_ball"
+    },
+    "Iron Treads": {
+      "north": "master_ball",
+      "east": "heavy_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "repeat_ball",
+      "southwest": "dusk_ball",
+      "northwest": "premier_ball"
+    },
+    "Iron Bundle": {
+      "north": "master_ball",
+      "east": "dive_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "net_ball",
+      "southwest": "repeat_ball",
+      "northwest": "quick_ball"
+    },
+    "Iron Hands": {
+      "north": "master_ball",
+      "east": "heavy_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "repeat_ball",
+      "southwest": "level_ball",
+      "northwest": "dusk_ball"
+    },
+    "Iron Jugulis": {
+      "north": "master_ball",
+      "east": "dusk_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "repeat_ball",
+      "southwest": "quick_ball",
+      "northwest": "fast_ball"
+    },
+    "Iron Moth": {
+      "north": "master_ball",
+      "east": "repeat_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "fast_ball",
+      "southwest": "level_ball",
+      "northwest": "dusk_ball"
+    },
+    "Iron Thorns": {
+      "north": "master_ball",
+      "east": "heavy_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "repeat_ball",
+      "southwest": "dusk_ball",
+      "northwest": "level_ball"
+    },
+    "Iron Valiant": {
+      "north": "master_ball",
+      "east": "love_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "heal_ball",
+      "southwest": "repeat_ball",
+      "northwest": "friend_ball"
+    },
+    "Iron Leaves": {
+      "north": "master_ball",
+      "east": "friend_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "nest_ball",
+      "southwest": "repeat_ball",
+      "northwest": "fast_ball"
+    },
+    "Iron Boulder": {
+      "north": "master_ball",
+      "east": "heavy_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "repeat_ball",
+      "southwest": "dusk_ball",
+      "northwest": "level_ball"
+    },
+    "Iron Crown": {
+      "north": "master_ball",
+      "east": "premier_ball", 
+      "south": "ultra_ball",
+      "west": "timer_ball",
+      "northeast": "luxury_ball",
+      "southeast": "repeat_ball",
+      "southwest": "quick_ball",
+      "northwest": "dusk_ball"
+    }
+  },
+  "ULTRA_RARE": {
+    "Bulbasaur": {
+      "north": "master_ball",
+      "east": "friend_ball", 
+      "south": "nest_ball",
+      "west": "luxury_ball",
+      "northeast": "heal_ball",
+      "southeast": "love_ball",
+      "southwest": "safari_ball",
+      "northwest": "sport_ball"
+    },
+    "Ivysaur": {
+      "north": "master_ball",
+      "east": "friend_ball", 
+      "south": "nest_ball",
+      "west": "luxury_ball",
+      "northeast": "heal_ball",
+      "southeast": "love_ball",
+      "southwest": "repeat_ball",
+      "northwest": "premier_ball"
+    },
+    "Venusaur": {
+      "north": "master_ball",
+      "east": "friend_ball", 
+      "south": "nest_ball",
+      "west": "luxury_ball",
+      "northeast": "heal_ball",
+      "southeast": "love_ball",
+      "southwest": "dusk_ball",
+      "northwest": "quick_ball"
+    },
+    "Charmander": {
+      "north": "master_ball",
+      "east": "repeat_ball", 
+      "south": "fast_ball",
+      "west": "luxury_ball",
+      "northeast": "level_ball",
+      "southeast": "timer_ball",
+      "southwest": "ultra_ball",
+      "northwest": "premier_ball"
+    },
+    "Charmeleon": {
+      "north": "master_ball",
+      "east": "repeat_ball", 
+      "south": "fast_ball",
+      "west": "luxury_ball",
+      "northeast": "level_ball",
+      "southeast": "timer_ball",
+      "southwest": "dusk_ball",
+      "northwest": "quick_ball"
+    },
+    "Charizard": {
+      "north": "master_ball",
+      "east": "repeat_ball", 
+      "south": "fast_ball",
+      "west": "luxury_ball",
+      "northeast": "level_ball",
+      "southeast": "timer_ball",
+      "southwest": "heavy_ball",
+      "northwest": "premier_ball"
+    },
+    "Squirtle": {
+      "north": "master_ball",
+      "east": "dive_ball", 
+      "south": "net_ball",
+      "west": "luxury_ball",
+      "northeast": "lure_ball",
+      "southeast": "heal_ball",
+      "southwest": "love_ball",
+      "northwest": "friend_ball"
+    },
+    "Wartortle": {
+      "north": "master_ball",
+      "east": "dive_ball", 
+      "south": "net_ball",
+      "west": "luxury_ball",
+      "northeast": "lure_ball",
+      "southeast": "heal_ball",
+      "southwest": "repeat_ball",
+      "northwest": "premier_ball"
+    },
+    "Blastoise": {
+      "north": "master_ball",
+      "east": "dive_ball", 
+      "south": "net_ball",
+      "west": "luxury_ball",
+      "northeast": "lure_ball",
+      "southeast": "heal_ball",
+      "southwest": "heavy_ball",
+      "northwest": "dusk_ball"
+    },
+    "Ditto": {
+      "north": "master_ball",
+      "east": "quick_ball", 
+      "south": "ultra_ball",
+      "west": "luxury_ball",
+      "northeast": "repeat_ball",
+      "southeast": "timer_ball",
+      "southwest": "premier_ball",
+      "northwest": "dusk_ball"
+    },
+    "Espeon": {
+      "north": "master_ball",
+      "east": "love_ball", 
+      "south": "heal_ball",
+      "west": "luxury_ball",
+      "northeast": "friend_ball",
+      "southeast": "moon_ball",
+      "southwest": "premier_ball",
+      "northwest": "safari_ball"
+    },
+    "Umbreon": {
+      "north": "master_ball",
+      "east": "dusk_ball", 
+      "south": "moon_ball",
+      "west": "luxury_ball",
+      "northeast": "love_ball",
+      "southeast": "heal_ball",
+      "southwest": "friend_ball",
+      "northwest": "premier_ball"
+    },
+    "Lucario": {
+      "north": "master_ball",
+      "east": "friend_ball", 
+      "south": "ultra_ball",
+      "west": "luxury_ball",
+      "northeast": "repeat_ball",
+      "southeast": "timer_ball",
+      "southwest": "dusk_ball",
+      "northwest": "quick_ball"
     }
   },
   "RARE": {
-    "test_pokemon": {
+    "Kadabra": {
       "north": "quick_ball",
-      "east": "quick_ball", 
-      "south": "quick_ball",
-      "west": "quick_ball",
-      "northeast": "quick_ball",
-      "southeast": "quick_ball",
-      "southwest": "quick_ball",
-      "northwest": "quick_ball"
+      "east": "ultra_ball", 
+      "south": "luxury_ball"
     },
     "Alakazam": {
       "north": "quick_ball",
       "east": "ultra_ball", 
+      "south": "luxury_ball",
+      "west": "timer_ball"
+    },
+    "Chansey": {
+      "north": "heal_ball",
+      "east": "love_ball", 
       "south": "luxury_ball"
+    },
+    "Kangaskhan": {
+      "north": "love_ball",
+      "east": "heal_ball", 
+      "south": "luxury_ball"
+    },
+    "Scyther": {
+      "north": "net_ball",
+      "east": "quick_ball", 
+      "south": "luxury_ball"
+    },
+    "Pinsir": {
+      "north": "net_ball",
+      "east": "heavy_ball", 
+      "south": "luxury_ball"
+    },
+    "Vaporeon": {
+      "north": "dive_ball",
+      "east": "net_ball", 
+      "south": "luxury_ball"
+    },
+    "Jolteon": {
+      "north": "quick_ball",
+      "east": "fast_ball", 
+      "south": "luxury_ball"
+    },
+    "Flareon": {
+      "north": "repeat_ball",
+      "east": "fast_ball", 
+      "south": "luxury_ball"
+    },
+    "Porygon": {
+      "north": "premier_ball",
+      "east": "ultra_ball", 
+      "south": "luxury_ball"
+    },
+    "Snorlax": {
+      "north": "heavy_ball",
+      "east": "heal_ball", 
+      "south": "luxury_ball"
+    },
+    "Dratini": {
+      "north": "ultra_ball",
+      "east": "repeat_ball", 
+      "south": "luxury_ball"
+    },
+    "Dragonair": {
+      "north": "ultra_ball",
+      "east": "repeat_ball", 
+      "south": "luxury_ball",
+      "west": "premier_ball"
+    },
+    "Dragonite": {
+      "north": "ultra_ball",
+      "east": "repeat_ball", 
+      "south": "luxury_ball",
+      "west": "heavy_ball"
     }
   }
 }

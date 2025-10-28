@@ -5,89 +5,107 @@
 ### Root Structure
 ```
 Poke-Notifier-mc1.21.1-fabric-0.16.14/
-├── src/                          # Source code
-│   ├── main/                     # Server-side code
-│   └── client/                   # Client-side code
-├── gradle/                       # Gradle wrapper
-├── libs/                         # Local dependencies
-├── run/                          # Development runtime
-├── .github/workflows/            # CI/CD automation
-└── build.gradle                  # Build configuration
+├── src/                    # Source code
+│   ├── main/              # Server-side code
+│   └── client/            # Client-side code
+├── gradle/                # Gradle wrapper
+├── libs/                  # Local dependencies
+├── run/                   # Development runtime
+├── logs/                  # Build and runtime logs
+└── build files           # Gradle configuration
 ```
 
 ### Source Code Architecture
+```
+src/
+├── main/java/com/zehro_mc/pokenotifier/
+│   ├── PokeNotifier.java           # Main mod entry point
+│   ├── commands/                   # Command implementations
+│   ├── events/                     # Event system (swarms, hunts)
+│   ├── globalhunt/                 # Global hunt functionality
+│   ├── block/                      # Trophy blocks and entities
+│   ├── item/                       # Trophy items
+│   ├── config/                     # Configuration management
+│   ├── utils/                      # Utility classes
+│   └── mixins/                     # Minecraft code modifications
+└── client/java/com/zehro_mc/pokenotifier/client/
+    ├── PokeNotifierClient.java     # Client entry point
+    ├── PokeNotifierCustomScreen.java # Main GUI
+    └── mixins/                     # Client-side mixins
+```
 
-#### Main Module (`src/main/`)
-- **Core Package**: `com.zehro_mc.pokenotifier`
-  - Main mod entry point and initialization
-  - Configuration management (client/server)
-  - API interfaces and utilities
+### Resource Structure
+```
+src/main/resources/
+├── assets/poke-notifier/
+│   ├── lang/                       # Localization files
+│   ├── models/                     # 3D models for blocks/items
+│   ├── textures/                   # Textures for blocks/items
+│   └── blockstates/               # Block state definitions
+├── data/
+│   ├── minecraft/                  # Minecraft data overrides
+│   └── poke-notifier/             # Mod-specific data
+└── fabric.mod.json                # Mod metadata
+```
 
-- **Event Systems**: 
-  - `events/` - Core event handling and management
-  - `globalhunt/` - Global hunt event implementation
-  - `bounty/` - Bounty system mechanics
-  - `swarm/` - Swarm event coordination
+## Core Components
 
-- **Data Management**:
-  - Configuration persistence and synchronization
-  - Player data storage and backup systems
-  - Event state management
+### Event Management System
+- **SwarmEventManager**: Handles mass Pokémon spawning events
+- **GlobalHuntEvent**: Manages server-wide hunting challenges
+- **EventScheduler**: Coordinates timing and cleanup of events
 
-#### Client Module (`src/client/`)
-- **GUI Framework**: Custom screen implementations
-- **Notification Systems**: HUD overlays and alerts
-- **Client Configuration**: User preference management
-- **Integration Handlers**: Xaero's map integration
+### GUI System
+- **PokeNotifierCustomScreen**: Main configuration interface
+- **Role-based tabs**: Different interfaces for players vs admins
+- **Interactive panels**: Real-time feedback and controls
 
-### Core Components & Relationships
+### Trophy System
+- **Trophy Items**: Physical rewards for generation completion
+- **Trophy Blocks**: Display pedestals and altars
+- **TrophyAltarBlockEntity**: Handles trophy placement and effects
 
-#### Configuration System
-- **ConfigManager**: Central configuration coordinator
-- **ConfigClient**: Client-side settings and preferences
-- **ConfigServer**: Server-side administrative settings
-- **Synchronization**: Real-time config sync between client/server
+### Integration Layer
+- **Xaero's Minimap**: Waypoint creation and management
+- **Cobblemon API**: Pokémon data and event integration
+- **AdvancementPlaques**: Enhanced notification display
 
-#### Event Management Architecture
-- **Event Managers**: Specialized handlers for each event type
-- **State Persistence**: Event progress and player participation tracking
-- **Notification Pipeline**: Multi-channel alert distribution system
+## Architectural Patterns
 
-#### GUI Framework
-- **PokeNotifierCustomScreen**: Main interface controller
-- **Role-Based Rendering**: Dynamic UI adaptation based on permissions
-- **Interactive Components**: Custom widgets and input handlers
-- **Response System**: In-GUI feedback and status display
+### Client-Server Split
+- **Server-side**: Event logic, data persistence, command processing
+- **Client-side**: GUI rendering, local notifications, map integration
+- **Shared**: Configuration classes, utility functions
 
-#### API Layer
-- **PokeNotifierApi**: Public interface for external integrations
-- **Event Hooks**: Extensible event system for third-party mods
-- **Data Access**: Controlled access to internal systems
+### Event-Driven Architecture
+- **Cobblemon Events**: Hook into Pokémon catch/spawn events
+- **Custom Events**: Swarm creation, hunt completion, trophy placement
+- **Event Listeners**: Modular handlers for different event types
 
-### Architectural Patterns
+### Configuration Management
+- **JSON-based**: Human-readable configuration files
+- **Hot-reload**: Runtime configuration updates without restart
+- **Validation**: Type checking and constraint enforcement
 
-#### Client-Server Split Architecture
-- Clear separation between client and server responsibilities
-- Secure administrative functions isolated to server-side
-- Efficient data synchronization protocols
+### Data Persistence
+- **Player Progress**: Individual hunt lists and completion status
+- **Server State**: Active events, statistics, system status
+- **Backup System**: Automatic data backup and rollback capabilities
 
-#### Event-Driven Design
-- Modular event system with pluggable handlers
-- Asynchronous processing for performance optimization
-- Centralized event coordination and state management
+## Dependencies and Integration
 
-#### Configuration-First Approach
-- Extensive configurability for all major features
-- Runtime configuration updates without restarts
-- Hierarchical permission-based access control
+### Required Dependencies
+- **Minecraft 1.21.1**: Base game platform
+- **Fabric Loader 0.17.3+**: Mod loading framework
+- **Fabric API**: Core Fabric functionality
+- **Cobblemon 1.6.1+**: Pokémon game integration
 
-#### Integration-Ready Framework
-- Modular design supporting optional dependencies
-- Runtime detection of compatible mods
-- Graceful degradation when dependencies unavailable
+### Optional Integrations
+- **Xaero's Minimap/World Map**: Enhanced navigation
+- **AdvancementPlaques + Iceberg**: Stylized notifications
+- **ModMenu**: Configuration access in mod menu
 
-### Build System Integration
-- **Fabric Loom**: Minecraft mod development framework
-- **Multi-Environment**: Separate client/server source sets
-- **Dependency Management**: Local libs + Maven repositories
-- **Automated Deployment**: Custom tasks for test environment deployment
+### Build System
+- **Gradle 8.8**: Build automation and dependency management
+- **Fabric Loom**: Minecraft mod development toolchain
+- **Custom Tasks**: Automated deployment to test environments
