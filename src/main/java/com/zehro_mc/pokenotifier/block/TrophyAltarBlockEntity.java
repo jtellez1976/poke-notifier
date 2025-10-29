@@ -937,7 +937,7 @@ public class TrophyAltarBlockEntity extends BlockEntity {
             JsonObject jsonObject = gson.fromJson(new InputStreamReader(inputStream), JsonObject.class);
             
             // Load all categories
-            for (String category : Arrays.asList("LEGENDARIES", "MYTHICALS", "ULTRA_BEASTS", "PARADOX", "ULTRA_RARE", "RARE")) {
+            for (String category : Arrays.asList("LEGENDARIES", "MYTHICALS", "ULTRA_BEASTS", "PARADOX", "ULTRA_RARE", "RARE", "UNCOMMON")) {
                 if (jsonObject.has(category)) {
                     JsonObject categoryObject = jsonObject.getAsJsonObject(category);
                     for (Map.Entry<String, JsonElement> entry : categoryObject.entrySet()) {
