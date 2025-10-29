@@ -28,27 +28,7 @@ public class TrophyPedestalBlockEntityRenderer implements BlockEntityRenderer<Tr
     @Override
     public void render(TrophyPedestalBlockEntity blockEntity, float tickDelta, MatrixStack matrices, 
                       VertexConsumerProvider vertexConsumers, int light, int overlay) {
-        ItemStack trophy = blockEntity.getTrophy();
-        if (trophy.isEmpty()) {
-            return;
-        }
-
-        matrices.push();
-        
-        // Position the trophy on top of the pedestal
-        matrices.translate(0.5, 1.2, 0.5);
-        
-        // Rotate the trophy slowly
-        long time = blockEntity.getWorld().getTime();
-        float rotation = (time + tickDelta) * 2.0f;
-        matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(rotation));
-        
-        // Scale the trophy slightly
-        matrices.scale(0.8f, 0.8f, 0.8f);
-        
-        // Render the trophy
-        itemRenderer.renderItem(trophy, ModelTransformationMode.GROUND, light, overlay, matrices, vertexConsumers, blockEntity.getWorld(), 0);
-        
-        matrices.pop();
+        // No renderizar nada - todo se maneja via display blocks
+        // Esto elimina completamente los conflictos de renderizado
     }
 }

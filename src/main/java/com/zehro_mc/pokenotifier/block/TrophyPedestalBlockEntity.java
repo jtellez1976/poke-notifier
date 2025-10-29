@@ -33,8 +33,44 @@ public class TrophyPedestalBlockEntity extends BlockEntity {
     }
 
     public void setTrophy(ItemStack trophy) {
+        ItemStack oldTrophy = inventory.get(0);
         inventory.set(0, trophy);
         markDirty();
+        
+        // SIEMPRE usar display block para renderizado
+        if (world != null && !world.isClient) {
+            BlockPos displayPos = pos.up();
+            
+            // Remover display anterior si existe
+            if (world.getBlockState(displayPos).getBlock() instanceof com.zehro_mc.pokenotifier.block.TrophyDisplayBlock) {
+                world.removeBlock(displayPos, false);
+            }
+            
+            // Crear display para cualquier item (trophy o pokeball)
+            if (!trophy.isEmpty()) {
+                world.setBlockState(displayPos, com.zehro_mc.pokenotifier.block.ModBlocks.TROPHY_DISPLAY_BLOCK.getDefaultState());
+                if (world.getBlockEntity(displayPos) instanceof com.zehro_mc.pokenotifier.block.entity.TrophyDisplayBlockEntity displayEntity) {
+                    String itemId = net.minecraft.registry.Registries.ITEM.getId(trophy.getItem()).toString();
+                    displayEntity.setTrophyData(itemId, "pedestal");
+                }
+            }
+        }
+        
+        syncToClients();
+    }
+    
+    public boolean isTrophy(ItemStack item) {
+        if (item.isEmpty()) return false;
+        String itemName = item.getName().getString();
+        return itemName.contains("Trophy");
+    }
+    
+    public void forceSync() {
+        markDirty();
+        syncToClients();
+    }
+    
+    private void syncToClients() {
         if (world != null && !world.isClient) {
             // Sincronización completa cliente-servidor
             BlockState state = getCachedState();
@@ -78,11 +114,7 @@ public class TrophyPedestalBlockEntity extends BlockEntity {
 
     public ItemStack removeTrophy() {
         ItemStack trophy = getTrophy();
-        setTrophy(ItemStack.EMPTY);
-        markDirty();
-        if (world != null && !world.isClient) {
-            world.updateListeners(pos, getCachedState(), getCachedState(), 3);
-        }
+        setTrophy(ItemStack.EMPTY); // Usar método público para consistencia
         return trophy;
     }
 

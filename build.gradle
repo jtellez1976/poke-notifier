@@ -34,7 +34,6 @@ repositories {
 
 loom {
 	splitEnvironmentSourceSets()
-
 }
 
 dependencies {
@@ -139,6 +138,20 @@ task copyModToVanillaLauncher(type: Copy) {
 	into modsDir
 }
 
+task copyModToModrinth(type: Copy) {
+	// Define the path to your Modrinth launcher's mods folder.
+	def modsDir = file("C:/Users/JOHN/AppData/Roaming/ModrinthApp/profiles/COBBLEVERSE - Pokemon Adventure [Cobblemon]/mods")
+	onlyIf { modsDir.exists() }
+
+	doFirst {
+		delete(fileTree(modsDir) {
+			include "${project.archives_base_name}-*.jar"
+		})
+	}
+	from remapJar.archiveFile
+	into modsDir
+}
+
 // --- Custom Task to Start the Test Server ---
 // This task runs after a successful deployment to automatically start your test server.
 task startTestServer {
@@ -154,7 +167,7 @@ task startTestServer {
 
 // A container task that runs both copy tasks and then starts the server.
 task deployToTest {
-	dependsOn copyModToClient, copyModToServer, copyModToVanillaLauncher
+	dependsOn copyModToClient, copyModToServer, copyModToVanillaLauncher, copyModToModrinth
 	// After deploying, trigger the server start.
 	finalizedBy startTestServer
 	doLast {

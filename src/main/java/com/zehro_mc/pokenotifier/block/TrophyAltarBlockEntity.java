@@ -562,6 +562,8 @@ public class TrophyAltarBlockEntity extends BlockEntity {
         nbt.putBoolean("showingPreview", showingPreview);
         nbt.putBoolean("isSummoning", isSummoning);
         nbt.putInt("summoningTimer", summoningTimer);
+        nbt.putBoolean("isAnimatingPokeballs", isAnimatingPokeballs);
+        nbt.putInt("animationPhase", animationPhase);
         if (pendingPokemon != null) {
             nbt.putString("pendingPokemon", pendingPokemon);
         }
@@ -577,8 +579,15 @@ public class TrophyAltarBlockEntity extends BlockEntity {
         showingPreview = nbt.getBoolean("showingPreview");
         isSummoning = nbt.getBoolean("isSummoning");
         summoningTimer = nbt.getInt("summoningTimer");
+        isAnimatingPokeballs = nbt.getBoolean("isAnimatingPokeballs");
+        animationPhase = nbt.getInt("animationPhase");
         if (nbt.contains("pendingPokemon")) {
             pendingPokemon = nbt.getString("pendingPokemon");
+        }
+        
+        // Limpiar lista de pokeballs flotantes al cargar (no se pueden serializar entidades)
+        if (isAnimatingPokeballs) {
+            floatingPokeballs.clear();
         }
     }
 
@@ -602,15 +611,25 @@ public class TrophyAltarBlockEntity extends BlockEntity {
         if (blockEntity.isSummoning) {
             blockEntity.summoningTimer++;
             
-            // FASE 2: Dragon Death Flash después de 60 ticks (3 segundos)
+            // FASE 0: Animación de pokeballs (0-60 ticks)
+            if (blockEntity.summoningTimer <= 60) {
+                blockEntity.updatePokeballAnimation();
+            }
+            
+            // FASE 1: Efectos pre-invocación después de animación (60 ticks)
             if (blockEntity.summoningTimer == 60) {
+                blockEntity.spawnPreSummonEffects();
+            }
+            
+            // FASE 2: Dragon Death Flash después de 100 ticks (5 segundos)
+            if (blockEntity.summoningTimer == 100) {
                 blockEntity.spawnDragonDeathFlash();
                 blockEntity.consumePokeballs();
                 blockEntity.burnRedstoneBlocks();
             }
             
-            // FASE 3: Invocar Pokémon después de 80 ticks (4 segundos total)
-            if (blockEntity.summoningTimer >= 80) {
+            // FASE 3: Invocar Pokémon después de 120 ticks (6 segundos total)
+            if (blockEntity.summoningTimer >= 120) {
                 if (blockEntity.pendingPokemon != null) {
                     blockEntity.summonPokemon(blockEntity.pendingPokemon);
                 }
@@ -619,6 +638,7 @@ public class TrophyAltarBlockEntity extends BlockEntity {
                 blockEntity.isSummoning = false;
                 blockEntity.pendingPokemon = null;
                 blockEntity.summoningTimer = 0;
+                blockEntity.cleanupPokeballAnimation();
                 blockEntity.markDirty();
             }
         }
@@ -950,6 +970,11 @@ public class TrophyAltarBlockEntity extends BlockEntity {
     private int summoningTimer = 0;
     private boolean isSummoning = false;
     
+    // Variables para animación de pokeballs flotantes
+    private java.util.List<net.minecraft.entity.ItemEntity> floatingPokeballs = new java.util.ArrayList<>();
+    private boolean isAnimatingPokeballs = false;
+    private int animationPhase = 0; // 0=elevación, 1=convergencia, 2=fusión
+    
     private void startSummoningSequence(String pokemonName) {
         if (world == null || world.isClient) return;
         
@@ -958,8 +983,8 @@ public class TrophyAltarBlockEntity extends BlockEntity {
         summoningTimer = 0;
         isSummoning = true;
         
-        // FASE 1: Efectos pre-invocación inmediatos
-        spawnPreSummonEffects();
+        // NUEVA FASE 0: Animación de pokeballs flotantes
+        startPokeballAnimation();
         
         markDirty(); // Guardar el estado
     }
@@ -1077,8 +1102,6 @@ public class TrophyAltarBlockEntity extends BlockEntity {
     private void consumePokeballs() {
         if (world == null || world.isClient) return;
         
-        net.minecraft.server.world.ServerWorld serverWorld = (net.minecraft.server.world.ServerWorld) world;
-        
         // Consumir todas las pokeballs de los pedestales
         int[][] pedestalOffsets = {
             {0, 0, -3}, {3, 0, 0}, {0, 0, 3}, {-3, 0, 0},
@@ -1089,11 +1112,8 @@ public class TrophyAltarBlockEntity extends BlockEntity {
             BlockPos pedestalPos = pos.add(offset[0], offset[1], offset[2]);
             if (world.getBlockEntity(pedestalPos) instanceof TrophyPedestalBlockEntity pedestal) {
                 if (pedestal.hasTrophy()) {
-                    // Usar el método setTrophy para sincronización correcta
+                    // Usar método público para consistencia
                     pedestal.setTrophy(ItemStack.EMPTY);
-                    
-                    // Forzar actualización inmediata del cliente
-                    serverWorld.getChunkManager().markForUpdate(pedestalPos);
                 }
             }
         }
@@ -1253,6 +1273,287 @@ public class TrophyAltarBlockEntity extends BlockEntity {
         }
     }
     
+    private void startPokeballAnimation() {
+        if (world == null || world.isClient) return;
+        
+        net.minecraft.server.world.ServerWorld serverWorld = (net.minecraft.server.world.ServerWorld) world;
+        floatingPokeballs.clear();
+        
+        // OCULTAR display blocks durante la animación
+        hideDisplayBlocksDuringAnimation();
+        
+        // Crear entidades flotantes para cada pokeball en los pedestales
+        int[][] pedestalOffsets = {
+            {0, 0, -3}, {3, 0, 0}, {0, 0, 3}, {-3, 0, 0},
+            {2, 0, -2}, {2, 0, 2}, {-2, 0, 2}, {-2, 0, -2}
+        };
+        
+        for (int[] offset : pedestalOffsets) {
+            BlockPos pedestalPos = pos.add(offset[0], offset[1], offset[2]);
+            if (world.getBlockEntity(pedestalPos) instanceof TrophyPedestalBlockEntity pedestal) {
+                if (pedestal.hasTrophy()) {
+                    ItemStack pokeball = pedestal.getTrophy().copy();
+                    
+                    // Crear entidad flotante
+                    net.minecraft.entity.ItemEntity floatingItem = new net.minecraft.entity.ItemEntity(
+                        serverWorld, 
+                        pedestalPos.getX() + 0.5, 
+                        pedestalPos.getY() + 1.2, 
+                        pedestalPos.getZ() + 0.5, 
+                        pokeball
+                    );
+                    
+                    // Configurar para que no se recoja y no tenga gravedad
+                    floatingItem.setPickupDelay(Integer.MAX_VALUE);
+                    floatingItem.setNoGravity(true);
+                    floatingItem.setVelocity(0, 0.1, 0); // Velocidad inicial hacia arriba
+                    
+                    // Spawnear y agregar a la lista
+                    if (serverWorld.spawnEntity(floatingItem)) {
+                        floatingPokeballs.add(floatingItem);
+                    }
+                }
+            }
+        }
+        
+        isAnimatingPokeballs = true;
+        animationPhase = 0;
+        
+        // Sonido de inicio de animación
+        world.playSound(null, pos, net.minecraft.sound.SoundEvents.BLOCK_ENCHANTMENT_TABLE_USE, 
+            net.minecraft.sound.SoundCategory.BLOCKS, 0.8f, 1.2f);
+    }
+    
+    private void updatePokeballAnimation() {
+        if (world == null || world.isClient || !isAnimatingPokeballs) return;
+        
+        // Limpiar entidades muertas
+        floatingPokeballs.removeIf(entity -> !entity.isAlive() || entity.isRemoved());
+        
+        if (floatingPokeballs.isEmpty()) return;
+        
+        int animationTick = summoningTimer;
+        
+        // FASE 1: Elevación (0-15 ticks)
+        if (animationTick <= 15) {
+            animationPhase = 0;
+            for (net.minecraft.entity.ItemEntity pokeball : floatingPokeballs) {
+                // Elevación suave con rotación
+                pokeball.setVelocity(0, 0.1, 0);
+                pokeball.setYaw(pokeball.getYaw() + 8); // Rotación lenta
+                
+                // Partículas mágicas siguiendo cada pokeball
+                spawnPokeballTrail(pokeball);
+            }
+        }
+        // FASE 2: Espiral Horaria (16-40 ticks)
+        else if (animationTick <= 40) {
+            if (animationPhase != 1) {
+                animationPhase = 1;
+                // Sonido de espiral
+                world.playSound(null, pos, net.minecraft.sound.SoundEvents.BLOCK_BEACON_POWER_SELECT, 
+                    net.minecraft.sound.SoundCategory.BLOCKS, 0.6f, 1.5f);
+            }
+            
+            for (int i = 0; i < floatingPokeballs.size(); i++) {
+                net.minecraft.entity.ItemEntity pokeball = floatingPokeballs.get(i);
+                
+                // Progreso suave de 0 a 1
+                double spiralProgress = (animationTick - 15) / 25.0;
+                
+                // Ángulo base fijo para cada pokeball
+                double baseAngle = (i * Math.PI * 2) / floatingPokeballs.size();
+                
+                // Espiral suave hacia el centro
+                double currentRadius = 2.5 - (spiralProgress * 1.5); // De 2.5 a 1.0 bloques
+                double currentHeight = pos.getY() + 2.5;
+                
+                // Posición objetivo en círculo
+                double targetX = pos.getX() + 0.5 + Math.cos(baseAngle) * currentRadius;
+                double targetZ = pos.getZ() + 0.5 + Math.sin(baseAngle) * currentRadius;
+                
+                // Movimiento suave hacia la posición
+                pokeball.setPos(targetX, currentHeight, targetZ);
+                pokeball.setVelocity(0, 0, 0); // Sin velocidad errática
+                pokeball.setYaw(pokeball.getYaw() + 8); // Rotación constante
+                
+                // Trails de espiral
+                spawnSpiralTrail(pokeball);
+            }
+        }
+        // FASE 3: Convergencia Final (41-55 ticks)
+        else if (animationTick <= 55) {
+            if (animationPhase != 2) {
+                animationPhase = 2;
+                // Sonido de convergencia
+                world.playSound(null, pos, net.minecraft.sound.SoundEvents.BLOCK_RESPAWN_ANCHOR_CHARGE, 
+                    net.minecraft.sound.SoundCategory.BLOCKS, 0.8f, 1.2f);
+            }
+            
+            // Progreso de convergencia
+            double convergenceProgress = (animationTick - 40) / 15.0; // 0 a 1
+            
+            for (int i = 0; i < floatingPokeballs.size(); i++) {
+                net.minecraft.entity.ItemEntity pokeball = floatingPokeballs.get(i);
+                
+                // Posición inicial (final de espiral)
+                double baseAngle = (i * Math.PI * 2) / floatingPokeballs.size();
+                double startX = pos.getX() + 0.5 + Math.cos(baseAngle) * 1.0;
+                double startZ = pos.getZ() + 0.5 + Math.sin(baseAngle) * 1.0;
+                
+                // Posición final (centro)
+                double endX = pos.getX() + 0.5;
+                double endZ = pos.getZ() + 0.5;
+                
+                // Interpolación suave
+                double currentX = startX + (endX - startX) * convergenceProgress;
+                double currentZ = startZ + (endZ - startZ) * convergenceProgress;
+                double currentY = pos.getY() + 2.5 + (0.5 * convergenceProgress); // Subir ligeramente
+                
+                pokeball.setPos(currentX, currentY, currentZ);
+                pokeball.setVelocity(0, 0, 0);
+                pokeball.setYaw(pokeball.getYaw() + 12); // Rotación media
+                
+                // Trails intensos durante convergencia
+                spawnConvergenceTrail(pokeball);
+            }
+        }
+        // FASE 4: Fusión y Desvanecimiento (56-60 ticks)
+        else if (animationTick <= 60) {
+            if (animationPhase != 3) {
+                animationPhase = 3;
+                // Sonido de fusión
+                world.playSound(null, pos, net.minecraft.sound.SoundEvents.ITEM_TOTEM_USE, 
+                    net.minecraft.sound.SoundCategory.BLOCKS, 1.0f, 0.8f);
+            }
+            
+            // Desvanecimiento gradual de pokeballs
+            if (animationTick >= 58) {
+                // Últimos 2 ticks - remover pokeballs con efectos
+                for (net.minecraft.entity.ItemEntity pokeball : floatingPokeballs) {
+                    // Efectos finales de desvanecimiento
+                    spawnDisappearEffects(pokeball);
+                    pokeball.discard();
+                }
+                floatingPokeballs.clear();
+            } else {
+                // Convergencia y efectos de fusión
+                for (net.minecraft.entity.ItemEntity pokeball : floatingPokeballs) {
+                    pokeball.setPos(pos.getX() + 0.5, pos.getY() + 3.0, pos.getZ() + 0.5);
+                    pokeball.setVelocity(0, 0, 0);
+                    pokeball.setYaw(pokeball.getYaw() + 25); // Rotación muy rápida
+                    
+                    // Efectos de fusión intensos
+                    spawnFusionEffects(pokeball);
+                }
+            }
+        }
+    }
+    
+    private void spawnPokeballTrail(net.minecraft.entity.ItemEntity pokeball) {
+        if (world == null || world.isClient) return;
+        
+        net.minecraft.server.world.ServerWorld serverWorld = (net.minecraft.server.world.ServerWorld) world;
+        
+        // Partículas mágicas siguiendo la pokeball
+        for (int i = 0; i < 3; i++) {
+            double x = pokeball.getX() + (Math.random() - 0.5) * 0.3;
+            double y = pokeball.getY() + (Math.random() - 0.5) * 0.3;
+            double z = pokeball.getZ() + (Math.random() - 0.5) * 0.3;
+            
+            serverWorld.spawnParticles(net.minecraft.particle.ParticleTypes.WITCH, 
+                x, y, z, 1, 0, 0.02, 0, 0.01);
+        }
+    }
+    
+    private void spawnSpiralTrail(net.minecraft.entity.ItemEntity pokeball) {
+        if (world == null || world.isClient) return;
+        
+        net.minecraft.server.world.ServerWorld serverWorld = (net.minecraft.server.world.ServerWorld) world;
+        
+        // Efectos especiales para movimiento en espiral
+        for (int i = 0; i < 4; i++) {
+            double x = pokeball.getX() + (Math.random() - 0.5) * 0.3;
+            double y = pokeball.getY() + (Math.random() - 0.5) * 0.3;
+            double z = pokeball.getZ() + (Math.random() - 0.5) * 0.3;
+            
+            serverWorld.spawnParticles(net.minecraft.particle.ParticleTypes.PORTAL, 
+                x, y, z, 1, 0, 0.03, 0, 0.015);
+            serverWorld.spawnParticles(net.minecraft.particle.ParticleTypes.DRAGON_BREATH, 
+                x, y, z, 1, 0, 0.02, 0, 0.01);
+        }
+    }
+    
+    private void spawnConvergenceTrail(net.minecraft.entity.ItemEntity pokeball) {
+        if (world == null || world.isClient) return;
+        
+        net.minecraft.server.world.ServerWorld serverWorld = (net.minecraft.server.world.ServerWorld) world;
+        
+        // Trails más intensos durante convergencia
+        for (int i = 0; i < 5; i++) {
+            double x = pokeball.getX() + (Math.random() - 0.5) * 0.2;
+            double y = pokeball.getY() + (Math.random() - 0.5) * 0.2;
+            double z = pokeball.getZ() + (Math.random() - 0.5) * 0.2;
+            
+            serverWorld.spawnParticles(net.minecraft.particle.ParticleTypes.ENCHANT, 
+                x, y, z, 1, 0, 0.05, 0, 0.02);
+            serverWorld.spawnParticles(net.minecraft.particle.ParticleTypes.END_ROD, 
+                x, y, z, 1, 0, 0.02, 0, 0.01);
+        }
+    }
+    
+    private void spawnFusionEffects(net.minecraft.entity.ItemEntity pokeball) {
+        if (world == null || world.isClient) return;
+        
+        net.minecraft.server.world.ServerWorld serverWorld = (net.minecraft.server.world.ServerWorld) world;
+        
+        // Efectos intensos de fusión
+        for (int i = 0; i < 8; i++) {
+            double x = pokeball.getX() + (Math.random() - 0.5) * 0.5;
+            double y = pokeball.getY() + (Math.random() - 0.5) * 0.5;
+            double z = pokeball.getZ() + (Math.random() - 0.5) * 0.5;
+            
+            serverWorld.spawnParticles(net.minecraft.particle.ParticleTypes.SOUL_FIRE_FLAME, 
+                x, y, z, 1, 0, 0.1, 0, 0.05);
+            serverWorld.spawnParticles(net.minecraft.particle.ParticleTypes.DRAGON_BREATH, 
+                x, y, z, 1, 0.1, 0.1, 0.1, 0.03);
+        }
+    }
+    
+    private void spawnDisappearEffects(net.minecraft.entity.ItemEntity pokeball) {
+        if (world == null || world.isClient) return;
+        
+        net.minecraft.server.world.ServerWorld serverWorld = (net.minecraft.server.world.ServerWorld) world;
+        
+        // Efectos de desvanecimiento mágico
+        for (int i = 0; i < 15; i++) {
+            double x = pokeball.getX() + (Math.random() - 0.5) * 0.8;
+            double y = pokeball.getY() + (Math.random() - 0.5) * 0.8;
+            double z = pokeball.getZ() + (Math.random() - 0.5) * 0.8;
+            
+            serverWorld.spawnParticles(net.minecraft.particle.ParticleTypes.TOTEM_OF_UNDYING, 
+                x, y, z, 1, 0, 0.2, 0, 0.1);
+            serverWorld.spawnParticles(net.minecraft.particle.ParticleTypes.ENCHANT, 
+                x, y, z, 1, 0, 0.1, 0, 0.05);
+        }
+    }
+    
+    private void cleanupPokeballAnimation() {
+        // Remover todas las entidades flotantes
+        for (net.minecraft.entity.ItemEntity pokeball : floatingPokeballs) {
+            if (pokeball.isAlive() && !pokeball.isRemoved()) {
+                pokeball.discard();
+            }
+        }
+        
+        floatingPokeballs.clear();
+        isAnimatingPokeballs = false;
+        animationPhase = 0;
+        
+        // RESTAURAR display blocks después de la animación
+        restoreDisplayBlocksAfterAnimation();
+    }
+    
     public void giveGuideBookIfNeeded(net.minecraft.server.network.ServerPlayerEntity player) {
         // Verificar si ya tiene el libro en el inventario
         if (hasGuideBook(player)) {
@@ -1366,5 +1667,51 @@ public class TrophyAltarBlockEntity extends BlockEntity {
                 .append(net.minecraft.text.Text.literal("§7Experiment to find more!"))));
         
         return pages;
+    }
+    
+    private void hideDisplayBlocksDuringAnimation() {
+        if (world == null || world.isClient) return;
+        
+        int[][] pedestalOffsets = {
+            {0, 0, -3}, {3, 0, 0}, {0, 0, 3}, {-3, 0, 0},
+            {2, 0, -2}, {2, 0, 2}, {-2, 0, 2}, {-2, 0, -2}
+        };
+        
+        for (int[] offset : pedestalOffsets) {
+            BlockPos pedestalPos = pos.add(offset[0], offset[1], offset[2]);
+            BlockPos displayPos = pedestalPos.up();
+            
+            // Temporalmente remover display blocks
+            if (world.getBlockState(displayPos).getBlock() instanceof com.zehro_mc.pokenotifier.block.TrophyDisplayBlock) {
+                world.removeBlock(displayPos, false);
+            }
+        }
+    }
+    
+    private void restoreDisplayBlocksAfterAnimation() {
+        if (world == null || world.isClient) return;
+        
+        int[][] pedestalOffsets = {
+            {0, 0, -3}, {3, 0, 0}, {0, 0, 3}, {-3, 0, 0},
+            {2, 0, -2}, {2, 0, 2}, {-2, 0, 2}, {-2, 0, -2}
+        };
+        
+        for (int[] offset : pedestalOffsets) {
+            BlockPos pedestalPos = pos.add(offset[0], offset[1], offset[2]);
+            
+            if (world.getBlockEntity(pedestalPos) instanceof TrophyPedestalBlockEntity pedestal) {
+                if (pedestal.hasTrophy()) {
+                    // Recrear display block si el pedestal aún tiene item
+                    BlockPos displayPos = pedestalPos.up();
+                    if (world.getBlockState(displayPos).isAir()) {
+                        world.setBlockState(displayPos, com.zehro_mc.pokenotifier.block.ModBlocks.TROPHY_DISPLAY_BLOCK.getDefaultState());
+                        if (world.getBlockEntity(displayPos) instanceof com.zehro_mc.pokenotifier.block.entity.TrophyDisplayBlockEntity displayEntity) {
+                            String itemId = net.minecraft.registry.Registries.ITEM.getId(pedestal.getTrophy().getItem()).toString();
+                            displayEntity.setTrophyData(itemId, "pedestal");
+                        }
+                    }
+                }
+            }
+        }
     }
 }
