@@ -546,6 +546,9 @@ public class PokeNotifier implements ModInitializer {
             
             // --- NEW: Sync update source with client ---
             ServerPlayNetworking.send(player, new UpdateSourceSyncPayload(config.update_checker_source));
+            
+            // --- NEW: Sync event configuration with client ---
+            sendEventConfigSync(player);
 
             PlayerRankManager.onPlayerJoin(player);
         });
@@ -1170,6 +1173,61 @@ public class PokeNotifier implements ModInitializer {
                 }
             });
         });
+
+        // Handle event configuration updates from client
+        ServerPlayNetworking.registerGlobalReceiver(EventConfigPayload.ID, (payload, context) -> {
+            ServerPlayerEntity player = context.player();
+            
+            context.server().execute(() -> {
+                if (!player.hasPermissionLevel(2)) {
+                    return;
+                }
+                
+                ConfigServer config = ConfigManager.getServerConfig();
+                
+                switch (payload.eventType()) {
+                    case "bounty" -> {
+                        switch (payload.configKey()) {
+                            case "check_interval_seconds" -> config.bounty_check_interval_seconds = Integer.parseInt(payload.value());
+                            case "start_chance_percent" -> config.bounty_start_chance_percent = Integer.parseInt(payload.value());
+                            case "duration_minutes" -> config.bounty_duration_minutes = Integer.parseInt(payload.value());
+                            case "reminder_interval_minutes" -> config.bounty_reminder_interval_minutes = Integer.parseInt(payload.value());
+                        }
+                    }
+                    case "rival" -> {
+                        switch (payload.configKey()) {
+                            case "cooldown_seconds" -> config.rival_notification_cooldown_seconds = Integer.parseInt(payload.value());
+                            case "override_distance" -> config.rival_notification_override_distance = Integer.parseInt(payload.value());
+                        }
+                    }
+                }
+                
+                ConfigManager.saveServerConfigToFile();
+                
+                // Send updated values back to all clients
+                for (ServerPlayerEntity onlinePlayer : context.server().getPlayerManager().getPlayerList()) {
+                    sendEventConfigSync(onlinePlayer);
+                }
+            });
+        });
+    }
+
+    private static void sendEventConfigSync(ServerPlayerEntity player) {
+        ConfigServer config = ConfigManager.getServerConfig();
+        
+        // Bounty settings
+        Map<String, String> bountyConfigs = new java.util.HashMap<>();
+        bountyConfigs.put("check_interval_seconds", String.valueOf(config.bounty_check_interval_seconds));
+        bountyConfigs.put("start_chance_percent", String.valueOf(config.bounty_start_chance_percent));
+        bountyConfigs.put("duration_minutes", String.valueOf(config.bounty_duration_minutes));
+        bountyConfigs.put("reminder_interval_minutes", String.valueOf(config.bounty_reminder_interval_minutes));
+        ServerPlayNetworking.send(player, new EventConfigSyncPayload("bounty", bountyConfigs));
+        
+        // Rival settings
+        Map<String, String> rivalConfigs = new java.util.HashMap<>();
+        rivalConfigs.put("cooldown_seconds", String.valueOf(config.rival_notification_cooldown_seconds));
+        rivalConfigs.put("override_distance", String.valueOf(config.rival_notification_override_distance));
+        ServerPlayNetworking.send(player, new EventConfigSyncPayload("rival", rivalConfigs));
     }
 
     /**

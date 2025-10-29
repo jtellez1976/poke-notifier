@@ -21,6 +21,7 @@ public class PokeNotifierPayloads {
         PayloadTypeRegistry.playS2C().register(GlobalHuntPayload.ID, GlobalHuntPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(UpdateSourceSyncPayload.ID, UpdateSourceSyncPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(SwarmStatusPayload.ID, SwarmStatusPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(EventConfigSyncPayload.ID, EventConfigSyncPayload.CODEC);
 
         // These payloads are sent from the client to the server.
         // They must also be registered on both sides.
@@ -29,6 +30,7 @@ public class PokeNotifierPayloads {
         PayloadTypeRegistry.playC2S().register(UpdateSourcePayload.ID, UpdateSourcePayload.CODEC);
         PayloadTypeRegistry.playC2S().register(AdminCommandPayload.ID, AdminCommandPayload.PACKET_CODEC);
         PayloadTypeRegistry.playC2S().register(GlobalHuntCommandPayload.ID, GlobalHuntCommandPayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(EventConfigPayload.ID, EventConfigPayload.CODEC);
 
         PokeNotifier.LOGGER.info("[Networking] All Poke Notifier payloads registered successfully.");
     }

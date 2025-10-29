@@ -20,6 +20,7 @@ import net.minecraft.text.Text;
 import com.zehro_mc.pokenotifier.ConfigClient;
 import com.zehro_mc.pokenotifier.ConfigManager;
 import com.zehro_mc.pokenotifier.ConfigServer;
+import com.zehro_mc.pokenotifier.networking.EventConfigPayload;
 import net.minecraft.util.Formatting;
 
 import java.util.ArrayList;
@@ -50,7 +51,7 @@ public class PokeNotifierCustomScreen extends Screen {
     private enum UserSubCategory { NOTIFICATIONS, CUSTOM_HUNT, CATCH_EM_ALL, MAP_SETTINGS, INFO }
     private UserSubCategory currentUserSubCategory = UserSubCategory.NOTIFICATIONS;
 
-    private enum EventSubCategory { GLOBAL_HUNT, BOUNTY_SYSTEM, SWARM_EVENTS, RIVAL_BATTLES }
+    private enum EventSubCategory { GLOBAL_HUNT, BOUNTY_SYSTEM, SWARM_EVENTS, RIVAL_BATTLES, GLOBAL_HUNT_CONFIG, SWARM_CONFIG }
     private EventSubCategory currentEventSubCategory = EventSubCategory.GLOBAL_HUNT;
 
     private enum AdminSubCategory { SYSTEM_STATUS, SERVER_CONTROL, PLAYER_DATA, TESTING }
@@ -207,6 +208,10 @@ public class PokeNotifierCustomScreen extends Screen {
         addDrawableChild(createEventIconButton(navX, navY + 44, navWidth, GuiIcons.SWARM_EVENTS, "Swarm Events", EventSubCategory.SWARM_EVENTS, PokeNotifierClient.isSwarmSystemEnabled));
         addDrawableChild(createEventIconButton(navX, navY + 66, navWidth, GuiIcons.RIVAL_BATTLES, "Rival Battles", EventSubCategory.RIVAL_BATTLES, true));
         
+        // Configuration buttons
+        addDrawableChild(createEventIconButton(navX, navY + 88, navWidth, GuiIcons.SERVER_CONTROL, "Global Hunt Adv", EventSubCategory.GLOBAL_HUNT_CONFIG, true));
+        addDrawableChild(createEventIconButton(navX, navY + 110, navWidth, GuiIcons.SERVER_CONTROL, "Swarm Config Adv", EventSubCategory.SWARM_CONFIG, true));
+        
         // Panel derecho - detalles del evento
         int contentX = panelX + navWidth + 25;
         int contentY = panelY + 35;
@@ -217,6 +222,8 @@ public class PokeNotifierCustomScreen extends Screen {
             case BOUNTY_SYSTEM -> buildBountySystemDetailsPanel(contentX, contentY, contentWidth);
             case SWARM_EVENTS -> buildSwarmEventsDetailsPanel(contentX, contentY, contentWidth);
             case RIVAL_BATTLES -> buildRivalBattlesDetailsPanel(contentX, contentY, contentWidth);
+            case GLOBAL_HUNT_CONFIG -> buildGlobalHuntConfigPanel(contentX, contentY, contentWidth);
+            case SWARM_CONFIG -> buildSwarmConfigPanel(contentX, contentY, contentWidth);
         }
     }
     
@@ -277,6 +284,7 @@ public class PokeNotifierCustomScreen extends Screen {
             if (category instanceof AdminSubCategory) this.currentAdminSubCategory = (AdminSubCategory) category;
             this.clearAndInit();
         });
+        button.setTooltip(net.minecraft.client.gui.tooltip.Tooltip.of(Text.literal(tooltip)));
         button.active = !category.equals(current);
         return button;
     }
@@ -728,10 +736,12 @@ public class PokeNotifierCustomScreen extends Screen {
     // --- EVENT PANEL BUILDERS ---
     
     private void buildBountySystemDetailsPanel(int x, int y, int width) {
+        int currentY = y;
+        
         // System Toggle
         net.minecraft.util.Identifier bountyToggleIcon = PokeNotifierClient.isServerBountySystemEnabled ? GuiIcons.ON : GuiIcons.OFF;
         String bountyToggleText = PokeNotifierClient.isServerBountySystemEnabled ? "Disable System" : "Enable System";
-        addDrawableChild(new IconButton(x, y, width, 18, bountyToggleIcon, bountyToggleText, b -> {
+        addDrawableChild(new IconButton(x, currentY, width, 18, bountyToggleIcon, bountyToggleText, b -> {
             com.zehro_mc.pokenotifier.networking.AdminCommandPayload payload = 
                 new com.zehro_mc.pokenotifier.networking.AdminCommandPayload(
                     com.zehro_mc.pokenotifier.networking.AdminCommandPayload.Action.TOGGLE_BOUNTY_SYSTEM, "");
@@ -739,8 +749,16 @@ public class PokeNotifierCustomScreen extends Screen {
             displayResponse(List.of(Text.literal("Toggling bounty system...").formatted(Formatting.YELLOW)));
             
             PokeNotifierClient.isServerBountySystemEnabled = !PokeNotifierClient.isServerBountySystemEnabled;
-            this.clearAndInit(); // Refresh to update icon
+            this.clearAndInit();
         }));
+        currentY += 25;
+        
+        // Configuration section
+        addDrawableChild(ButtonWidget.builder(Text.literal("Configuration").formatted(Formatting.GOLD), b -> {})
+            .dimensions(x, currentY, width, 18).build()).active = false;
+        currentY += 23;
+        
+        buildBountyConfigPanel(x, currentY, width);
     }
     
     private void buildSwarmEventsDetailsPanel(int x, int y, int width) {
@@ -845,31 +863,25 @@ public class PokeNotifierCustomScreen extends Screen {
     }
     
     private void buildRivalBattlesDetailsPanel(int x, int y, int width) {
-        // Rival system is automatically enabled, only admin can disable it
-        addDrawableChild(new IconButton(x, y, width, 18, GuiIcons.ON, "Rival System", b -> {
-            // This system is always on, show info instead
+        int currentY = y;
+        
+        // System info
+        addDrawableChild(new IconButton(x, currentY, width, 18, GuiIcons.ON, "Rival System", b -> {
             displayResponse(List.of(
                 Text.literal("--- Rival System Information ---").formatted(Formatting.GOLD),
                 Text.literal("The Rival system is automatically active.").formatted(Formatting.WHITE),
                 Text.literal("When players hunt the same Pokémon and one captures it,").formatted(Formatting.AQUA),
-                Text.literal("others receive a friendly rivalry notification.").formatted(Formatting.AQUA),
-                Text.literal("Cooldown: 60 seconds between notifications").formatted(Formatting.GRAY),
-                Text.literal("Override distance: 200 blocks").formatted(Formatting.GRAY)
+                Text.literal("others receive a friendly rivalry notification.").formatted(Formatting.AQUA)
             ));
         }));
+        currentY += 25;
         
-        // Show current settings
-        addDrawableChild(new IconButton(x, y + 23, width, 18, GuiIcons.SYSTEM_STATUS, "View Settings", b -> {
-            displayResponse(List.of(
-                Text.literal("--- Rival System Settings ---").formatted(Formatting.GOLD),
-                Text.literal("Notification Cooldown: 60 seconds").formatted(Formatting.AQUA),
-                Text.literal("Override Distance: 200 blocks").formatted(Formatting.AQUA),
-                Text.literal("Status: Always Active").formatted(Formatting.GREEN),
-                Text.literal("").formatted(Formatting.WHITE),
-                Text.literal("To modify settings, edit config-server.json").formatted(Formatting.GRAY),
-                Text.literal("Then use 'Reload Configs' in Admin Tools").formatted(Formatting.GRAY)
-            ));
-        }));
+        // Configuration section
+        addDrawableChild(ButtonWidget.builder(Text.literal("Configuration").formatted(Formatting.GOLD), b -> {})
+            .dimensions(x, currentY, width, 18).build()).active = false;
+        currentY += 23;
+        
+        buildRivalConfigPanel(x, currentY, width);
     }
     
     private void buildGlobalHuntDetailsPanel(int x, int y, int width) {
@@ -995,6 +1007,257 @@ public class PokeNotifierCustomScreen extends Screen {
             
             currentY += 26;
         }
+    }
+    
+    private void buildGlobalHuntConfigPanel(int x, int y, int width) {
+        int currentY = y;
+        
+        // Title
+        addDrawableChild(ButtonWidget.builder(Text.literal("Global Hunt Configuration").formatted(Formatting.GOLD), b -> {})
+            .dimensions(x, currentY, width, 18).build()).active = false;
+        currentY += 23;
+        
+        // Timing Settings
+        addDrawableChild(ButtonWidget.builder(Text.literal("Timing Settings").formatted(Formatting.YELLOW), b -> {})
+            .dimensions(x, currentY, width, 16).build()).active = false;
+        currentY += 18;
+        
+        // Min Interval Hours (1-24)
+        addDrawableChild(new ConfigSliderWidget(x, currentY, width/2 - 2, 16, "Min Interval", PokeNotifierClient.globalHuntMinIntervalHours, 1, 24, "h", value -> {
+            PokeNotifierClient.globalHuntMinIntervalHours = value;
+            sendEventConfig("global_hunt", "min_interval_hours", String.valueOf(value));
+        }));
+        
+        // Max Interval Hours (2-48)
+        addDrawableChild(new ConfigSliderWidget(x + width/2 + 2, currentY, width/2 - 2, 16, "Max Interval", PokeNotifierClient.globalHuntMaxIntervalHours, 2, 48, "h", value -> {
+            PokeNotifierClient.globalHuntMaxIntervalHours = value;
+            sendEventConfig("global_hunt", "max_interval_hours", String.valueOf(value));
+        }));
+        currentY += 20;
+        
+        // Event Duration (5-120 minutes)
+        addDrawableChild(new ConfigSliderWidget(x, currentY, width, 16, "Duration", PokeNotifierClient.globalHuntDurationMinutes, 5, 120, "min", value -> {
+            PokeNotifierClient.globalHuntDurationMinutes = value;
+            sendEventConfig("global_hunt", "duration_minutes", String.valueOf(value));
+        }));
+        currentY += 20;
+        
+        // Distance Settings
+        addDrawableChild(ButtonWidget.builder(Text.literal("Distance Settings").formatted(Formatting.YELLOW), b -> {})
+            .dimensions(x, currentY, width, 16).build()).active = false;
+        currentY += 18;
+        
+        // Min Distance (500-5000)
+        addDrawableChild(new ConfigSliderWidget(x, currentY, width/2 - 2, 16, "Min Distance", PokeNotifierClient.globalHuntMinDistance, 500, 5000, "", value -> {
+            PokeNotifierClient.globalHuntMinDistance = value;
+            sendEventConfig("global_hunt", "min_distance", String.valueOf(value));
+        }));
+        
+        // Max Distance (1000-10000)
+        addDrawableChild(new ConfigSliderWidget(x + width/2 + 2, currentY, width/2 - 2, 16, "Max Distance", PokeNotifierClient.globalHuntMaxDistance, 1000, 10000, "", value -> {
+            PokeNotifierClient.globalHuntMaxDistance = value;
+            sendEventConfig("global_hunt", "max_distance", String.valueOf(value));
+        }));
+        currentY += 20;
+        
+        // Shiny Chance (0-100%)
+        addDrawableChild(new ConfigSliderWidget(x, currentY, width, 16, "Shiny Chance", PokeNotifierClient.globalHuntShinyChance, 0, 100, "%", value -> {
+            PokeNotifierClient.globalHuntShinyChance = value;
+            sendEventConfig("global_hunt", "shiny_chance", String.valueOf(value));
+        }));
+        currentY += 20;
+        
+        // World Settings
+        addDrawableChild(ButtonWidget.builder(Text.literal("Enabled Worlds").formatted(Formatting.YELLOW), b -> {})
+            .dimensions(x, currentY, width, 16).build()).active = false;
+        currentY += 18;
+        
+        // World toggles
+        addDrawableChild(createToggleButton("Overworld", PokeNotifierClient.globalHuntOverworld, value -> {
+            PokeNotifierClient.globalHuntOverworld = value;
+            sendEventConfig("global_hunt", "overworld_enabled", String.valueOf(value));
+        }, x, currentY, width/3 - 2));
+        
+        addDrawableChild(createToggleButton("Nether", PokeNotifierClient.globalHuntNether, value -> {
+            PokeNotifierClient.globalHuntNether = value;
+            sendEventConfig("global_hunt", "nether_enabled", String.valueOf(value));
+        }, x + width/3, currentY, width/3 - 2));
+        
+        addDrawableChild(createToggleButton("End", PokeNotifierClient.globalHuntEnd, value -> {
+            PokeNotifierClient.globalHuntEnd = value;
+            sendEventConfig("global_hunt", "end_enabled", String.valueOf(value));
+        }, x + 2*width/3, currentY, width/3));
+    }
+    
+    private void buildBountyConfigPanel(int x, int y, int width) {
+        int currentY = y;
+        
+        // Title
+        addDrawableChild(ButtonWidget.builder(Text.literal("Bounty System Configuration").formatted(Formatting.GOLD), b -> {})
+            .dimensions(x, currentY, width, 18).build()).active = false;
+        currentY += 23;
+        
+        // Check Interval (30-300 seconds)
+        addDrawableChild(new ConfigSliderWidget(x, currentY, width, 16, "Check Interval", PokeNotifierClient.bountyCheckInterval, 30, 300, "s", value -> {
+            PokeNotifierClient.bountyCheckInterval = value;
+            sendEventConfig("bounty", "check_interval_seconds", String.valueOf(value));
+        }));
+        currentY += 18;
+        
+        // Start Chance (1-100%)
+        addDrawableChild(new ConfigSliderWidget(x, currentY, width, 16, "Start Chance", PokeNotifierClient.bountyStartChance, 1, 100, "%", value -> {
+            PokeNotifierClient.bountyStartChance = value;
+            sendEventConfig("bounty", "start_chance_percent", String.valueOf(value));
+        }));
+        currentY += 18;
+        
+        // Duration (10-300 minutes)
+        addDrawableChild(new ConfigSliderWidget(x, currentY, width, 16, "Duration", PokeNotifierClient.bountyDuration, 10, 300, "min", value -> {
+            PokeNotifierClient.bountyDuration = value;
+            sendEventConfig("bounty", "duration_minutes", String.valueOf(value));
+        }));
+        currentY += 18;
+        
+        // Reminder Interval (0-60 minutes, 0 = disabled)
+        addDrawableChild(new ConfigSliderWidget(x, currentY, width, 16, "Reminder", PokeNotifierClient.bountyReminderInterval, 0, 60, "min", value -> {
+            PokeNotifierClient.bountyReminderInterval = value;
+            sendEventConfig("bounty", "reminder_interval_minutes", String.valueOf(value));
+        }));
+        currentY += 18;
+        
+        // Current Active Bounty (read-only)
+        addDrawableChild(ButtonWidget.builder(Text.literal("Active: " + (serverConfig != null && serverConfig.active_bounty != null ? serverConfig.active_bounty : "none")).formatted(Formatting.GREEN), b -> {
+            displayResponse(List.of(Text.literal("Current active bounty (read-only)").formatted(Formatting.GRAY)));
+        }).dimensions(x, currentY, width, 16).build()).active = false;
+    }
+    
+    private void buildSwarmConfigPanel(int x, int y, int width) {
+        int currentY = y;
+        
+        // Title
+        addDrawableChild(ButtonWidget.builder(Text.literal("Swarm Events Configuration").formatted(Formatting.GOLD), b -> {})
+            .dimensions(x, currentY, width, 18).build()).active = false;
+        currentY += 23;
+        
+        // System Settings
+        addDrawableChild(ButtonWidget.builder(Text.literal("System Settings").formatted(Formatting.YELLOW), b -> {})
+            .dimensions(x, currentY, width, 16).build()).active = false;
+        currentY += 18;
+        
+        // Notifications Toggle
+        addDrawableChild(createToggleButton("Notifications", PokeNotifierClient.swarmNotifications, value -> {
+            PokeNotifierClient.swarmNotifications = value;
+            sendEventConfig("swarm", "notifications_enabled", String.valueOf(value));
+        }, x, currentY, width));
+        currentY += 18;
+        
+        // Timing Settings
+        addDrawableChild(ButtonWidget.builder(Text.literal("Timing Settings").formatted(Formatting.YELLOW), b -> {})
+            .dimensions(x, currentY, width, 16).build()).active = false;
+        currentY += 18;
+        
+        // Check Interval (60-600 minutes)
+        addDrawableChild(new ConfigSliderWidget(x, currentY, width/2 - 2, 16, "Check Interval", PokeNotifierClient.swarmCheckInterval, 60, 600, "min", value -> {
+            PokeNotifierClient.swarmCheckInterval = value;
+            sendEventConfig("swarm", "check_interval_minutes", String.valueOf(value));
+        }));
+        
+        // Start Chance (1-100%)
+        addDrawableChild(new ConfigSliderWidget(x + width/2 + 2, currentY, width/2 - 2, 16, "Start Chance", PokeNotifierClient.swarmStartChance, 1, 100, "%", value -> {
+            PokeNotifierClient.swarmStartChance = value;
+            sendEventConfig("swarm", "start_chance_percent", String.valueOf(value));
+        }));
+        currentY += 18;
+        
+        // Duration (10-120 minutes)
+        addDrawableChild(new ConfigSliderWidget(x, currentY, width/2 - 2, 16, "Duration", PokeNotifierClient.swarmDuration, 10, 120, "min", value -> {
+            PokeNotifierClient.swarmDuration = value;
+            sendEventConfig("swarm", "duration_minutes", String.valueOf(value));
+        }));
+        
+        // Cooldown (30-300 minutes)
+        addDrawableChild(new ConfigSliderWidget(x + width/2 + 2, currentY, width/2 - 2, 16, "Cooldown", PokeNotifierClient.swarmCooldown, 30, 300, "min", value -> {
+            PokeNotifierClient.swarmCooldown = value;
+            sendEventConfig("swarm", "cooldown_minutes", String.valueOf(value));
+        }));
+        currentY += 20;
+        
+        // Spawn Settings
+        addDrawableChild(ButtonWidget.builder(Text.literal("Spawn Settings").formatted(Formatting.YELLOW), b -> {})
+            .dimensions(x, currentY, width, 16).build()).active = false;
+        currentY += 18;
+        
+        // Spawn Multiplier (2-20x)
+        addDrawableChild(new ConfigSliderWidget(x, currentY, width/2 - 2, 16, "Spawn Multi", PokeNotifierClient.swarmSpawnMultiplier, 2, 20, "x", value -> {
+            PokeNotifierClient.swarmSpawnMultiplier = value;
+            sendEventConfig("swarm", "spawn_multiplier", String.valueOf(value));
+        }));
+        
+        // Shiny Multiplier (15-50, representing 1.5x-5.0x)
+        addDrawableChild(new ConfigSliderWidget(x + width/2 + 2, currentY, width/2 - 2, 16, "Shiny Multi", PokeNotifierClient.swarmShinyMultiplier, 15, 50, "x", value -> {
+            PokeNotifierClient.swarmShinyMultiplier = value;
+            sendEventConfig("swarm", "shiny_multiplier", String.valueOf(value / 10.0));
+        }));
+        currentY += 18;
+        
+        // Pokemon Count Min (1-25)
+        addDrawableChild(new ConfigSliderWidget(x, currentY, width/2 - 2, 16, "Min Count", PokeNotifierClient.swarmPokemonMin, 1, 25, "", value -> {
+            PokeNotifierClient.swarmPokemonMin = value;
+            sendEventConfig("swarm", "pokemon_count_min", String.valueOf(value));
+        }));
+        
+        // Pokemon Count Max (5-50)
+        addDrawableChild(new ConfigSliderWidget(x + width/2 + 2, currentY, width/2 - 2, 16, "Max Count", PokeNotifierClient.swarmPokemonMax, 5, 50, "", value -> {
+            PokeNotifierClient.swarmPokemonMax = value;
+            sendEventConfig("swarm", "pokemon_count_max", String.valueOf(value));
+        }));
+        currentY += 18;
+        
+        // Radius (100-1000 blocks)
+        addDrawableChild(new ConfigSliderWidget(x, currentY, width, 16, "Radius", PokeNotifierClient.swarmRadius, 100, 1000, " blocks", value -> {
+            PokeNotifierClient.swarmRadius = value;
+            sendEventConfig("swarm", "radius_blocks", String.valueOf(value));
+        }));
+    }
+    
+    private void buildRivalConfigPanel(int x, int y, int width) {
+        int currentY = y;
+        
+        // Title
+        addDrawableChild(ButtonWidget.builder(Text.literal("Rival Battles Configuration").formatted(Formatting.GOLD), b -> {})
+            .dimensions(x, currentY, width, 18).build()).active = false;
+        currentY += 23;
+        
+        // Note about system
+        addDrawableChild(ButtonWidget.builder(Text.literal("System is always enabled").formatted(Formatting.GRAY), b -> {})
+            .dimensions(x, currentY, width, 16).build()).active = false;
+        currentY += 20;
+        
+        // Notification Cooldown (10-300 seconds)
+        addDrawableChild(new ConfigSliderWidget(x, currentY, width, 16, "Notification Cooldown", PokeNotifierClient.rivalCooldown, 10, 300, "s", value -> {
+            PokeNotifierClient.rivalCooldown = value;
+            sendEventConfig("rival", "notification_cooldown_seconds", String.valueOf(value));
+        }));
+        currentY += 18;
+        
+        // Override Distance (50-1000 blocks)
+        addDrawableChild(new ConfigSliderWidget(x, currentY, width, 16, "Override Distance", PokeNotifierClient.rivalOverrideDistance, 50, 1000, " blocks", value -> {
+            PokeNotifierClient.rivalOverrideDistance = value;
+            sendEventConfig("rival", "notification_override_distance", String.valueOf(value));
+        }));
+        currentY += 20;
+        
+        // Explanation
+        addDrawableChild(ButtonWidget.builder(Text.literal("How it works:").formatted(Formatting.YELLOW), b -> {})
+            .dimensions(x, currentY, width, 16).build()).active = false;
+        currentY += 18;
+        
+        addDrawableChild(ButtonWidget.builder(Text.literal("Players get notified when rivals"), b -> {})
+            .dimensions(x, currentY, width, 14).build()).active = false;
+        currentY += 16;
+        
+        addDrawableChild(ButtonWidget.builder(Text.literal("catch the same Pokemon nearby"), b -> {})
+            .dimensions(x, currentY, width, 14).build()).active = false;
     }
     
     private void openGlobalHuntSettings() {
@@ -1590,6 +1853,15 @@ public class PokeNotifierCustomScreen extends Screen {
         if (this.pokemonNameField != null) {
             this.pokemonNameField.setText(text);
         }
+    }
+    
+    private void sendEventConfig(String eventType, String configKey, String value) {
+        EventConfigPayload payload = new EventConfigPayload(eventType, configKey, value);
+        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+        displayResponse(List.of(Text.literal("Updated ").formatted(Formatting.GREEN)
+            .append(Text.literal(configKey).formatted(Formatting.GOLD))
+            .append(Text.literal(" to ").formatted(Formatting.GREEN))
+            .append(Text.literal(value).formatted(Formatting.AQUA))));
     }
 
     @Override

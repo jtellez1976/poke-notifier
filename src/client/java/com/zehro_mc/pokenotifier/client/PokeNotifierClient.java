@@ -70,6 +70,78 @@ public class PokeNotifierClient implements ClientModInitializer {
     public static String activeSwarmBiome = "";
     public static int swarmRemainingMinutes = 0;
     public static int swarmRemainingEntities = 0;
+    
+    // Event configurations
+    public static int globalHuntMinIntervalHours = 2;
+    public static int globalHuntMaxIntervalHours = 6;
+    public static int globalHuntDurationMinutes = 30;
+    public static int globalHuntMinDistance = 1500;
+    public static int globalHuntMaxDistance = 4000;
+    public static int globalHuntShinyChance = 10;
+    public static boolean globalHuntOverworld = true;
+    public static boolean globalHuntNether = false;
+    public static boolean globalHuntEnd = false;
+    
+    public static int bountyCheckInterval = 60;
+    public static int bountyStartChance = 15;
+    public static int bountyDuration = 60;
+    public static int bountyReminderInterval = 15;
+    
+    public static boolean swarmNotifications = true;
+    public static int swarmCheckInterval = 180;
+    public static int swarmStartChance = 35;
+    public static int swarmDuration = 25;
+    public static int swarmCooldown = 120;
+    public static int swarmSpawnMultiplier = 8;
+    public static int swarmShinyMultiplier = 25;
+    public static int swarmPokemonMin = 5;
+    public static int swarmPokemonMax = 10;
+    public static int swarmRadius = 250;
+    public static int swarmMinDistance = 1500;
+    public static int swarmMaxDistance = 4000;
+    
+    public static int rivalCooldown = 60;
+    public static int rivalOverrideDistance = 200;
+    
+    public static void updateClientEventConfig(String eventType, Map<String, String> configs) {
+        switch (eventType) {
+            case "global_hunt" -> {
+                globalHuntMinIntervalHours = Integer.parseInt(configs.getOrDefault("min_interval_hours", "2"));
+                globalHuntMaxIntervalHours = Integer.parseInt(configs.getOrDefault("max_interval_hours", "6"));
+                globalHuntDurationMinutes = Integer.parseInt(configs.getOrDefault("duration_minutes", "30"));
+                globalHuntMinDistance = Integer.parseInt(configs.getOrDefault("min_distance", "1500"));
+                globalHuntMaxDistance = Integer.parseInt(configs.getOrDefault("max_distance", "4000"));
+                globalHuntShinyChance = Integer.parseInt(configs.getOrDefault("shiny_chance", "10"));
+                globalHuntOverworld = Boolean.parseBoolean(configs.getOrDefault("overworld_enabled", "true"));
+                globalHuntNether = Boolean.parseBoolean(configs.getOrDefault("nether_enabled", "false"));
+                globalHuntEnd = Boolean.parseBoolean(configs.getOrDefault("end_enabled", "false"));
+            }
+            case "bounty" -> {
+                bountyCheckInterval = Integer.parseInt(configs.getOrDefault("check_interval_seconds", "60"));
+                bountyStartChance = Integer.parseInt(configs.getOrDefault("start_chance_percent", "15"));
+                bountyDuration = Integer.parseInt(configs.getOrDefault("duration_minutes", "60"));
+                bountyReminderInterval = Integer.parseInt(configs.getOrDefault("reminder_interval_minutes", "15"));
+            }
+            case "swarm" -> {
+                swarmNotifications = Boolean.parseBoolean(configs.getOrDefault("notifications_enabled", "true"));
+                swarmCheckInterval = Integer.parseInt(configs.getOrDefault("check_interval_minutes", "180"));
+                swarmStartChance = Integer.parseInt(configs.getOrDefault("start_chance_percent", "35"));
+                swarmDuration = Integer.parseInt(configs.getOrDefault("duration_minutes", "25"));
+                swarmCooldown = Integer.parseInt(configs.getOrDefault("cooldown_minutes", "120"));
+                swarmSpawnMultiplier = Integer.parseInt(configs.getOrDefault("spawn_multiplier", "8"));
+                swarmShinyMultiplier = (int)(Double.parseDouble(configs.getOrDefault("shiny_multiplier", "2.5")) * 10);
+                swarmPokemonMin = Integer.parseInt(configs.getOrDefault("pokemon_count_min", "5"));
+                swarmPokemonMax = Integer.parseInt(configs.getOrDefault("pokemon_count_max", "10"));
+                swarmRadius = Integer.parseInt(configs.getOrDefault("radius_blocks", "250"));
+                swarmMinDistance = Integer.parseInt(configs.getOrDefault("min_distance", "1500"));
+                swarmMaxDistance = Integer.parseInt(configs.getOrDefault("max_distance", "4000"));
+            }
+            case "rival" -> {
+                rivalCooldown = Integer.parseInt(configs.getOrDefault("notification_cooldown_seconds", "60"));
+                rivalOverrideDistance = Integer.parseInt(configs.getOrDefault("notification_override_distance", "200"));
+            }
+        }
+    }
 
     @Override
     public void onInitializeClient() {
@@ -152,6 +224,14 @@ public class PokeNotifierClient implements ClientModInitializer {
             context.client().execute(() -> {
                 // Handle Global Hunt events on client side
                 LOGGER.info("Received Global Hunt event: {} for {}", payload.action(), payload.pokemon());
+            });
+        });
+        
+        // --- NEW: Receive event configuration sync ---
+        ClientPlayNetworking.registerGlobalReceiver(EventConfigSyncPayload.ID, (payload, context) -> {
+            context.client().execute(() -> {
+                // Update client-side configuration values
+                updateClientEventConfig(payload.eventType(), payload.configs());
             });
         });
         
