@@ -462,21 +462,56 @@ public class TrophyAltarBlockEntity extends BlockEntity {
         
         net.minecraft.server.world.ServerWorld serverWorld = (net.minecraft.server.world.ServerWorld) world;
         
-        // Partículas flotantes suaves alrededor del altar
-        for (int i = 0; i < 10; i++) {
-            double angle = Math.random() * Math.PI * 2;
-            double radius = 1.0 + Math.random() * 0.5;
+        // COLUMNA DE LUZ DORADA hacia el cielo
+        for (int y = 0; y < 15; y++) {
+            serverWorld.spawnParticles(net.minecraft.particle.ParticleTypes.END_ROD, 
+                pos.getX() + 0.5, pos.getY() + 1 + y, pos.getZ() + 0.5, 
+                2, 0.1, 0, 0.1, 0.02);
+        }
+        
+        // ANILLO DE PARTÍCULAS DORADAS giratorio
+        for (int i = 0; i < 20; i++) {
+            double angle = (Math.PI * 2 * i) / 20 + (System.currentTimeMillis() / 1000.0);
+            double radius = 1.5;
             double x = pos.getX() + 0.5 + Math.cos(angle) * radius;
             double z = pos.getZ() + 0.5 + Math.sin(angle) * radius;
             
-            serverWorld.spawnParticles(net.minecraft.particle.ParticleTypes.WITCH, 
-                x, pos.getY() + 1.2, z, 1, 0, 0.02, 0, 0.01);
+            serverWorld.spawnParticles(net.minecraft.particle.ParticleTypes.TOTEM_OF_UNDYING, 
+                x, pos.getY() + 1.5, z, 1, 0, 0.05, 0, 0.02);
         }
         
-        // Partículas mágicas en el centro
-        serverWorld.spawnParticles(net.minecraft.particle.ParticleTypes.END_ROD, 
-            pos.getX() + 0.5, pos.getY() + 1.5, pos.getZ() + 0.5, 
-            1, 0, 0.1, 0, 0.02);
+        // PULSO DE ENERGÍA desde el centro
+        for (int i = 0; i < 30; i++) {
+            double angle = Math.random() * Math.PI * 2;
+            double radius = 0.5 + Math.random() * 1.5;
+            double x = pos.getX() + 0.5 + Math.cos(angle) * radius;
+            double z = pos.getZ() + 0.5 + Math.sin(angle) * radius;
+            
+            serverWorld.spawnParticles(net.minecraft.particle.ParticleTypes.SOUL_FIRE_FLAME, 
+                x, pos.getY() + 1.2, z, 1, 0, 0.1, 0, 0.03);
+            serverWorld.spawnParticles(net.minecraft.particle.ParticleTypes.ENCHANT, 
+                x, pos.getY() + 1.0, z, 1, 0, 0.05, 0, 0.02);
+        }
+        
+        // ESPIRAL ASCENDENTE de partículas mágicas
+        for (int i = 0; i < 15; i++) {
+            double angle = (i * Math.PI * 2) / 15 + (System.currentTimeMillis() / 500.0);
+            double radius = 0.8 + Math.sin(angle * 3) * 0.3;
+            double x = pos.getX() + 0.5 + Math.cos(angle) * radius;
+            double z = pos.getZ() + 0.5 + Math.sin(angle) * radius;
+            double y = pos.getY() + 1.0 + Math.sin(angle * 2) * 0.5;
+            
+            serverWorld.spawnParticles(net.minecraft.particle.ParticleTypes.DRAGON_BREATH, 
+                x, y, z, 1, 0, 0.02, 0, 0.01);
+        }
+        
+        // SONIDO MÍSTICO cada vez que se ejecuta
+        if (previewTimer % 80 == 0) { // Cada 4 segundos
+            world.playSound(null, pos, net.minecraft.sound.SoundEvents.BLOCK_BEACON_AMBIENT, 
+                net.minecraft.sound.SoundCategory.BLOCKS, 0.3f, 1.5f);
+            world.playSound(null, pos, net.minecraft.sound.SoundEvents.BLOCK_ENCHANTMENT_TABLE_USE, 
+                net.minecraft.sound.SoundCategory.BLOCKS, 0.2f, 1.8f);
+        }
     }
 
     public boolean isMultiblockComplete() {
@@ -564,6 +599,8 @@ public class TrophyAltarBlockEntity extends BlockEntity {
         nbt.putInt("summoningTimer", summoningTimer);
         nbt.putBoolean("isAnimatingPokeballs", isAnimatingPokeballs);
         nbt.putInt("animationPhase", animationPhase);
+        nbt.putBoolean("skyDarkened", skyDarkened);
+        nbt.putLong("originalTimeOfDay", originalTimeOfDay);
         if (pendingPokemon != null) {
             nbt.putString("pendingPokemon", pendingPokemon);
         }
@@ -581,6 +618,8 @@ public class TrophyAltarBlockEntity extends BlockEntity {
         summoningTimer = nbt.getInt("summoningTimer");
         isAnimatingPokeballs = nbt.getBoolean("isAnimatingPokeballs");
         animationPhase = nbt.getInt("animationPhase");
+        skyDarkened = nbt.getBoolean("skyDarkened");
+        originalTimeOfDay = nbt.getLong("originalTimeOfDay");
         if (nbt.contains("pendingPokemon")) {
             pendingPokemon = nbt.getString("pendingPokemon");
         }
@@ -611,25 +650,27 @@ public class TrophyAltarBlockEntity extends BlockEntity {
         if (blockEntity.isSummoning) {
             blockEntity.summoningTimer++;
             
-            // FASE 0: Animación de pokeballs (0-60 ticks)
-            if (blockEntity.summoningTimer <= 60) {
+            // FASE 0: Animación de pokeballs (0-120 ticks = 6 segundos)
+            if (blockEntity.summoningTimer <= 120) {
                 blockEntity.updatePokeballAnimation();
             }
             
-            // FASE 1: Efectos pre-invocación después de animación (60 ticks)
-            if (blockEntity.summoningTimer == 60) {
-                blockEntity.spawnPreSummonEffects();
+            // FASE 1: Efectos pre-invocación después de animación (120-140 ticks)
+            if (blockEntity.summoningTimer >= 120 && blockEntity.summoningTimer <= 140) {
+                if (blockEntity.summoningTimer % 8 == 0) { // Cada 0.4 segundos
+                    blockEntity.spawnPreSummonEffects();
+                }
             }
             
-            // FASE 2: Dragon Death Flash después de 100 ticks (5 segundos)
-            if (blockEntity.summoningTimer == 100) {
+            // FASE 2: Dragon Death Flash después de 140 ticks (7 segundos)
+            if (blockEntity.summoningTimer == 140) {
                 blockEntity.spawnDragonDeathFlash();
                 blockEntity.consumePokeballs();
                 blockEntity.burnRedstoneBlocks();
             }
             
-            // FASE 3: Invocar Pokémon después de 120 ticks (6 segundos total)
-            if (blockEntity.summoningTimer >= 120) {
+            // FASE 3: Invocar Pokémon después de 160 ticks (8 segundos total)
+            if (blockEntity.summoningTimer >= 160) {
                 if (blockEntity.pendingPokemon != null) {
                     blockEntity.summonPokemon(blockEntity.pendingPokemon);
                 }
@@ -639,6 +680,10 @@ public class TrophyAltarBlockEntity extends BlockEntity {
                 blockEntity.pendingPokemon = null;
                 blockEntity.summoningTimer = 0;
                 blockEntity.cleanupPokeballAnimation();
+                
+                // Restaurar el cielo a la normalidad
+                blockEntity.restoreSkyAfterRitual();
+                
                 blockEntity.markDirty();
             }
         }
@@ -697,7 +742,7 @@ public class TrophyAltarBlockEntity extends BlockEntity {
         if (blockEntity.isMultiblockComplete && !blockEntity.isSummoning) {
             String[] pattern = blockEntity.getPokeballPattern();
             if (blockEntity.isValidPattern(pattern)) {
-                if (blockEntity.previewTimer % 40 == 0) { // Cada 2 segundos
+                if (blockEntity.previewTimer % 20 == 0) { // Cada 1 segundo - más frecuente
                     blockEntity.spawnReadyEffects();
                 }
             }
@@ -975,6 +1020,10 @@ public class TrophyAltarBlockEntity extends BlockEntity {
     private boolean isAnimatingPokeballs = false;
     private int animationPhase = 0; // 0=elevación, 1=convergencia, 2=fusión
     
+    // Variables para efecto de oscurecimiento del cielo
+    private long originalTimeOfDay = -1;
+    private boolean skyDarkened = false;
+    
     private void startSummoningSequence(String pokemonName) {
         if (world == null || world.isClient) return;
         
@@ -982,6 +1031,9 @@ public class TrophyAltarBlockEntity extends BlockEntity {
         pendingPokemon = pokemonName;
         summoningTimer = 0;
         isSummoning = true;
+        
+        // EFECTO DRAMÁTICO: Oscurecer el cielo si es de día
+        darkenSkyForRitual();
         
         // NUEVA FASE 0: Animación de pokeballs flotantes
         startPokeballAnimation();
@@ -1334,20 +1386,20 @@ public class TrophyAltarBlockEntity extends BlockEntity {
         
         int animationTick = summoningTimer;
         
-        // FASE 1: Elevación (0-15 ticks)
-        if (animationTick <= 15) {
+        // FASE 1: Elevación (0-30 ticks = 1.5 segundos)
+        if (animationTick <= 30) {
             animationPhase = 0;
             for (net.minecraft.entity.ItemEntity pokeball : floatingPokeballs) {
                 // Elevación suave con rotación
-                pokeball.setVelocity(0, 0.1, 0);
-                pokeball.setYaw(pokeball.getYaw() + 8); // Rotación lenta
+                pokeball.setVelocity(0, 0.08, 0); // Velocidad moderada
+                pokeball.setYaw(pokeball.getYaw() + 6); // Rotación suave
                 
                 // Partículas mágicas siguiendo cada pokeball
                 spawnPokeballTrail(pokeball);
             }
         }
-        // FASE 2: Espiral Horaria (16-40 ticks)
-        else if (animationTick <= 40) {
+        // FASE 2: Espiral Horaria (31-80 ticks = 2.5 segundos)
+        else if (animationTick <= 80) {
             if (animationPhase != 1) {
                 animationPhase = 1;
                 // Sonido de espiral
@@ -1359,18 +1411,20 @@ public class TrophyAltarBlockEntity extends BlockEntity {
                 net.minecraft.entity.ItemEntity pokeball = floatingPokeballs.get(i);
                 
                 // Progreso suave de 0 a 1
-                double spiralProgress = (animationTick - 15) / 25.0;
+                double spiralProgress = (animationTick - 30) / 50.0;
                 
-                // Ángulo base fijo para cada pokeball
+                // Ángulo base fijo para cada pokeball + rotación adicional para suavidad
                 double baseAngle = (i * Math.PI * 2) / floatingPokeballs.size();
+                double rotationAngle = spiralProgress * Math.PI * 2; // Una vuelta completa durante espiral
+                double currentAngle = baseAngle + rotationAngle;
                 
                 // Espiral suave hacia el centro
                 double currentRadius = 2.5 - (spiralProgress * 1.5); // De 2.5 a 1.0 bloques
                 double currentHeight = pos.getY() + 2.5;
                 
-                // Posición objetivo en círculo
-                double targetX = pos.getX() + 0.5 + Math.cos(baseAngle) * currentRadius;
-                double targetZ = pos.getZ() + 0.5 + Math.sin(baseAngle) * currentRadius;
+                // Posición objetivo en círculo con rotación
+                double targetX = pos.getX() + 0.5 + Math.cos(currentAngle) * currentRadius;
+                double targetZ = pos.getZ() + 0.5 + Math.sin(currentAngle) * currentRadius;
                 
                 // Movimiento suave hacia la posición
                 pokeball.setPos(targetX, currentHeight, targetZ);
@@ -1381,8 +1435,8 @@ public class TrophyAltarBlockEntity extends BlockEntity {
                 spawnSpiralTrail(pokeball);
             }
         }
-        // FASE 3: Convergencia Final (41-55 ticks)
-        else if (animationTick <= 55) {
+        // FASE 3: Convergencia Final (81-105 ticks = 1.2 segundos)
+        else if (animationTick <= 105) {
             if (animationPhase != 2) {
                 animationPhase = 2;
                 // Sonido de convergencia
@@ -1391,7 +1445,7 @@ public class TrophyAltarBlockEntity extends BlockEntity {
             }
             
             // Progreso de convergencia
-            double convergenceProgress = (animationTick - 40) / 15.0; // 0 a 1
+            double convergenceProgress = (animationTick - 80) / 25.0; // 0 a 1
             
             for (int i = 0; i < floatingPokeballs.size(); i++) {
                 net.minecraft.entity.ItemEntity pokeball = floatingPokeballs.get(i);
@@ -1405,21 +1459,22 @@ public class TrophyAltarBlockEntity extends BlockEntity {
                 double endX = pos.getX() + 0.5;
                 double endZ = pos.getZ() + 0.5;
                 
-                // Interpolación suave
-                double currentX = startX + (endX - startX) * convergenceProgress;
-                double currentZ = startZ + (endZ - startZ) * convergenceProgress;
-                double currentY = pos.getY() + 2.5 + (0.5 * convergenceProgress); // Subir ligeramente
+                // Interpolación suave con curva easing
+                double easedProgress = 1 - Math.pow(1 - convergenceProgress, 3); // Ease-out cubic
+                double currentX = startX + (endX - startX) * easedProgress;
+                double currentZ = startZ + (endZ - startZ) * easedProgress;
+                double currentY = pos.getY() + 2.5 + (0.5 * easedProgress); // Subir ligeramente
                 
                 pokeball.setPos(currentX, currentY, currentZ);
                 pokeball.setVelocity(0, 0, 0);
-                pokeball.setYaw(pokeball.getYaw() + 12); // Rotación media
+                pokeball.setYaw(pokeball.getYaw() + 10); // Rotación media
                 
                 // Trails intensos durante convergencia
                 spawnConvergenceTrail(pokeball);
             }
         }
-        // FASE 4: Fusión y Desvanecimiento (56-60 ticks)
-        else if (animationTick <= 60) {
+        // FASE 4: Fusión y Desvanecimiento (106-120 ticks = 0.7 segundos)
+        else if (animationTick <= 120) {
             if (animationPhase != 3) {
                 animationPhase = 3;
                 // Sonido de fusión
@@ -1428,8 +1483,8 @@ public class TrophyAltarBlockEntity extends BlockEntity {
             }
             
             // Desvanecimiento gradual de pokeballs
-            if (animationTick >= 58) {
-                // Últimos 2 ticks - remover pokeballs con efectos
+            if (animationTick >= 117) {
+                // Últimos 3 ticks - remover pokeballs con efectos
                 for (net.minecraft.entity.ItemEntity pokeball : floatingPokeballs) {
                     // Efectos finales de desvanecimiento
                     spawnDisappearEffects(pokeball);
@@ -1441,7 +1496,7 @@ public class TrophyAltarBlockEntity extends BlockEntity {
                 for (net.minecraft.entity.ItemEntity pokeball : floatingPokeballs) {
                     pokeball.setPos(pos.getX() + 0.5, pos.getY() + 3.0, pos.getZ() + 0.5);
                     pokeball.setVelocity(0, 0, 0);
-                    pokeball.setYaw(pokeball.getYaw() + 25); // Rotación muy rápida
+                    pokeball.setYaw(pokeball.getYaw() + 20); // Rotación rápida
                     
                     // Efectos de fusión intensos
                     spawnFusionEffects(pokeball);
@@ -1713,5 +1768,71 @@ public class TrophyAltarBlockEntity extends BlockEntity {
                 }
             }
         }
+    }
+    
+    private void darkenSkyForRitual() {
+        if (world == null || world.isClient) return;
+        
+        net.minecraft.server.world.ServerWorld serverWorld = (net.minecraft.server.world.ServerWorld) world;
+        
+        // Guardar el tiempo actual
+        originalTimeOfDay = serverWorld.getTimeOfDay();
+        
+        // Solo oscurecer si es de día (6000-18000 ticks)
+        long currentTime = originalTimeOfDay % 24000;
+        boolean isDaytime = currentTime >= 0 && currentTime < 12000;
+        
+        if (isDaytime) {
+            // Cambiar a medianoche (18000 ticks) para oscurecer el cielo
+            serverWorld.setTimeOfDay((originalTimeOfDay / 24000) * 24000 + 18000);
+            skyDarkened = true;
+            
+            // Notificar a jugadores cercanos del efecto dramático
+            java.util.List<net.minecraft.server.network.ServerPlayerEntity> nearbyPlayers = 
+                world.getEntitiesByClass(net.minecraft.server.network.ServerPlayerEntity.class, 
+                    new net.minecraft.util.math.Box(pos).expand(50), player -> true);
+            
+            for (net.minecraft.server.network.ServerPlayerEntity player : nearbyPlayers) {
+                player.sendMessage(net.minecraft.text.Text.literal("🌑 ").formatted(net.minecraft.util.Formatting.DARK_PURPLE)
+                    .append(net.minecraft.text.Text.literal("The sky darkens as the ritual begins...").formatted(net.minecraft.util.Formatting.GRAY))
+                    .append(net.minecraft.text.Text.literal(" 🌑").formatted(net.minecraft.util.Formatting.DARK_PURPLE)), false);
+            }
+            
+            // Sonido místico para el oscurecimiento
+            world.playSound(null, pos, net.minecraft.sound.SoundEvents.ENTITY_ENDER_DRAGON_AMBIENT, 
+                net.minecraft.sound.SoundCategory.AMBIENT, 0.3f, 0.5f);
+        }
+    }
+    
+    private void restoreSkyAfterRitual() {
+        if (world == null || world.isClient || !skyDarkened) return;
+        
+        net.minecraft.server.world.ServerWorld serverWorld = (net.minecraft.server.world.ServerWorld) world;
+        
+        // Restaurar el tiempo original
+        if (originalTimeOfDay != -1) {
+            // Calcular cuánto tiempo ha pasado durante el ritual (aproximadamente 8 segundos = 160 ticks)
+            long ritualDuration = 160; // 8 segundos en ticks
+            serverWorld.setTimeOfDay(originalTimeOfDay + ritualDuration);
+            
+            // Notificar a jugadores cercanos
+            java.util.List<net.minecraft.server.network.ServerPlayerEntity> nearbyPlayers = 
+                world.getEntitiesByClass(net.minecraft.server.network.ServerPlayerEntity.class, 
+                    new net.minecraft.util.math.Box(pos).expand(50), player -> true);
+            
+            for (net.minecraft.server.network.ServerPlayerEntity player : nearbyPlayers) {
+                player.sendMessage(net.minecraft.text.Text.literal("☀ ").formatted(net.minecraft.util.Formatting.YELLOW)
+                    .append(net.minecraft.text.Text.literal("The sky returns to normal as the ritual concludes.").formatted(net.minecraft.util.Formatting.WHITE))
+                    .append(net.minecraft.text.Text.literal(" ☀").formatted(net.minecraft.util.Formatting.YELLOW)), false);
+            }
+            
+            // Sonido de restauración
+            world.playSound(null, pos, net.minecraft.sound.SoundEvents.BLOCK_BEACON_ACTIVATE, 
+                net.minecraft.sound.SoundCategory.AMBIENT, 0.3f, 1.2f);
+        }
+        
+        // Resetear variables
+        skyDarkened = false;
+        originalTimeOfDay = -1;
     }
 }
