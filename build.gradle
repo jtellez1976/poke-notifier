@@ -5,11 +5,7 @@ plugins {
 	id 'maven-publish'
 }
 
-// --- CORRECCIÓN: Construimos la versión completa aquí ---
-// Definimos el formato de la fecha y hora para el build.
-def buildTime = new SimpleDateFormat("yyyyMMdd-HHmm").format(new Date())
-// Combinamos la versión base con el buildTime para crear la versión completa.
-version = "${project.mod_version}-build-${buildTime}"
+version = project.mod_version
 group = project.maven_group
 
 base {
