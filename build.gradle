@@ -5,7 +5,11 @@ plugins {
 	id 'maven-publish'
 }
 
-version = project.mod_version
+// --- CORRECCIÓN: Construimos la versión completa aquí ---
+// Definimos el formato de la fecha y hora para el build.
+def buildTime = new SimpleDateFormat("yyyyMMdd-HHmm").format(new Date())
+// Combinamos la versión base con el buildTime para crear la versión completa.
+version = "${project.mod_version}-build-${buildTime}"
 group = project.maven_group
 
 base {
@@ -38,7 +42,7 @@ dependencies {
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-	modImplementation("com.cobblemon:fabric:1.6.1+1.21.1")
+	modImplementation("com.cobblemon:fabric:1.7.0+1.21.1")
 	modImplementation "net.fabricmc:fabric-language-kotlin:1.12.3+kotlin.2.0.21"
 	modApi(include("net.kyori:adventure-platform-fabric:5.14.1"))
 
@@ -85,4 +89,41 @@ java {
 
 
 
+// --- Development Tasks (Commented for Production Release) ---
+// Uncomment these tasks for local development and testing
 
+/*
+task copyModToClient(type: Copy) {
+	def modsDir = file("C:/Users/JOHN/curseforge/minecraft/Instances/Cobblemon Official Modpack [Fabric]/mods")
+	onlyIf { modsDir.exists() }
+	doFirst {
+		delete(fileTree(modsDir) {
+			include "${project.archives_base_name}-*.jar"
+		})
+	}
+	from remapJar.archiveFile
+	into modsDir
+}
+
+task copyModToServer(type: Copy) {
+	def modsDir = file("C:/Users/JOHN/OneDrive/Escritorio/Cobbleverse-server/mods")
+	onlyIf { modsDir.exists() }
+	doFirst {
+		delete(fileTree(modsDir) {
+			include "${project.archives_base_name}-*.jar"
+		})
+	}
+	from remapJar.archiveFile
+	into modsDir
+}
+
+task deployToTest {
+	dependsOn copyModToClient, copyModToServer
+	doLast {
+		println "--> Deployed mod to test environments."
+	}
+}
+
+// Uncomment for automatic deployment during development:
+// build.finalizedBy(deployToTest)
+*/
