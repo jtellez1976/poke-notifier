@@ -591,7 +591,7 @@ public class PokeNotifier implements ModInitializer {
                     RarityUtil.RarityCategory rarity = entry.getValue();
                     StatusUpdatePayload payload = new StatusUpdatePayload(
                             pokemon.getUuid().toString(),
-                            pokemon.getDisplayName().getString(),
+                            pokemon.getDisplayName(true).getString(),
                             rarity.name(),
                             StatusUpdatePayload.UpdateType.DESPAWNED,
                             null // Player name is null for despawns

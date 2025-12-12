@@ -131,7 +131,7 @@ public class RarePokemonNotifier {
 
         WaypointPayload payload = new WaypointPayload(
                 pokemon.getUuid().toString(),
-                pokemon.getDisplayName().getString(),
+                pokemon.getDisplayName(true).getString(),
                 pokemonPos,
                 rarity.getWaypointColor(),
                 status,

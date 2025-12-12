@@ -150,7 +150,7 @@ public class CaptureListener {
                                 Text message = Text.literal("Your rival, ").formatted(Formatting.RED)
                                         .append(player.getDisplayName())
                                         .append(Text.literal(", just caught a ").formatted(Formatting.RED))
-                                        .append(pokemon.getDisplayName().copy().formatted(Formatting.GOLD))
+                                        .append(pokemon.getDisplayName(true).copy().formatted(Formatting.GOLD))
                                         .append(Text.literal(" before you! Better hurry!").formatted(Formatting.RED));
                                 otherPlayer.sendMessage(message, false);
 
@@ -170,7 +170,7 @@ public class CaptureListener {
             Text bountyMessage = Text.literal("🎉 ").formatted(Formatting.GOLD)
                     .append(player.getDisplayName())
                     .append(Text.literal(" has claimed the bounty by capturing the ").formatted(Formatting.YELLOW))
-                    .append(pokemon.getDisplayName().copy().formatted(Formatting.GOLD))
+                    .append(pokemon.getDisplayName(true).copy().formatted(Formatting.GOLD))
                     .append(Text.literal("!").formatted(Formatting.YELLOW));
             player.getServer().getPlayerManager().broadcast(bountyMessage, false);
 
@@ -203,7 +203,7 @@ public class CaptureListener {
 
         StatusUpdatePayload payload = new StatusUpdatePayload(
                 pokemon.getUuid().toString(),
-                pokemon.getDisplayName().getString(),
+                pokemon.getDisplayName(true).getString(),
                 rarity.name(),
                 StatusUpdatePayload.UpdateType.CAPTURED,
                 player.getName().getString()

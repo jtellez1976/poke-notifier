@@ -44,7 +44,7 @@ public class ConfigPokemon {
                 "okidogi", "munkidori", "fezandipiti", "ogerpon", "terapagos"
         ));
         MYTHICAL.addAll(Arrays.asList(
-                "mew", "celebi", "jirachi", "deoxys", "phione", "manaphy", "darkrai", "shaymin", "arceus", "victini", "sirfetchd",
+                "mew", "celebi", "jirachi", "deoxys", "phione", "manaphy", "darkrai", "shaymin", "arceus", "victini",
                 "keldeo", "meloetta", "genesect", "diancie", "hoopa", "volcanion", "magearna", "marshadow", "zeraora",
                 "meltan", "melmetal", "zarude", "pecharunt"
         ));
@@ -60,19 +60,16 @@ public class ConfigPokemon {
         ));
         ULTRA_RARE.addAll(Arrays.asList(
                 "bulbasaur", "ivysaur", "venusaur", "charmander", "charmeleon", "charizard", "squirtle", "wartortle",
-                "blastoise", "ditto", "espeon", "umbreon", "chikorita", "bayleef", "meganium", "cyndaquil", "quilava",
-                "typhlosion", "totodile", "croconaw", "feraligatr", "treecko", "grovyle", "sceptile", "torchic",
-                "combusken", "blaziken", "mudkip", "marshtomp", "swampert", "turtwig", "grotle", "torterra",
-                "chimchar", "monferno", "infernape", "piplup", "prinplup", "empoleon", "leafeon", "glaceon", "snivy",
-                "servine", "serperior", "tepig", "pignite", "emboar", "oshawott", "dewott", "samurott", "pidove",
-                "tranquill", "unfezant", "sewaddle", "swadloon", "leavanny", "tirtouga", "carracosta", "archen",
-                "archeops", "cinccino", "gothitelle", "reuniclus", "vanilluxe", "chespin", "quilladin", "chesnaught",
-                "fennekin", "braixen", "delphox", "froakie", "frogadier", "greninja", "sylveon", "rowlet", "dartrix",
+                "blastoise", "chikorita", "bayleef", "meganium", "cyndaquil", "quilava", "typhlosion", "totodile",
+                "croconaw", "feraligatr", "treecko", "grovyle", "sceptile", "torchic", "combusken", "blaziken",
+                "mudkip", "marshtomp", "swampert", "turtwig", "grotle", "torterra", "chimchar", "monferno",
+                "infernape", "piplup", "prinplup", "empoleon", "snivy", "servine", "serperior", "tepig",
+                "pignite", "emboar", "oshawott", "dewott", "samurott", "chespin", "quilladin", "chesnaught",
+                "fennekin", "braixen", "delphox", "froakie", "frogadier", "greninja", "rowlet", "dartrix",
                 "decidueye", "litten", "torracat", "incineroar", "popplio", "brionne", "primarina", "grookey",
                 "thwackey", "rillaboom", "scorbunny", "raboot", "cinderace", "sobble", "drizzile", "inteleon",
-                "dracozolt", "arctozolt", "dracovish", "arctovish", "sprigatito", "floragato", "meowscarada",
-                "fuecoco", "crocalor", "skeledirge", "quaxly", "quaxwell", "quaquaval", "dudunsparce", "kingambit",
-                "baxcalibur", "archaludon", "hydrapple"
+                "sprigatito", "floragato", "meowscarada", "fuecoco", "crocalor", "skeledirge", "quaxly",
+                "quaxwell", "quaquaval"
         ));
         RARE.addAll(Arrays.asList(
                 "kadabra", "alakazam", "chansey", "kangaskhan", "scyther", "pinsir", "vaporeon", "jolteon", "flareon",
