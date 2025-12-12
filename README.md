@@ -1,8 +1,21 @@
-# Poke Notifier v1.4.0 - The Complete Server Events Update!
+# Poke Notifier v1.5.0 - Cobblemon 1.7.0 Compatibility Update!
 
 Poke Notifier has evolved from a simple notification mod into a comprehensive server event management system! This latest version introduces powerful new event systems, enhanced administration tools, and seamless map integration, making it the ultimate tool for community servers running Cobblemon.
 
-## 🌟 Latest Features in v1.4.0
+## 🔧 Latest Updates in v1.5.0
+
+### ✅ **Cobblemon 1.7.0 Compatibility**
+- **Full API Compatibility**: Updated all Pokemon display name calls for Cobblemon 1.7.0
+- **Tested & Verified**: Complete singleplayer and multiplayer testing confirmed
+- **No Breaking Changes**: Seamless upgrade from v1.4.x with no data loss
+- **Enhanced Pokemon Lists**: Updated and corrected Pokemon categorization for accuracy
+
+### 📊 **Pokemon List Improvements**
+- **MYTHICAL Category**: Corrected list with proper 22 Mythical Pokemon
+- **ULTRA_RARE Category**: Refined to include only starter Pokemon (13 total)
+- **Accurate Categorization**: All Pokemon now properly classified according to official standards
+
+## 🌟 Core Features from v1.4.0
 
 ### 🌪️ **Swarm Events System**
 - **Mass Pokémon Spawning**: Create server-wide swarm events with 15-25 Pokémon of the same species
@@ -86,17 +99,24 @@ You can also check out the source code and contribute to the project at our GitH
 - **Minecraft Version**: 1.21.1
 - **Fabric Loader**: 0.17.3+
 - **Fabric API**: 0.104.0+1.21.1
-- **Cobblemon**: 1.6.1+1.21.1
+- **Cobblemon**: 1.7.0+1.21.1
 
 ### Optional Dependencies
 - **Xaero's Minimap/World Map**: For enhanced waypoint integration
 - **AdvancementPlaques + Iceberg**: For stylized event notifications
 - **ModMenu**: For easy mod configuration access
 
+## 🔄 Version Compatibility
+
+| Mod Version | Cobblemon Version | Minecraft Version | Status |
+|-------------|-------------------|-------------------|--------|
+| 1.5.x       | 1.7.0+           | 1.21.1           | ✅ Current |
+| 1.4.x       | 1.6.1            | 1.21.1           | 🔒 Legacy |
+
 ### Installation Steps
 1. Ensure you have Fabric Loader installed
 2. Download the required dependencies listed above
-3. Download the latest version of **Poke Notifier**
+3. Download **Poke Notifier v1.5.0** for Cobblemon 1.7.0+
 4. Place all .jar files into your `mods` folder
 5. Install optional dependencies for enhanced features
 6. Start the game and use `/pnc gui` to access all features!
