@@ -839,7 +839,7 @@ public class SwarmEventManager {
                         
                         if (ConfigManager.getServerConfig().debug_mode_enabled) {
                             PokeNotifier.LOGGER.debug("[SwarmManager] Removed swarm entity: {} (UUID: {})", 
-                                entity.getPokemon().getDisplayName().getString(), uuid);
+                                entity.getPokemon().getDisplayName(true).getString(), uuid);
                         }
                     }
                 }
