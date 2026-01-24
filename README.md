@@ -1,14 +1,55 @@
-# Poke Notifier v1.5.0 - Cobblemon 1.7.0 Compatibility Update!
+# Poke Notifier v1.6.0 - Player Experience Update!
 
-Poke Notifier has evolved from a simple notification mod into a comprehensive server event management system! This latest version introduces powerful new event systems, enhanced administration tools, and seamless map integration, making it the ultimate tool for community servers running Cobblemon.
+Poke Notifier has evolved from a simple notification mod into a comprehensive server event management system! This latest version introduces the **Poké Notifier Device** - a personal tracking tool that puts all mod features at your fingertips.
 
-## 🔧 Latest Updates in v1.5.0
+## 🔧 Latest Updates in v1.6.0
+
+### 🎮 **Poké Notifier Device - NEW!**
+- **Personal Tracking Device**: Craftable item that provides instant access to all mod features
+- **Quick Access**: Press **[N]** or right-click the device to open the configuration GUI
+- **Equipable**: Can be equipped in Trinkets necklace slot for hands-free access
+- **Ownership System**: Each device displays its crafter/owner like Cobblemon badges
+- **First Join Gift**: New players receive a free device on their first server join
+- **Tech-Themed Effects**: Beacon sounds and portal particles when equipped
+- **Fireproof**: Won't be destroyed by lava or fire
+
+### 📜 **Crafting Recipe**
+```
+[Paper]    [Redstone] [Paper]
+[Iron]     [Clock]    [Iron]
+[Paper]    [Redstone] [Paper]
+```
+Accessible early-game recipe using common materials!
+
+### ⌨️ **Keybind System**
+- **Default Key**: [N] - Opens GUI when you have the device
+- **Customizable**: Rebind in Controls menu under "Poke Notifier" category
+- **Smart Detection**: Works with device in inventory, hotbar, or equipped
+
+### 🎒 **Trinkets Integration**
+- **Necklace Slot**: Equip device for hands-free GUI access
+- **Bundled**: Trinkets API included - no separate download needed
+- **Graceful Fallback**: Works perfectly without Trinkets installed
+
+## 🔧 Updates from v1.5.0
 
 ### ✅ **Cobblemon 1.7.0 Compatibility**
 - **Full API Compatibility**: Updated all Pokemon display name calls for Cobblemon 1.7.0
 - **Tested & Verified**: Complete singleplayer and multiplayer testing confirmed
 - **No Breaking Changes**: Seamless upgrade from v1.4.x with no data loss
 - **Enhanced Pokemon Lists**: Updated and corrected Pokemon categorization for accuracy
+
+### 🗺️ **Map Integration Simplification**
+- **Xaero's Minimap Only**: Streamlined to single map provider for better reliability
+- **JourneyMap Removed**: Eliminated non-functional integration
+- **Improved Performance**: Reduced overhead with simplified architecture
+- **Runtime Detection**: Automatic detection without hard dependencies
+
+### 🎨 **Creative Mode Tab**
+- **Custom Item Group**: New "Poke Notifier" tab in creative inventory
+- **All Items Accessible**: 9 generation trophies + 3 trophy blocks
+- **Organized Display**: Trophies first, then blocks for easy access
+- **Kanto Trophy Icon**: Distinctive tab icon for quick identification
 
 ### 📊 **Pokemon List Improvements**
 - **MYTHICAL Category**: Corrected list with proper 22 Mythical Pokemon
@@ -66,11 +107,12 @@ Administrators no longer need to memorize complex commands. Everything is now ac
 
 ---
 
-## 🎮 Universal Command
+## 🎮 Universal Access
 
-| Command    | Description                                  |
+| Method    | Description                                  |
 | :--------- | :------------------------------------------- |
-| `/pnc gui` | Opens the main configuration screen for all users. |
+| **Poké Notifier Device** | Right-click or press **[N]** to open GUI (all players) |
+| `/pnc gui` | Command access (OP only) |
 
 ---
 
@@ -110,24 +152,42 @@ You can also check out the source code and contribute to the project at our GitH
 
 | Mod Version | Cobblemon Version | Minecraft Version | Status |
 |-------------|-------------------|-------------------|--------|
-| 1.5.x       | 1.7.0+           | 1.21.1           | ✅ Current |
+| 1.6.x       | 1.7.0+           | 1.21.1           | ✅ Current |
+| 1.5.x       | 1.7.0+           | 1.21.1           | 🔒 Legacy |
 | 1.4.x       | 1.6.1            | 1.21.1           | 🔒 Legacy |
 
 ### Installation Steps
 1. Ensure you have Fabric Loader installed
 2. Download the required dependencies listed above
-3. Download **Poke Notifier v1.5.0** for Cobblemon 1.7.0+
+3. Download **Poke Notifier v1.6.0** for Cobblemon 1.7.0+
 4. Place all .jar files into your `mods` folder
 5. Install optional dependencies for enhanced features
-6. Start the game and use `/pnc gui` to access all features!
+6. Start the game - you'll receive a Poké Notifier Device on first join!
+7. Press **[N]** or right-click the device to access all features!
 
 ## 🚀 **Getting Started**
 
+### For New Players
+1. Join the server for the first time
+2. Receive your free Poké Notifier Device
+3. Press **[N]** or right-click the device to open the GUI
+4. Configure your notifications in the User Tools tab
+5. Start tracking Pokémon and participating in events!
+
+### Crafting Your Own Device
+If you lose your device or want extras:
+```
+[Paper]    [Redstone] [Paper]
+[Iron]     [Clock]    [Iron]
+[Paper]    [Redstone] [Paper]
+```
+
 ### For Players
-- Use `/pnc gui` to access all mod features
+- Press **[N]** or right-click your device to access all features
 - Configure notifications in the User Tools tab
 - Track active events in the Events tab
 - Customize map settings for waypoint integration
+- Equip device in Trinkets necklace slot for hands-free access
 
 ### For Server Admins
 - Access advanced controls through the Admin Tools tab

@@ -22,6 +22,7 @@ import com.zehro_mc.pokenotifier.api.PokeNotifierApi;
 import com.zehro_mc.pokenotifier.model.GenerationData;
 import com.zehro_mc.pokenotifier.event.EvolutionListener;
 import com.zehro_mc.pokenotifier.item.ModItems;
+import com.zehro_mc.pokenotifier.item.ModItemGroups;
 import com.zehro_mc.pokenotifier.model.CustomListConfig;
 import com.zehro_mc.pokenotifier.model.PlayerCatchProgress;
 import com.zehro_mc.pokenotifier.event.CaptureListener;
@@ -155,6 +156,7 @@ public class PokeNotifier implements ModInitializer {
         LOGGER.info("[4/6] Registering Game Components...");
         ModDataComponents.registerModDataComponents();
         ModItems.registerModItems();
+        ModItemGroups.registerItemGroups();
         ModBlocks.registerModBlocks();
         ModBlockEntities.registerBlockEntities();
         LOGGER.info("      [OK] Items, blocks, and components registered");
@@ -165,6 +167,9 @@ public class PokeNotifier implements ModInitializer {
 
         ServerLifecycleEvents.SERVER_STARTED.register(startedServer -> {
             server = startedServer;
+            // Initialize player notifier data
+            File serverDir = startedServer.getRunDirectory().toFile();
+            com.zehro_mc.pokenotifier.data.PlayerNotifierData.initialize(serverDir);
             // Initialize Global Hunt Manager
             GlobalHuntManager.getInstance().initialize(startedServer);
             // Initialize Swarm Event Manager
@@ -465,6 +470,10 @@ public class PokeNotifier implements ModInitializer {
         LOGGER.info("      [INIT] Configuring Bounty System");
         LOGGER.info("      [INIT] Enabling Swarm Events");
         LOGGER.info("      [INIT] Activating Rival Notifications");
+        LOGGER.info("      [INIT] Registering First Join Handler");
+        
+        // Register first join handler
+        com.zehro_mc.pokenotifier.events.FirstJoinHandler.register();
         
         // On player join, perform initial syncs and check for rank effects.
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {

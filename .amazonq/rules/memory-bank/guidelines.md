@@ -87,12 +87,19 @@ if (ConfigManager.getServerConfig().debug_mode_enabled) {
 - **World Access**: Proper world and chunk loading before block operations
 - **Player Management**: Access players through server player manager
 - **Block State Management**: Use proper block state setting with update flags
+- **Item Groups**: Use `FabricItemGroup.builder()` for creative tab registration
 
 ```java
 world.getServer().execute(() -> {
     // Thread-safe operations here
     world.setBlockState(pos, state, 3); // Update flag 3 for client sync
 });
+
+// Creative tab registration
+public static final RegistryKey<ItemGroup> POKE_NOTIFIER_GROUP = RegistryKey.of(
+    RegistryKeys.ITEM_GROUP, 
+    Identifier.of(PokeNotifier.MOD_ID, "poke_notifier")
+);
 ```
 
 ### Cobblemon API Integration
@@ -118,6 +125,25 @@ entity.getPokemon().getPersistentData().putBoolean("custom_flag", true);
 - **Server Receivers**: Use ServerPlayNetworking.registerGlobalReceiver()
 - **Client Sending**: Use ClientPlayNetworking.send() for client-to-server
 - **Thread Safety**: Execute network operations on proper threads
+
+### Map Integration Patterns (v1.5.0+)
+- **Xaero's Minimap Only**: Simplified single-provider integration
+- **Runtime Detection**: Use `XaeroIntegration.isXaeroAvailable()` for availability checks
+- **Direct Integration**: Call `XaeroWaypointIntegration` methods directly
+- **No Abstraction Layer**: Removed MapIntegrationManager and MapProvider patterns
+
+```java
+// Check availability
+if (XaeroIntegration.isXaeroAvailable()) {
+    // Create waypoint directly
+    XaeroWaypointIntegration.addWaypoint(name, x, y, z, color);
+}
+```
+
+### Removed Patterns (v1.5.0)
+- **JourneyMap Integration**: Removed due to non-functional waypoint system
+- **Unified Map Interface**: Removed MapIntegration abstraction
+- **Auto-detection Manager**: Removed MapIntegrationManager singleton
 
 ## Frequently Used Annotations
 

@@ -30,6 +30,8 @@ public class ConfigServer {
             "rival_notification_cooldown_seconds: How long (in seconds) a player must wait between rival notifications.",
             "rival_notification_override_distance: If a rival is within this distance (in blocks), they will be notified regardless of the cooldown.",
             "update_checker_source: The platform to check for updates ('modrinth', 'curseforge', 'none', or 'unknown').",
+            "give_notifier_on_first_join: If true, new players receive a Poké Notifier Device on first join.",
+            "notifier_welcome_message: If true, shows a welcome message when giving the device.",
             "NOTE: Swarm system configuration is now managed in config/poke-notifier/events/config-swarm.json",
             "global_hunt_system_enabled: If true, the Global Hunt system is available for use."
     };
@@ -47,4 +49,7 @@ public class ConfigServer {
 
     public boolean global_hunt_system_enabled = false;
     public String active_bounty = null;
+    
+    public boolean give_notifier_on_first_join = true;
+    public boolean notifier_welcome_message = true;
 }

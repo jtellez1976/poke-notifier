@@ -30,6 +30,14 @@ repositories {
 	maven {
 		url = "https://maven.terraformersmc.com/releases/"
 	}
+	maven {
+		name = "Wispforest"
+		url = "https://maven.wispforest.io/releases"
+	}
+	maven {
+		name = "Ladysnake Mods"
+		url = "https://maven.ladysnake.org/releases"
+	}
 }
 
 loom {
@@ -62,6 +70,9 @@ dependencies {
 	// GUI Library
 	modImplementation "com.terraformersmc:modmenu:${project.modmenu_version}"
 
+	// Trinkets API (Included - Bundled with mod for equipable slots)
+	modImplementation include("dev.emi:trinkets:${project.trinkets_version}")
+
 }
 
 processResources {
@@ -89,12 +100,23 @@ java {
 
 
 
-// --- Development Tasks (Commented for Production Release) ---
-// Uncomment these tasks for local development and testing
-
-/*
+// --- Development Tasks (Uncommented for Testing) ---
+// Tasks for local development and testing
 task copyModToClient(type: Copy) {
 	def modsDir = file("C:/Users/JOHN/curseforge/minecraft/Instances/Cobblemon Official Modpack [Fabric]/mods")
+	onlyIf { modsDir.exists() }
+	doFirst {
+		delete(fileTree(modsDir) {
+			include "${project.archives_base_name}-*.jar"
+		})
+	}
+	from remapJar.archiveFile
+	into modsDir
+}
+
+// Testing deployment for COBBLEVERSE - Pokemon Adventure
+task copyModToSMP(type: Copy) {
+	def modsDir = file("C:/Users/JOHN/curseforge/minecraft/Instances/COBBLEVERSE - Pokemon Adventure [Cobblemon]/mods")
 	onlyIf { modsDir.exists() }
 	doFirst {
 		delete(fileTree(modsDir) {
@@ -118,12 +140,11 @@ task copyModToServer(type: Copy) {
 }
 
 task deployToTest {
-	dependsOn copyModToClient, copyModToServer
+	dependsOn copyModToSMP, copyModToServer
 	doLast {
-		println "--> Deployed mod to test environments."
+		println "--> Deployed mod to COBBLEVERSE - Pokemon Adventure for testing."
 	}
 }
 
-// Uncomment for automatic deployment during development:
-// build.finalizedBy(deployToTest)
-*/
+// Automatic deployment during development:
+build.finalizedBy(deployToTest)

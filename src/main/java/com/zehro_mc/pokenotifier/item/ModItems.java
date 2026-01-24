@@ -31,9 +31,20 @@ public class ModItems {
     public static final Item GALAR_TROPHY = registerItem("galar_trophy");
     public static final Item PALDEA_TROPHY = registerItem("paldea_trophy");
 
+    // Poké Notifier Device
+    public static final Item POKE_NOTIFIER_DEVICE = registerDevice("poke_notifier_device");
+
     private static Item registerItem(String name) {
         return Registry.register(Registries.ITEM, Identifier.of(PokeNotifier.MOD_ID, name),
                 new PokedexTrophyItem(new Item.Settings().maxCount(1)));
+    }
+
+    private static Item registerDevice(String name) {
+        return Registry.register(Registries.ITEM, Identifier.of(PokeNotifier.MOD_ID, name),
+                new PokeNotifierDeviceItem(new Item.Settings()
+                    .maxCount(1)
+                    .rarity(net.minecraft.util.Rarity.UNCOMMON)
+                    .fireproof()));
     }
 
     public static void registerModItems() {

@@ -1,4 +1,8 @@
 {
+  "itemgroup.poke-notifier": "Poke Notifier",
+  "item.poke-notifier.poke_notifier_device": "Poké Notifier Device",
+  "key.poke-notifier.open_device": "Open Poké Notifier Device",
+  "category.poke-notifier": "Poke Notifier",
   "item.poke-notifier.kanto_trophy": "Kanto Trophy",
   "item.poke-notifier.johto_trophy": "Johto Trophy",
   "item.poke-notifier.hoenn_trophy": "Hoenn Trophy",

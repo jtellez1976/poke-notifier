@@ -12,6 +12,7 @@ import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
 import com.zehro_mc.pokenotifier.ConfigManager;
 import com.zehro_mc.pokenotifier.client.data.WaypointManager;
 import com.zehro_mc.pokenotifier.client.data.WaypointData;
+import com.zehro_mc.pokenotifier.client.compat.XaeroIntegration;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.BlockPos;
@@ -47,8 +48,17 @@ public class WaypointTracker {
         UUID pokemonId = pokemonEntity.getUuid();
         trackedWaypoints.put(pokemonId, waypointName);
         
-        // Add to persistent storage
+        // Create waypoint using Xaero's integration
         BlockPos pos = pokemonEntity.getBlockPos();
+        
+        if (XaeroIntegration.isXaeroAvailable()) {
+            // Use XaeroWaypointIntegration directly for waypoint creation
+            if (XaeroWaypointIntegration.addWaypoint(waypointName, pos.getX(), pos.getY(), pos.getZ())) {
+                LOGGER.debug("[WAYPOINT TRACKER] Created waypoint via Xaero integration: {}", waypointName);
+            }
+        }
+        
+        // Add to persistent storage
         WaypointManager.addWaypoint(waypointName, pos.getX(), pos.getY(), pos.getZ(), 
             pokemonId.toString(), WaypointData.WaypointType.POKEMON);
         
@@ -68,6 +78,14 @@ public class WaypointTracker {
         String locationKey = x + "_" + y + "_" + z;
         UUID locationId = UUID.nameUUIDFromBytes(locationKey.getBytes());
         trackedWaypoints.put(locationId, waypointName);
+        
+        // Create waypoint using Xaero's integration
+        if (XaeroIntegration.isXaeroAvailable()) {
+            // Use XaeroWaypointIntegration directly for waypoint creation
+            if (XaeroWaypointIntegration.addWaypoint(waypointName, x, y, z)) {
+                LOGGER.debug("[WAYPOINT TRACKER] Created location waypoint via Xaero integration: {}", waypointName);
+            }
+        }
         
         // Add to persistent storage
         WaypointManager.addWaypoint(waypointName, x, y, z, null, WaypointData.WaypointType.EVENT);
@@ -137,18 +155,18 @@ public class WaypointTracker {
     }
     
     /**
-     * Removes a waypoint by name using Xaero's command.
+     * Removes a waypoint by name using Xaero's integration.
      * @param waypointName The name of the waypoint to remove
      */
     private static void removeWaypoint(String waypointName) {
         if (!XaeroIntegration.isXaeroAvailable()) {
+            LOGGER.debug("[WAYPOINT TRACKER] Xaero's Minimap not available for waypoint removal");
             return;
         }
         
         try {
-            // Use XaeroIntegration's remove method instead of direct command
-            if (XaeroIntegration.removeWaypoint(waypointName)) {
-                LOGGER.debug("[WAYPOINT TRACKER] Successfully removed waypoint: {}", waypointName);
+            if (XaeroWaypointIntegration.removeWaypoint(waypointName)) {
+                LOGGER.debug("[WAYPOINT TRACKER] Successfully removed waypoint: {} using Xaero's Minimap", waypointName);
             } else {
                 LOGGER.warn("[WAYPOINT TRACKER] Failed to remove waypoint: {}", waypointName);
             }

@@ -18,7 +18,7 @@ minecraft "com.mojang:minecraft:1.21.1"
 mappings "net.fabricmc:yarn:1.21.1+build.3:v2"
 modImplementation "net.fabricmc:fabric-loader:0.17.3"
 modImplementation "net.fabricmc.fabric-api:fabric-api:0.104.0+1.21.1"
-modImplementation "com.cobblemon:fabric:1.6.1+1.21.1"
+modImplementation "com.cobblemon:fabric:1.7.0+1.21.1"
 modImplementation "net.fabricmc:fabric-language-kotlin:1.12.3+kotlin.2.0.21"
 modApi "net.kyori:adventure-platform-fabric:5.14.1"
 
@@ -40,7 +40,7 @@ org.gradle.parallel=true
 fabric.loom.useProcessIsolation=true
 
 # Version Information
-mod_version=1.4.0
+mod_version=1.5.0-cobblemon-1.7.0
 maven_group=com.zehro_mc.pokenotifier
 archives_base_name=poke-notifier
 ```
@@ -96,8 +96,11 @@ archives_base_name=poke-notifier
 
 ### Testing Setup
 - **Client Instance**: CurseForge launcher integration
+  - **Current Target**: COBBLEVERSE - Pokemon Adventure [Cobblemon]
+  - **Path**: `C:/Users/JOHN/curseforge/minecraft/Instances/COBBLEVERSE - Pokemon Adventure [Cobblemon]/mods`
 - **Server Instance**: Local test server with auto-deployment
 - **Vanilla Launcher**: Alternative testing environment
+- **Build Naming**: Timestamped builds for version tracking
 
 ## File Structure and Resources
 
@@ -132,7 +135,8 @@ data/
 ### Runtime Optimizations
 - **Smart Spawning**: Pokémon only spawn near players
 - **Event Cleanup**: Automatic removal of expired events
-- **Waypoint Management**: Protected waypoints with smart cleanup
+- **Waypoint Management**: Xaero's Minimap integration with smart cleanup
+- **Single Map Provider**: Simplified integration reduces overhead
 
 ### Windows Compatibility
 - **Argument Files**: Bypass command line length limits

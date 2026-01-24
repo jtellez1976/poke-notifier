@@ -24,7 +24,7 @@ src/
 │   ├── events/                     # Event system (swarms, hunts)
 │   ├── globalhunt/                 # Global hunt functionality
 │   ├── block/                      # Trophy blocks and entities
-│   ├── item/                       # Trophy items
+│   ├── item/                       # Trophy items and item groups
 │   ├── config/                     # Configuration management
 │   ├── utils/                      # Utility classes
 │   └── mixins/                     # Minecraft code modifications
@@ -61,12 +61,13 @@ src/main/resources/
 - **Interactive panels**: Real-time feedback and controls
 
 ### Trophy System
-- **Trophy Items**: Physical rewards for generation completion
-- **Trophy Blocks**: Display pedestals and altars
+- **Trophy Items**: Physical rewards for generation completion (9 generations)
+- **Trophy Blocks**: Display pedestals and altars (3 block types)
 - **TrophyAltarBlockEntity**: Handles trophy placement and effects
+- **ModItemGroups**: Creative mode tab registration for all mod items
 
 ### Integration Layer
-- **Xaero's Minimap**: Waypoint creation and management
+- **Xaero's Minimap**: Waypoint creation and management (runtime detection)
 - **Cobblemon API**: Pokémon data and event integration
 - **AdvancementPlaques**: Enhanced notification display
 
@@ -98,14 +99,18 @@ src/main/resources/
 - **Minecraft 1.21.1**: Base game platform
 - **Fabric Loader 0.17.3+**: Mod loading framework
 - **Fabric API**: Core Fabric functionality
-- **Cobblemon 1.6.1+**: Pokémon game integration
+- **Cobblemon 1.7.0+**: Pokémon game integration
 
 ### Optional Integrations
-- **Xaero's Minimap/World Map**: Enhanced navigation
+- **Xaero's Minimap/World Map**: Enhanced navigation (runtime detection only)
 - **AdvancementPlaques + Iceberg**: Stylized notifications
 - **ModMenu**: Configuration access in mod menu
+
+### Removed Integrations (v1.5.0)
+- **JourneyMap**: Removed due to non-functional waypoint system
 
 ### Build System
 - **Gradle 8.8**: Build automation and dependency management
 - **Fabric Loom**: Minecraft mod development toolchain
 - **Custom Tasks**: Automated deployment to test environments
+- **Deployment Target**: COBBLEVERSE - Pokemon Adventure [Cobblemon] instance

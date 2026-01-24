@@ -17,11 +17,14 @@ import com.zehro_mc.pokenotifier.client.compat.AdvancementPlaquesCompat;
 import com.zehro_mc.pokenotifier.client.compat.XaeroIntegration;
 import com.zehro_mc.pokenotifier.client.data.WaypointManager;
 import com.zehro_mc.pokenotifier.client.event.PokemonWaypointHandler;
+import com.zehro_mc.pokenotifier.item.ModItems;
+
 import com.zehro_mc.pokenotifier.client.renderer.TrophyDisplayBlockEntityRenderer;
 import com.zehro_mc.pokenotifier.networking.*;
 import com.zehro_mc.pokenotifier.networking.GlobalHuntPayload;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
@@ -29,6 +32,7 @@ import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.block.entity.BlockEntityRendererFactories;
 import net.minecraft.client.sound.PositionedSoundInstance;
+import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
@@ -148,6 +152,9 @@ public class PokeNotifierClient implements ClientModInitializer {
         // Load client-specific configurations at the very beginning.
         ConfigManager.loadClientConfig();
         
+        // Register keybindings
+        KeyBindings.register();
+        
         // Initialize Xaero's integration and waypoint tracking
         XaeroIntegration.initialize();
         WaypointManager.loadWaypoints();
@@ -172,7 +179,45 @@ public class PokeNotifierClient implements ClientModInitializer {
                 }
             }
         });
+        
+        // Register keybind handler
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            while (KeyBindings.OPEN_NOTIFIER_KEY.wasPressed()) {
+                if (client.player != null && hasPokeNotifierDevice(client.player.getInventory())) {
+                    // Play same sound as right-click for consistency
+                    client.player.playSound(SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, 1.0f, 1.2f);
+                    
+                    // Open GUI
+                    client.setScreen(new PokeNotifierCustomScreen(null));
+                }
+            }
+        });
     }
+    
+    /**
+     * Checks if the player has the Poké Notifier Device in their inventory or hotbar.
+     */
+    private static boolean hasPokeNotifierDevice(PlayerInventory inventory) {
+        // Check hotbar and main inventory
+        for (int i = 0; i < inventory.size(); i++) {
+            if (inventory.getStack(i).getItem() == ModItems.POKE_NOTIFIER_DEVICE) {
+                return true;
+            }
+        }
+        
+        // Check Trinkets slot
+        try {
+            var trinkets = dev.emi.trinkets.api.TrinketsApi.getTrinketComponent(inventory.player);
+            if (trinkets.isPresent()) {
+                return trinkets.get().isEquipped(ModItems.POKE_NOTIFIER_DEVICE);
+            }
+        } catch (Exception e) {
+            // Trinkets check failed
+        }
+        
+        return false;
+    }
+    
 
     /**
      * Registers receivers for packets sent from the server to the client.
@@ -313,27 +358,14 @@ public class PokeNotifierClient implements ClientModInitializer {
 
                     chatMessage.append(Text.literal(" (" + payload.level() + ") has appeared at ").formatted(Formatting.YELLOW));
                     
-                    // Create waypoints only for NEW Pokémon or HUNT category (custom list)
+                    // Use unified map integration for all Pokemon
                     String pokemonName = payload.name();
                     int x = payload.pos().getX();
                     int y = payload.pos().getY();
                     int z = payload.pos().getZ();
                     
-                    boolean shouldCreateWaypoint = "NEW".equals(payload.status()) || "HUNT".equals(payload.rarityCategoryName());
-                    
-                    if (shouldCreateWaypoint) {
-                        chatMessage.append(com.zehro_mc.pokenotifier.client.util.ClientMessageUtils.createLocationText(
-                                pokemonName, x, y, z, payload.color()));
-                    } else {
-                        // Show coordinates with Add button for CAUGHT Pokémon
-                        chatMessage.append(XaeroIntegration.createCoordinateFallback(x, y, z));
-                        
-                        // Add waypoint button for all Pokemon if Xaero's is available
-                        if (ConfigManager.getClientConfig().create_waypoints_enabled && XaeroIntegration.isXaeroAvailable()) {
-                            chatMessage.append(Text.literal(" ").formatted(Formatting.WHITE));
-                            chatMessage.append(XaeroIntegration.createWaypointButton(pokemonName, x, y, z, payload.color()));
-                        }
-                    }
+                    // Always use MessageUtils for consistent waypoint button behavior
+                    chatMessage.append(MessageUtils.createLocationText(pokemonName, x, y, z, payload.color()));
                     
                     chatMessage.append(Text.literal(" (").formatted(Formatting.YELLOW));
                     chatMessage.append(Text.literal(String.format("%.1f", payload.distance()) + " blocks away").formatted(Formatting.GREEN));

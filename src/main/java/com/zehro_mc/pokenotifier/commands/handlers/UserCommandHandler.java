@@ -33,9 +33,9 @@ public class UserCommandHandler {
      * @param mainNode The main pokenotifier command node
      */
     public static void registerUserCommands(LiteralArgumentBuilder<ServerCommandSource> mainNode) {
-        // GUI command - accessible to all players
+        // GUI command - OP only (permission level 2)
         var guiCommand = CommandManager.literal("gui")
-                .requires(source -> source.hasPermissionLevel(0))
+                .requires(source -> source.hasPermissionLevel(2))
                 .executes(context -> {
                     ServerPlayerEntity player = context.getSource().getPlayer();
                     if (player != null) {

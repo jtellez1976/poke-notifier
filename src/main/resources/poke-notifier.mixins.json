@@ -3,6 +3,7 @@
   "package": "com.zehro_mc.pokenotifier.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "CraftingResultSlotMixin",
     "ServerPlayerEntityMixin"
   ],
   "client": [

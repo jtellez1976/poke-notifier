@@ -514,15 +514,16 @@ public class PokeNotifierCustomScreen extends Screen {
         addDrawableChild(autoWaypointButton);
         currentY += 25;
         
-        // Xaero's Integration Status
+        // Map Integration Status
         boolean xaeroAvailable = com.zehro_mc.pokenotifier.client.compat.XaeroIntegration.isXaeroAvailable();
-        Text xaeroStatusText = Text.literal("Xaero's Integration: ")
-            .append(xaeroAvailable ? Text.literal("AVAILABLE").formatted(Formatting.GREEN) : Text.literal("NOT FOUND").formatted(Formatting.RED));
-        addDrawableChild(ButtonWidget.builder(xaeroStatusText, b -> {
+        
+        Text mapStatusText = Text.literal("Map Integration: ")
+            .append(xaeroAvailable ? Text.literal("Xaero's Minimap").formatted(Formatting.GREEN) : Text.literal("NOT FOUND").formatted(Formatting.RED));
+        addDrawableChild(ButtonWidget.builder(mapStatusText, b -> {
             List<Text> statusLines = new ArrayList<>();
-            statusLines.add(Text.literal("--- Xaero's Integration Status ---").formatted(Formatting.GOLD));
+            statusLines.add(Text.literal("--- Map Integration Status ---").formatted(Formatting.GOLD));
             if (xaeroAvailable) {
-                statusLines.add(Text.literal("✓ Xaero's mods detected").formatted(Formatting.GREEN));
+                statusLines.add(Text.literal("✓ Xaero's Minimap detected").formatted(Formatting.GREEN));
                 statusLines.add(Text.literal("✓ Waypoint buttons will appear in chat").formatted(Formatting.GREEN));
                 statusLines.add(Text.literal("✓ Click [Add] to create waypoints").formatted(Formatting.AQUA));
                 if (clientConfig.auto_remove_waypoints) {
@@ -531,15 +532,15 @@ public class PokeNotifierCustomScreen extends Screen {
                     statusLines.add(Text.literal("⚠ Auto-removal disabled").formatted(Formatting.GRAY));
                 }
             } else {
-                statusLines.add(Text.literal("✗ Xaero's mods not found").formatted(Formatting.RED));
+                statusLines.add(Text.literal("✗ No map mods found").formatted(Formatting.RED));
                 statusLines.add(Text.literal("→ Coordinates shown instead").formatted(Formatting.GRAY));
-                statusLines.add(Text.literal("→ Install Xaero's Minimap/Worldmap for waypoints").formatted(Formatting.GRAY));
+                statusLines.add(Text.literal("→ Install Xaero's Minimap for waypoints").formatted(Formatting.GRAY));
             }
             displayResponse(statusLines);
         }).dimensions(x, currentY, width, 18).build());
         currentY += 22;
         
-        // Xaero-specific buttons
+        // Map-specific buttons
         if (xaeroAvailable) {
             // Waypoint Statistics
             addDrawableChild(ButtonWidget.builder(Text.literal("Waypoint Statistics"), b -> {
@@ -571,17 +572,20 @@ public class PokeNotifierCustomScreen extends Screen {
                 }
             }).dimensions(x, currentY, width, 18).build());
         } else {
-            // About Waypoint Features when Xaero's not available
+            // About Waypoint Features when no map mod available
             addDrawableChild(ButtonWidget.builder(Text.literal("About Waypoint Features"), b -> {
                 List<Text> infoLines = new ArrayList<>();
                 infoLines.add(Text.literal("--- Waypoint Features ---").formatted(Formatting.GOLD));
-                infoLines.add(Text.literal("Install Xaero's Minimap or Worldmap to enable:").formatted(Formatting.YELLOW));
+                infoLines.add(Text.literal("Install a supported map mod to enable:").formatted(Formatting.YELLOW));
+                infoLines.add(Text.literal("• Xaero's Minimap/Worldmap").formatted(Formatting.AQUA));
+                infoLines.add(Text.literal("").formatted(Formatting.WHITE));
+                infoLines.add(Text.literal("Features with map mods:").formatted(Formatting.YELLOW));
                 infoLines.add(Text.literal("• Clickable waypoint buttons in chat").formatted(Formatting.AQUA));
                 infoLines.add(Text.literal("• Automatic waypoint creation for Pokemon").formatted(Formatting.AQUA));
                 infoLines.add(Text.literal("• Auto-removal when Pokemon are caught").formatted(Formatting.AQUA));
                 infoLines.add(Text.literal("• Waypoint tracking and management").formatted(Formatting.AQUA));
                 infoLines.add(Text.literal("").formatted(Formatting.WHITE));
-                infoLines.add(Text.literal("Without Xaero's: Coordinates are shown instead").formatted(Formatting.GRAY));
+                infoLines.add(Text.literal("Without map mods: Coordinates are shown instead").formatted(Formatting.GRAY));
                 displayResponse(infoLines);
             }).dimensions(x, currentY, width, 18).build());
         }

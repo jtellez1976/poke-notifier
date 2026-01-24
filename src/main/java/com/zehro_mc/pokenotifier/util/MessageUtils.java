@@ -45,8 +45,8 @@ public class MessageUtils {
      * @return Text component with waypoint button OR coordinates (not both)
      */
     public static MutableText createLocationText(String name, int x, int y, int z, int color) {
-        // Check if waypoint creation is enabled and Xaero's is available
-        if (ConfigManager.getClientConfig().create_waypoints_enabled && isXaeroAvailable()) {
+        // Check if waypoint creation is enabled and any map mod is available
+        if (ConfigManager.getClientConfig().create_waypoints_enabled && isMapModAvailable()) {
             // Only show waypoint button, no coordinates
             return createWaypointButton(name, x, y, z, color);
         }
@@ -66,20 +66,10 @@ public class MessageUtils {
      * @return Text component with waypoint button OR coordinates (not both)
      */
     public static MutableText createLocationTextForPokemon(PokemonEntity pokemonEntity, String name, int x, int y, int z, int color) {
-        // Check if waypoint creation is enabled and Xaero's is available
-        if (ConfigManager.getClientConfig().create_waypoints_enabled && isXaeroAvailable()) {
-            // Use client-side integration for Pokemon-specific waypoints
-            try {
-                Class<?> xaeroIntegrationClass = Class.forName("com.zehro_mc.pokenotifier.client.compat.XaeroIntegration");
-                java.lang.reflect.Method createWaypointButtonForPokemonMethod = xaeroIntegrationClass.getMethod("createWaypointButtonForPokemon", 
-                    Class.forName("com.cobblemon.mod.common.entity.pokemon.PokemonEntity"), String.class, int.class, int.class, int.class, int.class);
-                Object result = createWaypointButtonForPokemonMethod.invoke(null, pokemonEntity, name, x, y, z, color);
-                if (result instanceof Text) {
-                    return (MutableText) result;
-                }
-            } catch (Exception e) {
-                // Fallback to regular waypoint creation
-            }
+        // Check if waypoint creation is enabled and any map mod is available
+        if (ConfigManager.getClientConfig().create_waypoints_enabled && isMapModAvailable()) {
+            // Use unified map integration for Pokemon-specific waypoints
+            return createWaypointButton(name, x, y, z, color);
         }
         // Fallback to coordinates
         return createCoordinateFallback(x, y, z);
@@ -96,7 +86,7 @@ public class MessageUtils {
     }
 
     /**
-     * Creates a waypoint button using the client-side integration.
+     * Creates a waypoint button using Xaero's Minimap integration.
      * This method is only called on the client side.
      * @param name Waypoint name
      * @param x X coordinate
@@ -106,17 +96,20 @@ public class MessageUtils {
      * @return Clickable waypoint button or coordinates
      */
     private static MutableText createWaypointButton(String name, int x, int y, int z, int color) {
-        // This method should only be called on client side
-        // Use XaeroIntegration to create waypoint with proper tracking
-        try {
-            Class<?> xaeroIntegrationClass = Class.forName("com.zehro_mc.pokenotifier.client.compat.XaeroIntegration");
-            java.lang.reflect.Method createWaypointButtonMethod = xaeroIntegrationClass.getMethod("createWaypointButton", String.class, int.class, int.class, int.class, int.class);
-            Object result = createWaypointButtonMethod.invoke(null, name, x, y, z, color);
-            if (result instanceof Text) {
-                return (MutableText) result;
+        String coordinates = x + ", " + y + ", " + z;
+        
+        // Check for Xaero's Minimap
+        if (FabricLoader.getInstance().isModLoaded("xaerominimap") || FabricLoader.getInstance().isModLoaded("xaeroworldmap")) {
+            try {
+                Class<?> xaeroIntegrationClass = Class.forName("com.zehro_mc.pokenotifier.client.compat.XaeroIntegration");
+                java.lang.reflect.Method createWaypointButtonMethod = xaeroIntegrationClass.getMethod("createWaypointButton", String.class, int.class, int.class, int.class, int.class);
+                Object result = createWaypointButtonMethod.invoke(null, name, x, y, z, color);
+                if (result instanceof Text) {
+                    return ((MutableText) result).append(Text.literal(" " + coordinates).formatted(Formatting.AQUA));
+                }
+            } catch (Exception e) {
+                // Fallback to coordinates
             }
-        } catch (Exception e) {
-            // Fallback to coordinates if client integration fails
         }
         
         // Fallback to coordinates
@@ -142,10 +135,10 @@ public class MessageUtils {
     }
     
     /**
-     * Detects if Xaero's mods are available at runtime.
-     * @return true if Xaero's is detected, false otherwise
+     * Detects if Xaero's Minimap is available at runtime.
+     * @return true if Xaero's Minimap is detected, false otherwise
      */
-    private static boolean isXaeroAvailable() {
+    private static boolean isMapModAvailable() {
         return FabricLoader.getInstance().isModLoaded("xaerominimap") || 
                FabricLoader.getInstance().isModLoaded("xaeroworldmap");
     }
