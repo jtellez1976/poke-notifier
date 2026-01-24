@@ -26,6 +26,7 @@ public class ConfigClient {
     public int glowing_duration_seconds = 120;
 
     public boolean alert_sounds_enabled = true;
+    public float alert_sound_volume = 1.0f; // Volume from 0.0 to 1.0
     public boolean alert_toast_enabled = true;
     public boolean alert_chat_enabled = true;
     public boolean silent_mode_enabled = false;

@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "poke-notifier:block/trophy_display_block"
+  }
+}

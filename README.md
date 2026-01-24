@@ -198,6 +198,8 @@ You can also check out the source code and contribute to the project at our GitH
 - Automatic detection when joining servers
 - Local data storage in `config/poke-notifier/client-only-data/`
 - Custom Hunt and Catch 'em All fully functional
+- Update checker with Modrinth/CurseForge support
+- Automatic update notifications on join
 - No admin features (expected)
 - Works on vanilla servers, modded servers, anywhere!
 
@@ -207,6 +209,7 @@ You can also check out the source code and contribute to the project at our GitH
 - Admin tools for OPs
 - Events system (Swarm, Global Hunt)
 - Trophy system and rewards
+- Update checker (admin-only notifications)
 
 ### Important Note: Data Separation
 **When playing in singleplayer (client-only mode) and then opening a local server with the same world**, the Pokémon catch progress will appear "shared" between both modes. This is expected behavior because both modes read from the same Cobblemon world data (Party + PC). 

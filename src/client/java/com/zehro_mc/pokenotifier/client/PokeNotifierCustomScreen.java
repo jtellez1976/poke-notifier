@@ -329,11 +329,18 @@ public class PokeNotifierCustomScreen extends Screen {
         // Create buttons for Chat, Sound, and HUD alerts
         addDrawableChild(createToggleButton("Chat Alerts", clientConfig.alert_chat_enabled, newValue -> clientConfig.alert_chat_enabled = newValue, x, y, width));
         addDrawableChild(createToggleButton("Sound Alerts", clientConfig.alert_sounds_enabled, newValue -> clientConfig.alert_sounds_enabled = newValue, x, y + 25, width));
-        addDrawableChild(createToggleButton("HUD Alerts", clientConfig.alert_toast_enabled, newValue -> clientConfig.alert_toast_enabled = newValue, x, y + 50, width));
+        
+        // Volume Slider
+        addDrawableChild(new ConfigSliderWidget(x, y + 50, width, 16, "Volume", (int)(clientConfig.alert_sound_volume * 100), 0, 100, "%", value -> {
+            clientConfig.alert_sound_volume = value / 100.0f;
+            ConfigManager.saveClientConfigToFile();
+        }));
+        
+        addDrawableChild(createToggleButton("HUD Alerts", clientConfig.alert_toast_enabled, newValue -> clientConfig.alert_toast_enabled = newValue, x, y + 71, width));
 
         // Create the Silent Mode button with improved logic
         net.minecraft.util.Identifier silentModeIcon = clientConfig.silent_mode_enabled ? GuiIcons.ON : GuiIcons.OFF;
-        IconButton silentModeButton = new IconButton(x, y + 85, width, 18, silentModeIcon, "Silent Mode", button -> {
+        IconButton silentModeButton = new IconButton(x, y + 96, width, 18, silentModeIcon, "Silent Mode", button -> {
             clientConfig.silent_mode_enabled = !clientConfig.silent_mode_enabled;
             if (clientConfig.silent_mode_enabled) {
                 // When silent mode is turned ON, turn off all other alerts
@@ -353,7 +360,7 @@ public class PokeNotifierCustomScreen extends Screen {
         silentModeButton.setTooltip(net.minecraft.client.gui.tooltip.Tooltip.of(Text.literal("Disable all notifications at once")));
         addDrawableChild(silentModeButton);
 
-        addDrawableChild(createToggleButton("Searching", clientConfig.searching_enabled, newValue -> clientConfig.searching_enabled = newValue, x, y + 105, width));
+        addDrawableChild(createToggleButton("Searching", clientConfig.searching_enabled, newValue -> clientConfig.searching_enabled = newValue, x, y + 116, width));
     }
 
     private void buildCustomHuntPanel(int x, int y, int width) {
@@ -746,28 +753,36 @@ public class PokeNotifierCustomScreen extends Screen {
             displayResponse(lines);
         }).dimensions(x, y + 50, width, 20).build());
 
-        // Only show Update Source selector for admins or in singleplayer
-        if (PokeNotifierClient.isPlayerAdmin || (MinecraftClient.getInstance().isInSingleplayer() && MinecraftClient.getInstance().getServer() != null)) {
-            // FIX: Use client-side cached value instead of server config that might not be synced
-            String currentSource = PokeNotifierClient.currentUpdateSource != null ? PokeNotifierClient.currentUpdateSource : "unknown";
+        // Update Source - Behavior depends on mode
+        String currentSource = PokeNotifierClient.currentUpdateSource != null ? PokeNotifierClient.currentUpdateSource : "modrinth";
+        
+        if (com.zehro_mc.pokenotifier.client.util.ServerModDetector.isClientOnly()) {
+            // CLIENT-ONLY MODE: All players can choose source and receive notifications
             addDrawableChild(CyclingButtonWidget.<String>builder(value -> Text.literal(value.substring(0, 1).toUpperCase() + value.substring(1)).formatted(Formatting.GOLD))
                     .values("modrinth", "curseforge", "none")
                     .initially(currentSource)
                     .build(x, y + 80, width, 20, Text.literal("Update Source"), (button, value) -> {
-                        com.zehro_mc.pokenotifier.networking.UpdateSourcePayload payload = 
-                            new com.zehro_mc.pokenotifier.networking.UpdateSourcePayload(value);
-                        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
-                        // Update client cache immediately for visual feedback
                         PokeNotifierClient.currentUpdateSource = value;
-                        displayResponse(List.of(Text.literal("Setting update source to: ").formatted(Formatting.YELLOW)
+                        displayResponse(List.of(Text.literal("Update source set to: ").formatted(Formatting.YELLOW)
                                 .append(Text.literal(value).formatted(Formatting.GOLD))));
                     }));
         } else {
-            // Show message for non-admin users
-            addDrawableChild(ButtonWidget.builder(Text.literal("Update Source: Admin Only"), b -> {
-                displayResponse(List.of(Text.literal("Only server operators can change the update source.").formatted(Formatting.RED),
-                        Text.literal("Contact an admin to modify update settings.").formatted(Formatting.GRAY)));
-            }).dimensions(x, y + 80, width, 20).build()).active = false;
+            // FULL MODE: Only admins receive notifications and can change source
+            if (PokeNotifierClient.isPlayerAdmin || (MinecraftClient.getInstance().isInSingleplayer() && MinecraftClient.getInstance().getServer() != null)) {
+                // Admins can change update source and receive notifications
+                addDrawableChild(CyclingButtonWidget.<String>builder(value -> Text.literal(value.substring(0, 1).toUpperCase() + value.substring(1)).formatted(Formatting.GOLD))
+                        .values("modrinth", "curseforge", "none")
+                        .initially(currentSource)
+                        .build(x, y + 80, width, 20, Text.literal("Update Source"), (button, value) -> {
+                            com.zehro_mc.pokenotifier.networking.UpdateSourcePayload payload = 
+                                new com.zehro_mc.pokenotifier.networking.UpdateSourcePayload(value);
+                            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(payload);
+                            PokeNotifierClient.currentUpdateSource = value;
+                            displayResponse(List.of(Text.literal("Setting update source to: ").formatted(Formatting.YELLOW)
+                                    .append(Text.literal(value).formatted(Formatting.GOLD))));
+                        }));
+            }
+            // Regular players: NO update checker visible at all
         }
     }
 

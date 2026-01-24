@@ -66,7 +66,7 @@ public class PokeNotifierClient implements ClientModInitializer {
     public static String activeGlobalHuntPokemon = ""; // NEW: Track active Global Hunt Pokemon
     public static boolean isSwarmSystemEnabled = true; // NEW: Track Swarm System status
     public static String lastGlobalHuntWinner = ""; // NEW: Track last Global Hunt winner
-    public static String currentUpdateSource = null; // NEW: Track current update source
+    public static String currentUpdateSource = "none"; // NEW: Track current update source (default: none)
     
     // --- NEW: Swarm Event Manager tracking ---
     public static boolean hasActiveSwarm = false;
@@ -237,6 +237,9 @@ public class PokeNotifierClient implements ClientModInitializer {
                                     false
                                 );
                             }
+                            
+                            // Check for updates in client-only mode
+                            com.zehro_mc.pokenotifier.client.util.ClientUpdateChecker.checkForUpdates();
                         }
                     });
                 } catch (InterruptedException e) {
@@ -404,43 +407,87 @@ public class PokeNotifierClient implements ClientModInitializer {
                             .append(Text.literal("Poke Notifier").formatted(Formatting.GOLD))
                             .append(Text.literal("] ").formatted(Formatting.GREEN));
 
-                    MutableText chatMessage = prefix
-                            .append(Text.literal("A wild ").formatted(Formatting.YELLOW));
-
-                    if ("HUNT".equals(payload.rarityCategoryName())) {
-                        chatMessage.append(Text.literal(payload.name()).formatted(Formatting.GREEN))
-                                .append(Text.literal(" (Hunting Target)").formatted(Formatting.DARK_GREEN));
-                    } else {
-                        if ("SHINY".equals(payload.rarityCategoryName())) {
-                            chatMessage.append(createRainbowText(formattedCategory + " " + payload.name()));
-                        } else {
-                            chatMessage.append(Text.literal(formattedCategory + " " + payload.name())
-                                    .styled(style -> style.withColor(payload.color())));
-                        }
-                    }
-
-                    chatMessage.append(Text.literal(" ["));
-                    if ("NEW".equals(payload.status())) {
-                        chatMessage.append(Text.literal(payload.status()).formatted(Formatting.GREEN));
-                    } else {
-                        chatMessage.append(Text.literal(payload.status()).formatted(Formatting.GRAY));
-                    }
-                    chatMessage.append(Text.literal("]"));
-
-                    chatMessage.append(Text.literal(" (" + payload.level() + ") has appeared at ").formatted(Formatting.YELLOW));
+                    MutableText chatMessage = prefix;
                     
-                    // Use unified map integration for all Pokemon
-                    String pokemonName = payload.name();
-                    int x = payload.pos().getX();
-                    int y = payload.pos().getY();
-                    int z = payload.pos().getZ();
-                    
-                    // Always use MessageUtils for consistent waypoint button behavior
-                    chatMessage.append(MessageUtils.createLocationText(pokemonName, x, y, z, payload.color()));
-                    
-                    chatMessage.append(Text.literal(" (").formatted(Formatting.YELLOW));
-                    chatMessage.append(Text.literal(String.format("%.1f", payload.distance()) + " blocks away").formatted(Formatting.GREEN));
-                    chatMessage.append(Text.literal("). Hurry up!!").formatted(Formatting.YELLOW));
+            // Add category prefix for non-HUNT Pokemon
+            if (!"HUNT".equals(payload.rarityCategoryName())) {
+                if ("SHINY".equals(payload.rarityCategoryName())) {
+                    chatMessage.append(Text.literal("A wild ").formatted(Formatting.YELLOW))
+                        .append(createRainbowText(formattedCategory))
+                        .append(Text.literal(" ").formatted(Formatting.GRAY));
+                } else {
+                    chatMessage.append(Text.literal("A wild ").formatted(Formatting.YELLOW))
+                        .append(Text.literal(formattedCategory + " ")
+                            .styled(style -> style.withColor(payload.color())));
+                }
+            }
+            
+            // Pokemon name
+            if ("HUNT".equals(payload.rarityCategoryName())) {
+                chatMessage.append(Text.literal("Found ").formatted(Formatting.YELLOW))
+                    .append(Text.literal(payload.name()).formatted(Formatting.GREEN));
+            } else {
+                chatMessage.append(Text.literal(payload.name()).formatted(Formatting.WHITE));
+            }
+            
+            // Status with action text
+            if ("NEW".equals(payload.status())) {
+                chatMessage.append(Text.literal(" appeared!").formatted(Formatting.YELLOW));
+            } else {
+                chatMessage.append(Text.literal(" is here again").formatted(Formatting.GRAY));
+            }
+            
+            // Level
+            chatMessage.append(Text.literal(" · ").formatted(Formatting.DARK_GRAY))
+                .append(Text.literal(payload.level()).formatted(Formatting.AQUA));
+            
+            // Check if Xaero's is available
+            boolean hasXaero = ConfigManager.getClientConfig().create_waypoints_enabled && 
+                              (net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("xaerominimap") || 
+                               net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("xaeroworldmap"));
+            
+            if (hasXaero) {
+                // Format: [Poke Notifier] A wild Shiny Mewtwo appeared! · Lvl 70 · 50 blocks away [Track]
+                chatMessage.append(Text.literal(" · ").formatted(Formatting.DARK_GRAY))
+                    .append(Text.literal((int)payload.distance() + " blocks away").formatted(Formatting.GOLD))
+                    .append(Text.literal(" ").formatted(Formatting.DARK_GRAY));
+                
+                // Waypoint button [Track]
+                String pokemonName = payload.name();
+                final int x = payload.pos().getX();
+                final int y = payload.pos().getY();
+                final int z = payload.pos().getZ();
+                
+                String tempName = pokemonName.replaceAll("[^a-zA-Z0-9 ]", "").trim();
+                if (tempName.isEmpty()) tempName = "Pokemon";
+                if (tempName.length() > 15) tempName = tempName.substring(0, 15);
+                final String cleanName = tempName;
+                
+                chatMessage.append(Text.literal("[Track]")
+                    .styled(style -> style
+                        .withColor(Formatting.GREEN)
+                        .withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.RUN_COMMAND, 
+                            "/xaero_waypoint_add:" + cleanName + ":" + cleanName.substring(0, Math.min(1, cleanName.length())) + ":" + x + ":" + y + ":" + z + ":6:false:0:Internal-xaero-waypoint"))
+                        .withHoverEvent(new net.minecraft.text.HoverEvent(net.minecraft.text.HoverEvent.Action.SHOW_TEXT,
+                            Text.literal("Click to track on map").formatted(Formatting.YELLOW)))));
+                
+            } else {
+                // Format: [Poke Notifier] A wild Shiny Mewtwo appeared! · Lvl 70 · At 100, 64, 200 · 50 blocks away
+                int x = payload.pos().getX();
+                int y = payload.pos().getY();
+                int z = payload.pos().getZ();
+                String coordinates = x + ", " + y + ", " + z;
+                
+                chatMessage.append(Text.literal(" · At ").formatted(Formatting.DARK_GRAY))
+                    .append(Text.literal(coordinates)
+                        .styled(style -> style
+                            .withColor(Formatting.AQUA)
+                            .withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.COPY_TO_CLIPBOARD, coordinates))
+                            .withHoverEvent(new net.minecraft.text.HoverEvent(net.minecraft.text.HoverEvent.Action.SHOW_TEXT,
+                                Text.literal("Click to copy").formatted(Formatting.YELLOW)))))
+                    .append(Text.literal(" · ").formatted(Formatting.DARK_GRAY))
+                    .append(Text.literal((int)payload.distance() + " blocks away").formatted(Formatting.GOLD));
+            }
 
                     if (client.player != null) {
                         client.player.sendMessage(chatMessage, false);
@@ -449,7 +496,8 @@ public class PokeNotifierClient implements ClientModInitializer {
 
                 if (ConfigManager.getClientConfig().alert_sounds_enabled && "NEW".equals(payload.status())) {
                     if (client.player != null) {
-                        client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.ENTITY_PLAYER_LEVELUP, 1.0F, 0.5F));
+                        float volume = ConfigManager.getClientConfig().alert_sound_volume;
+                        client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.ENTITY_PLAYER_LEVELUP, volume, 0.5F));
                     }
                 }
 

@@ -39,6 +39,8 @@ public class ClientPokemonDetector {
     private static final Logger LOGGER = LoggerFactory.getLogger(PokeNotifier.MOD_ID + "-Detector");
     private static final Set<UUID> notifiedPokemon = new HashSet<>();
     private static final Map<UUID, String> pokemonWaypoints = new HashMap<>();
+    private static final Map<String, Long> speciesCooldowns = new HashMap<>(); // Species cooldown tracking
+    private static final long COOLDOWN_MS = 5000; // 5 seconds cooldown per species
     private static int scanTick = 0;
     private static int initialDelayTicks = 100; // 5 seconds delay
     
@@ -132,8 +134,32 @@ public class ClientPokemonDetector {
             }
             
             if (rarity != RarityCategory.COMMON) {
-                notifiedPokemon.add(entity.getUuid());
                 String status = hasCaughtSpecies(pokemon) ? "CAUGHT" : "NEW";
+                
+                // Skip CAUGHT notifications for Catch 'em All to reduce spam
+                if (rarity == RarityCategory.HUNT && "CAUGHT".equals(status)) {
+                    notifiedPokemon.add(entity.getUuid());
+                    continue;
+                }
+                
+                // Check species cooldown ONLY for non-priority Pokemon
+                // Priority Pokemon (SHINY, LEGENDARY, MYTHICAL, CUSTOM) always notify immediately
+                boolean isPriority = rarity == RarityCategory.SHINY || 
+                                    rarity == RarityCategory.LEGENDARY || 
+                                    rarity == RarityCategory.MYTHICAL || 
+                                    rarity == RarityCategory.CUSTOM;
+                
+                if (!isPriority) {
+                    long currentTime = System.currentTimeMillis();
+                    Long lastNotified = speciesCooldowns.get(pokemonName);
+                    if (lastNotified != null && (currentTime - lastNotified) < COOLDOWN_MS) {
+                        notifiedPokemon.add(entity.getUuid());
+                        continue; // Skip notification, still in cooldown
+                    }
+                    speciesCooldowns.put(pokemonName, currentTime);
+                }
+                
+                notifiedPokemon.add(entity.getUuid());
                 sendFullNotification(pokemonEntity, pokemon, rarity, distance, status, activeGen);
             }
         }
@@ -249,47 +275,89 @@ public class ClientPokemonDetector {
                 .append(Text.literal("Poke Notifier").formatted(Formatting.GOLD))
                 .append(Text.literal("] ").formatted(Formatting.GREEN));
             
-            MutableText message = prefix.append(Text.literal("A wild ").formatted(Formatting.YELLOW));
+            MutableText message = prefix;
             
-            // Add rarity category
+            // Add category prefix for non-HUNT Pokemon
+            if (rarity != RarityCategory.HUNT) {
+                if (rarity == RarityCategory.SHINY) {
+                    message.append(Text.literal("A wild ").formatted(Formatting.YELLOW))
+                        .append(createRainbowText(formatCategoryName(rarity.name())))
+                        .append(Text.literal(" ").formatted(Formatting.GRAY));
+                } else {
+                    message.append(Text.literal("A wild ").formatted(Formatting.YELLOW))
+                        .append(Text.literal(formatCategoryName(rarity.name()) + " ")
+                            .formatted(rarity.getColor()));
+                }
+            }
+            
+            // Pokemon name
             if (rarity == RarityCategory.HUNT) {
-                message.append(Text.literal(displayName).formatted(Formatting.GREEN))
-                    .append(Text.literal(" (Hunting Target)").formatted(Formatting.DARK_GREEN));
-            } else if (rarity == RarityCategory.SHINY) {
-                message.append(createRainbowText(formatCategoryName(rarity.name()) + " " + displayName));
+                message.append(Text.literal("Found ").formatted(Formatting.YELLOW))
+                    .append(Text.literal(displayName).formatted(Formatting.GREEN));
             } else {
-                message.append(Text.literal(formatCategoryName(rarity.name()) + " " + displayName)
-                    .formatted(rarity.getColor()));
+                message.append(Text.literal(displayName).formatted(Formatting.WHITE));
             }
             
-            // Add status [NEW] or [CAUGHT]
-            message.append(Text.literal(" ["));
+            // Status with action text
             if ("NEW".equals(status)) {
-                message.append(Text.literal(status).formatted(Formatting.GREEN));
+                message.append(Text.literal(" appeared!").formatted(Formatting.YELLOW));
             } else {
-                message.append(Text.literal(status).formatted(Formatting.GRAY));
+                message.append(Text.literal(" is here again").formatted(Formatting.GRAY));
             }
-            message.append(Text.literal("]"));
             
-            // Add level
-            message.append(Text.literal(" (Lvl " + pokemon.getLevel() + ") has appeared at ").formatted(Formatting.YELLOW));
+            // Level
+            message.append(Text.literal(" · ").formatted(Formatting.DARK_GRAY))
+                .append(Text.literal("Lvl " + pokemon.getLevel()).formatted(Formatting.AQUA));
             
-            // Add coordinates with waypoint button
-            message.append(createLocationText(displayName, pos, rarity.getWaypointColor()));
+            // Check if Xaero's is available
+            boolean hasXaero = config.create_waypoints_enabled && XaeroIntegration.isXaeroAvailable();
             
-            // Add distance
-            message.append(Text.literal(" (").formatted(Formatting.YELLOW))
-                .append(Text.literal(String.format("%.1f", distance) + " blocks away").formatted(Formatting.GREEN))
-                .append(Text.literal("). Hurry up!!").formatted(Formatting.YELLOW));
+            if (hasXaero) {
+                // Format: [Poke Notifier] A wild Shiny Mewtwo appeared! · Lvl 70 · 50 blocks away [Track]
+                message.append(Text.literal(" · ").formatted(Formatting.DARK_GRAY))
+                    .append(Text.literal((int)distance + " blocks away").formatted(Formatting.GOLD))
+                    .append(Text.literal(" ").formatted(Formatting.DARK_GRAY));
+                
+                // Waypoint button [Track]
+                final int x = pos.getX();
+                final int y = pos.getY();
+                final int z = pos.getZ();
+                String tempName = displayName.replaceAll("[^a-zA-Z0-9 ]", "").trim();
+                if (tempName.isEmpty()) tempName = "Pokemon";
+                if (tempName.length() > 15) tempName = tempName.substring(0, 15);
+                final String cleanName = tempName;
+                
+                message.append(Text.literal("[Track]")
+                    .styled(style -> style
+                        .withColor(Formatting.GREEN)
+                        .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,
+                            "/xaero_waypoint_add:" + cleanName + ":" + cleanName.substring(0, Math.min(1, cleanName.length())) + ":" + x + ":" + y + ":" + z + ":6:false:0:Internal-xaero-waypoint"))
+                        .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                            Text.literal("Click to track on map").formatted(Formatting.YELLOW)))));
+            } else {
+                // Format: [Poke Notifier] A wild Shiny Mewtwo appeared! · Lvl 70 · At 100, 64, 200 · 50 blocks away
+                String coordinates = pos.getX() + ", " + pos.getY() + ", " + pos.getZ();
+                
+                message.append(Text.literal(" · At ").formatted(Formatting.DARK_GRAY))
+                    .append(Text.literal(coordinates)
+                        .styled(style -> style
+                            .withColor(Formatting.AQUA)
+                            .withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, coordinates))
+                            .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                                Text.literal("Click to copy").formatted(Formatting.YELLOW)))))
+                    .append(Text.literal(" · ").formatted(Formatting.DARK_GRAY))
+                    .append(Text.literal((int)distance + " blocks away").formatted(Formatting.GOLD));
+            }
             
             client.player.sendMessage(message, false);
         }
         
         // Sound notification (using correct sound instance)
         if (config.alert_sounds_enabled && "NEW".equals(status)) {
+            float volume = config.alert_sound_volume;
             client.getSoundManager().play(
                 net.minecraft.client.sound.PositionedSoundInstance.master(
-                    net.minecraft.sound.SoundEvents.ENTITY_PLAYER_LEVELUP, 1.0F, 0.5F
+                    net.minecraft.sound.SoundEvents.ENTITY_PLAYER_LEVELUP, volume, 0.5F
                 )
             );
         }

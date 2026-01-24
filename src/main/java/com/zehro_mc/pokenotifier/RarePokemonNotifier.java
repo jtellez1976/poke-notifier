@@ -38,6 +38,8 @@ import java.util.Set;
  * Handles the core logic for detecting and notifying players about rare Pokémon spawns.
  */
 public class RarePokemonNotifier {
+    private static final java.util.Map<java.util.UUID, java.util.Map<String, Long>> playerSpeciesCooldowns = new java.util.HashMap<>();
+    private static final long COOLDOWN_MS = 5000; // 5 seconds cooldown per species per player
 
     /**
      * Registers the spawn listener to Cobblemon's events.
@@ -75,7 +77,17 @@ public class RarePokemonNotifier {
             if (rarity != RarityUtil.RarityCategory.COMMON) {
                 double distance = player.getPos().distanceTo(pokemonPos.toCenterPos());
                 if (distance <= ConfigManager.getClientConfig().notification_distance) {
-                    sendNotification(player, pokemonEntity, rarity);
+                    String pokemonName = pokemon.getSpecies().getResourceIdentifier().getPath();
+                    
+                    // Priority Pokemon (SHINY, LEGENDARY, MYTHICAL, CUSTOM) always notify immediately
+                    boolean isPriority = rarity == RarityUtil.RarityCategory.SHINY || 
+                                        rarity == RarityUtil.RarityCategory.LEGENDARY || 
+                                        rarity == RarityUtil.RarityCategory.MYTHICAL || 
+                                        rarity == RarityUtil.RarityCategory.CUSTOM;
+                    
+                    if (isPriority || shouldNotify(player.getUuid(), pokemonName)) {
+                        sendNotification(player, pokemonEntity, rarity);
+                    }
                 }
                 continue; // Avoid duplicate notifications (e.g., Rare and Hunt).
             }
@@ -90,12 +102,32 @@ public class RarePokemonNotifier {
                 if (genData != null && genData.pokemon.contains(pokemonName)) {
                     Set<String> caughtInGen = progress.caught_pokemon.getOrDefault(activeGen, Set.of());
 
+                    // Only notify if NEW (not caught) to reduce spam
                     if (!caughtInGen.contains(pokemonName)) {
-                        sendNotification(player, pokemonEntity, RarityUtil.RarityCategory.HUNT);
+                        // HUNT category uses cooldown (not priority)
+                        if (shouldNotify(player.getUuid(), pokemonName)) {
+                            sendNotification(player, pokemonEntity, RarityUtil.RarityCategory.HUNT);
+                        }
                     }
                 }
             }
         }
+    }
+
+    /**
+     * Check if enough time has passed since last notification for this species.
+     */
+    private static boolean shouldNotify(java.util.UUID playerUuid, String speciesName) {
+        long currentTime = System.currentTimeMillis();
+        java.util.Map<String, Long> playerCooldowns = playerSpeciesCooldowns.computeIfAbsent(playerUuid, k -> new java.util.HashMap<>());
+        
+        Long lastNotified = playerCooldowns.get(speciesName);
+        if (lastNotified != null && (currentTime - lastNotified) < COOLDOWN_MS) {
+            return false; // Still in cooldown
+        }
+        
+        playerCooldowns.put(speciesName, currentTime);
+        return true;
     }
 
     /**

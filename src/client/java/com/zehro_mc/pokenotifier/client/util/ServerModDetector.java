@@ -28,10 +28,21 @@ public class ServerModDetector {
      * Starts the detection process when joining a server.
      */
     public static void startDetection() {
+        // Check if this is singleplayer/integrated server
+        net.minecraft.client.MinecraftClient client = net.minecraft.client.MinecraftClient.getInstance();
+        if (client.isInSingleplayer() || (client.getServer() != null && client.getServer().isHost(client.player.getGameProfile()))) {
+            // Singleplayer or LAN - mod is always installed
+            serverHasMod = true;
+            detectionComplete = true;
+            LOGGER.info("Singleplayer/Integrated server detected - Running in FULL MODE");
+            return;
+        }
+        
+        // External server - start detection
         serverHasMod = false;
         detectionComplete = false;
         detectionStartTime = System.currentTimeMillis();
-        LOGGER.info("Starting server mod detection...");
+        LOGGER.info("Starting server mod detection for external server...");
     }
     
     /**
