@@ -140,9 +140,9 @@ task copyModToServer(type: Copy) {
 }
 
 task deployToTest {
-	dependsOn copyModToSMP, copyModToServer
+	dependsOn copyModToSMP  // Solo cliente, NO servidor
 	doLast {
-		println "--> Deployed mod to COBBLEVERSE - Pokemon Adventure for testing."
+		println "--> Deployed mod to COBBLEVERSE - Pokemon Adventure (CLIENT ONLY) for testing."
 	}
 }
 

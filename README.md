@@ -4,7 +4,32 @@ Poke Notifier has evolved from a simple notification mod into a comprehensive se
 
 ## 🔧 Latest Updates in v1.6.0
 
-### 🎮 **Poké Notifier Device - NEW!**
+### 🌐 **Client-Only Mode - NEW!**
+Use Poke Notifier on **ANY server** - even without the mod installed!
+
+- **Automatic Detection**: Mod detects if server has it installed (3-second check)
+- **Full Functionality**: Custom Hunt and Catch 'em All work everywhere
+- **Local Storage**: Your data saved locally in client-only mode
+- **Smart GUI**: Admin tabs automatically hidden on servers without mod
+- **Seamless Switch**: Automatically uses full features when available
+
+#### What Works in Client-Only Mode:
+✅ Rarity detection (Legendary, Mythical, Ultra Rare, Shiny)
+✅ Custom Hunt list management
+✅ Catch 'em All tracking with progress HUD
+✅ Chat notifications with clickable coordinates
+✅ Sound notifications
+✅ Manual waypoint creation ([ADD] button)
+✅ Waypoint auto-cleanup when caught
+✅ Toast messages with region names
+
+#### Server-Only Features:
+❌ Admin Tools (requires OP permissions)
+❌ Events (Swarm, Global Hunt)
+❌ Trophy system
+❌ First join gift
+
+### 🎮 **Poké Notifier Device**
 - **Personal Tracking Device**: Craftable item that provides instant access to all mod features
 - **Quick Access**: Press **[N]** or right-click the device to open the configuration GUI
 - **Equipable**: Can be equipped in Trinkets necklace slot for hands-free access
@@ -166,6 +191,27 @@ You can also check out the source code and contribute to the project at our GitH
 7. Press **[N]** or right-click the device to access all features!
 
 ## 🚀 **Getting Started**
+
+### 🌐 Client-Only Mode vs Full Mode
+
+**Client-Only Mode** (Server WITHOUT mod):
+- Automatic detection when joining servers
+- Local data storage in `config/poke-notifier/client-only-data/`
+- Custom Hunt and Catch 'em All fully functional
+- No admin features (expected)
+- Works on vanilla servers, modded servers, anywhere!
+
+**Full Mode** (Server WITH mod):
+- All features available
+- Server-side data synchronization
+- Admin tools for OPs
+- Events system (Swarm, Global Hunt)
+- Trophy system and rewards
+
+### Important Note: Data Separation
+**When playing in singleplayer (client-only mode) and then opening a local server with the same world**, the Pokémon catch progress will appear "shared" between both modes. This is expected behavior because both modes read from the same Cobblemon world data (Party + PC). 
+
+**On external servers**, the data is completely separated since each server has its own independent world data.
 
 ### For New Players
 1. Join the server for the first time

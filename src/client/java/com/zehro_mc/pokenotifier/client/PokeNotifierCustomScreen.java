@@ -63,7 +63,10 @@ public class PokeNotifierCustomScreen extends Screen {
         super(Text.literal(PokeNotifierClient.isPlayerAdmin ? "Poke Notifier Configurations (Admin)" : "Poke Notifier Configurations (User)"));
         this.parent = parent;
         // FIX: Set the default main category for admins.
-        if (PokeNotifierClient.isPlayerAdmin) {
+        // SECURITY: Verify client-side permission level to prevent false admin status
+        MinecraftClient client = MinecraftClient.getInstance();
+        boolean hasRealAdminPerms = client.player != null && client.player.hasPermissionLevel(2);
+        if (PokeNotifierClient.isPlayerAdmin && hasRealAdminPerms) {
             this.currentMainCategory = MainCategory.ADMIN_TOOLS;
         }
     }
@@ -82,7 +85,11 @@ public class PokeNotifierCustomScreen extends Screen {
     }
     
     private void drawTabs(DrawContext context, int panelX, int panelY, int panelWidth) {
-        int tabWidth = PokeNotifierClient.isPlayerAdmin ? 85 : 120;
+        // SECURITY: Verify real client-side permissions to prevent false admin access
+        MinecraftClient client = MinecraftClient.getInstance();
+        boolean hasRealAdminPerms = client.player != null && client.player.hasPermissionLevel(2);
+        boolean showAdminTabs = PokeNotifierClient.isPlayerAdmin && hasRealAdminPerms && !com.zehro_mc.pokenotifier.client.util.ServerModDetector.isClientOnly();
+        int tabWidth = showAdminTabs ? 85 : 120;
         int tabHeight = 20;
         int tabY = panelY + 5;
         
@@ -95,7 +102,7 @@ public class PokeNotifierCustomScreen extends Screen {
         boolean userActive = currentMainCategory == MainCategory.USER_TOOLS;
         drawTab(context, userTabX, tabY, tabWidth, tabHeight, userActive);
         
-        if (PokeNotifierClient.isPlayerAdmin) {
+        if (showAdminTabs) {
             // Events tab
             int eventsTabX = panelX + 8 + tabWidth;
             boolean eventsActive = currentMainCategory == MainCategory.EVENTS;
@@ -153,13 +160,18 @@ public class PokeNotifierCustomScreen extends Screen {
         int panelY = (this.height - panelHeight) / 2;
 
         // Las pestañas se dibujan visualmente en render() y se manejan clics en mouseClicked()
+        
+        // SECURITY: Verify real client-side permissions
+        MinecraftClient client = MinecraftClient.getInstance();
+        boolean hasRealAdminPerms = client.player != null && client.player.hasPermissionLevel(2);
+        boolean showAdminTabs = PokeNotifierClient.isPlayerAdmin && hasRealAdminPerms && !com.zehro_mc.pokenotifier.client.util.ServerModDetector.isClientOnly();
 
         // --- Build Content based on Main Tab ---
         if (currentMainCategory == MainCategory.USER_TOOLS) {
             buildUserToolsLayout(panelX, panelY, panelWidth, panelHeight);
-        } else if (currentMainCategory == MainCategory.EVENTS && PokeNotifierClient.isPlayerAdmin) {
+        } else if (currentMainCategory == MainCategory.EVENTS && showAdminTabs) {
             buildEventsLayout(panelX, panelY, panelWidth, panelHeight);
-        } else if (currentMainCategory == MainCategory.ADMIN_TOOLS && PokeNotifierClient.isPlayerAdmin) {
+        } else if (currentMainCategory == MainCategory.ADMIN_TOOLS && showAdminTabs) {
             buildAdminToolsLayout(panelX, panelY, panelWidth, panelHeight);
         }
 
@@ -345,6 +357,54 @@ public class PokeNotifierCustomScreen extends Screen {
     }
 
     private void buildCustomHuntPanel(int x, int y, int width) {
+        // Check if in client-only mode
+        if (com.zehro_mc.pokenotifier.client.util.ServerModDetector.isClientOnly()) {
+            // LOCAL MODE - Client-side tracking only
+            addDrawableChild(ButtonWidget.builder(Text.literal("📍 Local Mode").formatted(Formatting.AQUA), b -> {})
+                .dimensions(x, y, width, 18).build()).active = false;
+            
+            this.pokemonNameField = new AutocompleteTextFieldWidget(this.textRenderer, x, y + 23, width, 20, Text.literal(""), () -> PokeNotifierApi.getAllPokemonNames().toList());
+            this.pokemonNameField.setPlaceholder(Text.literal("e.g., Pikachu"));
+            addDrawableChild(this.pokemonNameField);
+            
+            // Add button - local tracking
+            IconButton addButton = new IconButton(x, y + 48, width, 18, GuiIcons.ADD, "Add", b -> {
+                String pokemonName = this.pokemonNameField.getText().trim();
+                if (!pokemonName.isEmpty()) {
+                    com.zehro_mc.pokenotifier.client.data.LocalCatchTracker.addToCustomHunt(pokemonName);
+                    displayResponse(List.of(Text.literal("Added ").append(Text.literal(pokemonName).formatted(Formatting.GOLD)).append(" to local hunt list.").formatted(Formatting.GREEN)));
+                    this.pokemonNameField.setText("");
+                }
+            });
+            addButton.setTooltip(net.minecraft.client.gui.tooltip.Tooltip.of(Text.literal("Track locally - notifies when caught")));
+            addDrawableChild(addButton);
+            
+            // View List button
+            IconButton viewButton = new IconButton(x, y + 71, width, 18, GuiIcons.VIEW_LIST, "View List", b -> {
+                List<String> huntList = com.zehro_mc.pokenotifier.client.data.LocalCatchTracker.getCustomHuntList();
+                List<Text> lines = new ArrayList<>();
+                lines.add(Text.literal("--- Local Hunt List ---").formatted(Formatting.GOLD));
+                if (huntList.isEmpty()) {
+                    lines.add(Text.literal("No Pokémon tracked").formatted(Formatting.GRAY));
+                } else {
+                    for (String pokemon : huntList) {
+                        lines.add(Text.literal("• " + pokemon).formatted(Formatting.AQUA));
+                    }
+                }
+                displayResponse(lines);
+            });
+            addDrawableChild(viewButton);
+            
+            // Clear button
+            IconButton clearButton = new IconButton(x, y + 94, width, 18, GuiIcons.CLEAR, "Clear List", b -> {
+                com.zehro_mc.pokenotifier.client.data.LocalCatchTracker.clearCustomHunt();
+                displayResponse(List.of(Text.literal("Cleared local hunt list.").formatted(Formatting.YELLOW)));
+            });
+            addDrawableChild(clearButton);
+            
+            return;
+        }
+        
         this.pokemonNameField = new AutocompleteTextFieldWidget(this.textRenderer, x, y, width, 20, Text.literal(""), () -> PokeNotifierApi.getAllPokemonNames().toList());
         this.pokemonNameField.setPlaceholder(Text.literal("e.g., Pikachu"));
         addDrawableChild(this.pokemonNameField);
@@ -388,6 +448,66 @@ public class PokeNotifierCustomScreen extends Screen {
     }
 
     private void buildCatchEmAllPanel(int x, int y, int width) {
+        // Check if in client-only mode
+        if (com.zehro_mc.pokenotifier.client.util.ServerModDetector.isClientOnly()) {
+            // LOCAL MODE - Client-side tracking only (no trophies)
+            addDrawableChild(ButtonWidget.builder(Text.literal("📍 Local Mode (No Trophies)").formatted(Formatting.AQUA), b -> {})
+                .dimensions(x, y, width, 18).build()).active = false;
+            
+            List<String> generations = Arrays.asList("gen1", "gen2", "gen3", "gen4", "gen5", "gen6", "gen7", "gen8", "gen9");
+            int buttonWidth = (width - 5) / 2;
+            int buttonHeight = 18;
+            
+            for (int i = 0; i < generations.size(); i++) {
+                String gen = generations.get(i);
+                int row = i / 2;
+                int col = i % 2;
+                int buttonX = x + col * (buttonWidth + 5);
+                int buttonY = y + 23 + row * (buttonHeight + 5);
+                
+                String activeGen = com.zehro_mc.pokenotifier.client.data.LocalCatchTracker.getActiveGeneration();
+                net.minecraft.util.Identifier genIcon = gen.equals(activeGen) ? GuiIcons.TRACK_GEN : null;
+                
+                IconButton button = new IconButton(buttonX, buttonY, buttonWidth, buttonHeight, genIcon, getGenerationDisplayName(gen), b -> {
+                    com.zehro_mc.pokenotifier.client.data.LocalCatchTracker.enableCatchEmAll(gen);
+                    displayResponse(List.of(Text.literal("Tracking " + formatGenName(gen) + " locally.").formatted(Formatting.GREEN)));
+                    this.clearAndInit();
+                });
+                addDrawableChild(button);
+            }
+            
+            int statusY = y + 23 + 5 * (buttonHeight + 5);
+            
+            // Stop Tracking button
+            IconButton stopButton = new IconButton(x, statusY, width, 18, GuiIcons.OFF, "Stop Tracking", b -> {
+                com.zehro_mc.pokenotifier.client.data.LocalCatchTracker.disableCatchEmAll();
+                displayResponse(List.of(Text.literal("Stopped tracking.").formatted(Formatting.YELLOW)));
+                this.clearAndInit();
+            });
+            String activeGen = com.zehro_mc.pokenotifier.client.data.LocalCatchTracker.getActiveGeneration();
+            stopButton.active = !activeGen.equals("none");
+            addDrawableChild(stopButton);
+            
+            // View Status button
+            IconButton statusButton = new IconButton(x, statusY + 23, width, 18, GuiIcons.SYSTEM_STATUS, "View Progress", b -> {
+                String gen = com.zehro_mc.pokenotifier.client.data.LocalCatchTracker.getActiveGeneration();
+                if (gen.equals("none")) {
+                    displayResponse(List.of(Text.literal("No generation being tracked.").formatted(Formatting.GRAY)));
+                } else {
+                    int count = com.zehro_mc.pokenotifier.client.data.LocalCatchTracker.getCaughtCount(gen);
+                    displayResponse(List.of(
+                        Text.literal("--- Local Progress ---").formatted(Formatting.GOLD),
+                        Text.literal("Generation: " + formatGenName(gen)).formatted(Formatting.AQUA),
+                        Text.literal("Caught: " + count + " Pokémon").formatted(Formatting.GREEN),
+                        Text.literal("(Local tracking - no server sync)").formatted(Formatting.GRAY)
+                    ));
+                }
+            });
+            addDrawableChild(statusButton);
+            
+            return;
+        }
+        
         List<String> generations = Arrays.asList("gen1", "gen2", "gen3", "gen4", "gen5", "gen6", "gen7", "gen8", "gen9");
         int buttonWidth = (width - 5) / 2;
         int buttonHeight = 18;
@@ -1726,7 +1846,11 @@ public class PokeNotifierCustomScreen extends Screen {
             int panelWidth = 420;
             int panelX = (this.width - panelWidth) / 2;
             int panelY = (this.height - 260) / 2;
-            int tabWidth = PokeNotifierClient.isPlayerAdmin ? 85 : 120;
+            // SECURITY: Verify real client-side permissions
+            MinecraftClient client = MinecraftClient.getInstance();
+            boolean hasRealAdminPerms = client.player != null && client.player.hasPermissionLevel(2);
+            boolean showAdminTabs = PokeNotifierClient.isPlayerAdmin && hasRealAdminPerms && !com.zehro_mc.pokenotifier.client.util.ServerModDetector.isClientOnly();
+            int tabWidth = showAdminTabs ? 85 : 120;
             int tabY = panelY + 5;
             int tabHeight = 20;
             
@@ -1738,7 +1862,7 @@ public class PokeNotifierCustomScreen extends Screen {
                 return true;
             }
             
-            if (PokeNotifierClient.isPlayerAdmin) {
+            if (showAdminTabs) {
                 // Events tab
                 int eventsTabX = panelX + 8 + tabWidth;
                 if (mouseX >= eventsTabX && mouseX <= eventsTabX + tabWidth && mouseY >= tabY - 2 && mouseY <= tabY + tabHeight) {

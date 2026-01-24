@@ -31,6 +31,14 @@ src/
 └── client/java/com/zehro_mc/pokenotifier/client/
     ├── PokeNotifierClient.java     # Client entry point
     ├── PokeNotifierCustomScreen.java # Main GUI
+    ├── data/                       # Client-only data management
+    │   ├── ClientOnlyDataManager.java
+    │   ├── ClientPokemonDetector.java
+    │   └── LocalCatchTracker.java
+    ├── util/                       # Client utilities
+    │   └── ServerModDetector.java
+    ├── compat/                     # Mod compatibility
+    │   └── XaeroIntegration.java
     └── mixins/                     # Client-side mixins
 ```
 
@@ -71,6 +79,12 @@ src/main/resources/
 - **Cobblemon API**: Pokémon data and event integration
 - **AdvancementPlaques**: Enhanced notification display
 
+### Client-Only Mode System
+- **ServerModDetector**: Automatic server mod detection (3-second timeout)
+- **ClientOnlyDataManager**: Local data storage for client-only mode
+- **ClientPokemonDetector**: Client-side Pokemon scanning and detection
+- **LocalCatchTracker**: Local catch event tracking and progress updates
+
 ## Architectural Patterns
 
 ### Client-Server Split
@@ -92,6 +106,8 @@ src/main/resources/
 - **Player Progress**: Individual hunt lists and completion status
 - **Server State**: Active events, statistics, system status
 - **Backup System**: Automatic data backup and rollback capabilities
+- **Client-Only Data**: Separate local storage (`*-local.json` files)
+- **Mode Detection**: Automatic switching between full and client-only modes
 
 ## Dependencies and Integration
 

@@ -1219,6 +1219,15 @@ public class PokeNotifier implements ModInitializer {
                 }
             });
         });
+        
+        // Handle mod handshake for client-only mode detection
+        ServerPlayNetworking.registerGlobalReceiver(ModHandshakePayload.ID, (payload, context) -> {
+            if (payload.isRequest()) {
+                // Client is asking if server has mod - respond with confirmation
+                ServerPlayNetworking.send(context.player(), new ModHandshakePayload(false));
+                LOGGER.debug("Responded to mod handshake from {}", context.player().getName().getString());
+            }
+        });
     }
 
     private static void sendEventConfigSync(ServerPlayerEntity player) {

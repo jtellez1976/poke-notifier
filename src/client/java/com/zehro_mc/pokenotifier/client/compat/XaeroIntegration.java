@@ -222,7 +222,7 @@ public class XaeroIntegration {
                 return true;
             }
             
-            LOGGER.warn("[XAERO INTEGRATION] Failed to remove waypoint via integration: {}", waypointName);
+            LOGGER.debug("[XAERO INTEGRATION] Failed to remove waypoint via integration: {}", waypointName);
             return false;
             
         } catch (Exception e) {

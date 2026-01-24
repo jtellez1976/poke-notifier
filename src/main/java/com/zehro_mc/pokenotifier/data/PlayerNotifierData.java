@@ -3,6 +3,7 @@ package com.zehro_mc.pokenotifier.data;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.zehro_mc.pokenotifier.PokeNotifier;
+import net.fabricmc.loader.api.FabricLoader;
 
 import java.io.File;
 import java.io.FileReader;
@@ -22,8 +23,8 @@ public class PlayerNotifierData {
     }
 
     public static void initialize(File serverDir) {
-        // Create player_data directory inside config/poke-notifier/
-        File configDir = new File(serverDir, "config/poke-notifier/player_data");
+        // Use Fabric's config directory
+        File configDir = FabricLoader.getInstance().getConfigDir().resolve("poke-notifier/player_data").toFile();
         if (!configDir.exists()) {
             configDir.mkdirs();
         }
@@ -45,12 +46,16 @@ public class PlayerNotifierData {
     }
 
     private static void load() {
-        if (!dataFile.exists()) return;
+        if (!dataFile.exists()) {
+            PokeNotifier.LOGGER.info("Player notifier data file doesn't exist, will be created on first save");
+            return;
+        }
         try (FileReader reader = new FileReader(dataFile)) {
             Map<String, PlayerData> loaded = GSON.fromJson(reader, 
                 new com.google.gson.reflect.TypeToken<Map<String, PlayerData>>(){}.getType());
             if (loaded != null) {
                 loaded.forEach((key, value) -> PLAYER_DATA.put(UUID.fromString(key), value));
+                PokeNotifier.LOGGER.info("Loaded {} player notifier records", PLAYER_DATA.size());
             }
         } catch (Exception e) {
             PokeNotifier.LOGGER.error("Failed to load player notifier data", e);
@@ -58,10 +63,16 @@ public class PlayerNotifierData {
     }
 
     private static void save() {
-        try (FileWriter writer = new FileWriter(dataFile)) {
-            Map<String, PlayerData> toSave = new HashMap<>();
-            PLAYER_DATA.forEach((uuid, data) -> toSave.put(uuid.toString(), data));
-            GSON.toJson(toSave, writer);
+        try {
+            if (!dataFile.getParentFile().exists()) {
+                dataFile.getParentFile().mkdirs();
+            }
+            
+            try (FileWriter writer = new FileWriter(dataFile)) {
+                Map<String, PlayerData> toSave = new HashMap<>();
+                PLAYER_DATA.forEach((uuid, data) -> toSave.put(uuid.toString(), data));
+                GSON.toJson(toSave, writer);
+            }
         } catch (Exception e) {
             PokeNotifier.LOGGER.error("Failed to save player notifier data", e);
         }

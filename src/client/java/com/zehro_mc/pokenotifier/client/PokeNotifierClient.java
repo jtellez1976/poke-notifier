@@ -17,6 +17,7 @@ import com.zehro_mc.pokenotifier.client.compat.AdvancementPlaquesCompat;
 import com.zehro_mc.pokenotifier.client.compat.XaeroIntegration;
 import com.zehro_mc.pokenotifier.client.data.WaypointManager;
 import com.zehro_mc.pokenotifier.client.event.PokemonWaypointHandler;
+import com.zehro_mc.pokenotifier.client.util.ServerModDetector;
 import com.zehro_mc.pokenotifier.item.ModItems;
 
 import com.zehro_mc.pokenotifier.client.renderer.TrophyDisplayBlockEntityRenderer;
@@ -159,6 +160,29 @@ public class PokeNotifierClient implements ClientModInitializer {
         XaeroIntegration.initialize();
         WaypointManager.loadWaypoints();
         PokemonWaypointHandler.initialize();
+        
+        // Initialize client-only data manager
+        com.zehro_mc.pokenotifier.client.data.ClientOnlyDataManager.initialize();
+        
+        // Restore HUD variables from saved data on startup
+        String activeGen = com.zehro_mc.pokenotifier.client.data.ClientOnlyDataManager.getActiveGeneration();
+        if (!"none".equals(activeGen)) {
+            currentCatchEmAllGeneration = activeGen;
+            var genData = ConfigManager.getGenerationData(activeGen);
+            if (genData != null) {
+                catchTotalCount = genData.pokemon.size();
+                catchCaughtCount = com.zehro_mc.pokenotifier.client.data.ClientOnlyDataManager.getCaughtCount(activeGen);
+            }
+        }
+        
+        // Initialize local catch tracker for client-only mode
+        com.zehro_mc.pokenotifier.client.data.LocalCatchTracker.initialize();
+        
+        // Initialize client-side Pokemon detector for client-only mode
+        com.zehro_mc.pokenotifier.client.data.ClientPokemonDetector.initialize();
+        
+        // Initialize chat message interceptor for capture detection
+        com.zehro_mc.pokenotifier.client.data.ChatMessageInterceptor.initialize();
 
         HudRenderCallback.EVENT.register(NotificationHUD::render);
         HudRenderCallback.EVENT.register(CatchEmAllHUD::render);
@@ -172,23 +196,70 @@ public class PokeNotifierClient implements ClientModInitializer {
         ClientCommandRegistrationCallback.EVENT.register(ClientCommands::register);
 
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
+            // Start server mod detection
+            ServerModDetector.startDetection();
+            ClientPlayNetworking.send(new ModHandshakePayload(true));
+            
             ConfigClient config = ConfigManager.getClientConfig();
             if (config.silent_mode_enabled) {
                 if (client.player != null) {
                     client.player.sendMessage(Text.literal("Poke Notifier is in Silent Mode. Use '/pnc silent OFF' to re-enable notifications.").formatted(Formatting.YELLOW), false);
                 }
             }
+            
+            // Show client-only mode message after detection completes
+            new Thread(() -> {
+                try {
+                    Thread.sleep(3500); // Wait for detection to complete
+                    client.execute(() -> {
+                        if (ServerModDetector.isClientOnly() && client.player != null) {
+                            client.player.sendMessage(
+                                Text.literal("[Poke Notifier] ").formatted(Formatting.GOLD)
+                                    .append(Text.literal("Running in CLIENT-ONLY mode. Press ").formatted(Formatting.YELLOW))
+                                    .append(Text.literal("[N]").formatted(Formatting.GREEN))
+                                    .append(Text.literal(" to access features.").formatted(Formatting.YELLOW)),
+                                false
+                            );
+                            
+                            // Show active Catch 'em All message if enabled
+                            String currentActiveGen = com.zehro_mc.pokenotifier.client.data.ClientOnlyDataManager.getActiveGeneration();
+                            if (!"none".equals(currentActiveGen)) {
+                                String regionName = getRegionName(currentActiveGen);
+                                int count = com.zehro_mc.pokenotifier.client.data.ClientOnlyDataManager.getCaughtCount(currentActiveGen);
+                                var genData = ConfigManager.getGenerationData(currentActiveGen);
+                                int total = genData != null ? genData.pokemon.size() : 0;
+                                
+                                client.player.sendMessage(
+                                    Text.literal("[Catch 'em All] ").formatted(Formatting.GOLD)
+                                        .append(Text.literal("Tracking ").formatted(Formatting.YELLOW))
+                                        .append(Text.literal(regionName).formatted(Formatting.GREEN))
+                                        .append(Text.literal(" (" + count + "/" + total + ")").formatted(Formatting.GRAY)),
+                                    false
+                                );
+                            }
+                        }
+                    });
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }).start();
+        });
+        
+        // Reset detection on disconnect
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+            ServerModDetector.reset();
         });
         
         // Register keybind handler
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (KeyBindings.OPEN_NOTIFIER_KEY.wasPressed()) {
-                if (client.player != null && hasPokeNotifierDevice(client.player.getInventory())) {
-                    // Play same sound as right-click for consistency
-                    client.player.playSound(SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, 1.0f, 1.2f);
-                    
-                    // Open GUI
-                    client.setScreen(new PokeNotifierCustomScreen(null));
+                if (client.player != null) {
+                    // In client-only mode, always allow keybind
+                    // In full mode, require device
+                    if (ServerModDetector.isClientOnly() || hasPokeNotifierDevice(client.player.getInventory())) {
+                        client.player.playSound(SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, 1.0f, 1.2f);
+                        client.setScreen(new PokeNotifierCustomScreen(null));
+                    }
                 }
             }
         });
@@ -479,6 +550,23 @@ public class PokeNotifierClient implements ClientModInitializer {
             ClientRankCache.updateRanks(payload.ranks());
         });
         });
+        
+        // Handle mod handshake response from server
+        ClientPlayNetworking.registerGlobalReceiver(ModHandshakePayload.ID, (payload, context) -> {
+            context.client().execute(() -> {
+                if (!payload.isRequest()) {
+                    // Server responded - it has the mod installed
+                    ServerModDetector.onServerResponse();
+                }
+            });
+        });
+    }
+    
+    // Check for detection timeout
+    static {
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            ServerModDetector.checkTimeout();
+        });
     }
 
     private static String formatCategoryName(String categoryName) {
@@ -513,6 +601,20 @@ public class PokeNotifierClient implements ClientModInitializer {
         }
         return rainbowText;
     }
-
+    
+    private static String getRegionName(String generation) {
+        return switch (generation.toLowerCase()) {
+            case "kanto" -> "Kanto";
+            case "johto" -> "Johto";
+            case "hoenn" -> "Hoenn";
+            case "sinnoh" -> "Sinnoh";
+            case "unova" -> "Unova";
+            case "kalos" -> "Kalos";
+            case "alola" -> "Alola";
+            case "galar" -> "Galar";
+            case "paldea" -> "Paldea";
+            default -> generation.substring(0, 1).toUpperCase() + generation.substring(1);
+        };
+    }
 
 }

@@ -23,6 +23,10 @@ public class PokeNotifierPayloads {
         PayloadTypeRegistry.playS2C().register(SwarmStatusPayload.ID, SwarmStatusPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(EventConfigSyncPayload.ID, EventConfigSyncPayload.CODEC);
 
+        // Bidirectional handshake payload for mod detection
+        PayloadTypeRegistry.playC2S().register(ModHandshakePayload.ID, ModHandshakePayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(ModHandshakePayload.ID, ModHandshakePayload.CODEC);
+
         // These payloads are sent from the client to the server.
         // They must also be registered on both sides.
         PayloadTypeRegistry.playC2S().register(CustomListUpdatePayload.ID, CustomListUpdatePayload.CODEC);
