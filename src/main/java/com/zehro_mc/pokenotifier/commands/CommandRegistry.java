@@ -43,5 +43,11 @@ public class CommandRegistry {
         
         // Register the complete command tree
         dispatcher.register(pokenotifierNode);
+        
+        // Register alias "pnc"
+        var pncNode = CommandManager.literal("pnc");
+        UserCommandHandler.registerUserCommands(pncNode);
+        AdminCommandHandler.registerAdminCommands(pncNode);
+        dispatcher.register(pncNode);
     }
 }

@@ -14,6 +14,7 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.BlockWithEntity;
 import net.minecraft.block.ShapeContext;
 import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.entity.BlockEntityType;
 import org.jetbrains.annotations.Nullable;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
@@ -110,23 +111,38 @@ public class TrophyPedestalBlock extends BlockWithEntity {
 
         ItemStack heldItem = player.getStackInHand(Hand.MAIN_HAND);
         
-        // Si el jugador tiene las manos vacías, intenta quitar el item
-        if (heldItem.isEmpty() && blockEntity.hasTrophy()) {
-            ItemStack trophy = blockEntity.removeTrophy();
-            
-            // Remover Trophy Display Block de encima solo si era un trofeo
-            if (isTrophy(trophy)) {
-                BlockPos displayPos = pos.up();
-                if (world.getBlockState(displayPos).getBlock() == ModBlocks.TROPHY_DISPLAY_BLOCK) {
-                    world.removeBlock(displayPos, false);
+        // Si el jugador tiene las manos vacías
+        if (heldItem.isEmpty()) {
+            // Si tiene un item, quitarlo
+            if (blockEntity.hasTrophy()) {
+                ItemStack trophy = blockEntity.removeTrophy();
+                
+                // Remover Trophy Display Block de encima solo si era un trofeo
+                if (isTrophy(trophy)) {
+                    BlockPos displayPos = pos.up();
+                    if (world.getBlockState(displayPos).getBlock() == ModBlocks.TROPHY_DISPLAY_BLOCK) {
+                        world.removeBlock(displayPos, false);
+                    }
                 }
+                
+                player.giveItemStack(trophy);
+                String itemType = isTrophy(trophy) ? "Trophy" : "Pokéball";
+                String positionName = getPositionName(world, pos);
+                player.sendMessage(Text.literal(itemType + " removed from pedestal " + positionName + "."), false);
+                return ActionResult.SUCCESS;
+            } else {
+                // Si está vacío, mostrar la posición
+                String positionName = getPositionName(world, pos);
+                if (!positionName.isEmpty()) {
+                    player.sendMessage(Text.literal("📍 ").formatted(Formatting.GOLD)
+                        .append(Text.literal("Pedestal Position: ").formatted(Formatting.WHITE))
+                        .append(Text.literal(positionName).formatted(Formatting.AQUA)), false);
+                } else {
+                    player.sendMessage(Text.literal("⚠ ").formatted(Formatting.RED)
+                        .append(Text.literal("No altar found nearby.").formatted(Formatting.GOLD)), false);
+                }
+                return ActionResult.SUCCESS;
             }
-            
-            player.giveItemStack(trophy);
-            String itemType = isTrophy(trophy) ? "Trophy" : "Pokéball";
-            String positionName = getPositionName(world, pos);
-            player.sendMessage(Text.literal(itemType + " removed from pedestal " + positionName + "."), false);
-            return ActionResult.SUCCESS;
         }
         
         // Si tiene un trofeo o pokéball en la mano y el pedestal está vacío

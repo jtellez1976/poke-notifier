@@ -1693,13 +1693,13 @@ public class TrophyAltarBlockEntity extends BlockEntity {
                 .append(net.minecraft.text.Text.literal("§r2. Each has a position: N, E, S, W, NE, SE, SW, NW\n\n"))
                 .append(net.minecraft.text.Text.literal("§r3. Right-click altar to summon"))));
         
-        // Página 3: Test Pattern 1 - Alakazam
+        // Página 3: Test Pattern 1 - Snorlax
         pages.add(net.minecraft.text.RawFilteredPair.of(
-            net.minecraft.text.Text.literal("§6§lPattern 1: §b§lAlakazam\n\n")
-                .append(net.minecraft.text.Text.literal("§rN: Quick Ball\n"))
-                .append(net.minecraft.text.Text.literal("§rE: Ultra Ball\n"))
+            net.minecraft.text.Text.literal("§6§lPattern 1: §b§lSnorlax\n\n")
                 .append(net.minecraft.text.Text.literal("§rS: Luxury Ball\n"))
-                .append(net.minecraft.text.Text.literal("§rW: Timer Ball\n\n"))
+                .append(net.minecraft.text.Text.literal("§rSW: Beast Ball\n"))
+                .append(net.minecraft.text.Text.literal("§rSE: Heavy Ball\n"))
+                .append(net.minecraft.text.Text.literal("§rNE: Sport Ball\n\n"))
                 .append(net.minecraft.text.Text.literal("§7Others empty.\n\n"))
                 .append(net.minecraft.text.Text.literal("§6RARE tier - needs 4 balls!"))));
         
