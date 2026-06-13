@@ -123,7 +123,7 @@ public class XaeroIntegration {
                             .formatted(Formatting.YELLOW))));
         } else {
             // Manual waypoint button - use Xaero's command
-            return Text.literal("[Add]")
+            return Text.literal("[Marcador Mapa]")
                 .styled(style -> style
                     .withColor(Formatting.AQUA)
                     .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/xaero_waypoint_add:" + cleanName + ":" + cleanName.substring(0, Math.min(1, cleanName.length())) + ":" + x + ":" + y + ":" + z + ":6:false:0:Internal-xaero-waypoint"))
@@ -194,7 +194,7 @@ public class XaeroIntegration {
                             .formatted(Formatting.YELLOW))));
         } else {
             // Manual waypoint button with Pokemon tracking
-            return Text.literal("[Add]")
+            return Text.literal("Marcador Mapa")
                 .styled(style -> style
                     .withColor(Formatting.AQUA)
                     .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/xaero_waypoint_add:" + cleanName + ":" + cleanName.substring(0, Math.min(1, cleanName.length())) + ":" + x + ":" + y + ":" + z + ":6:false:0:Internal-xaero-waypoint"))

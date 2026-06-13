@@ -136,7 +136,7 @@ public class RarePokemonNotifier {
                 rarity.getWaypointColor(),
                 status,
                 rarity.name(),
-                "Lvl " + pokemon.getLevel(),
+                "nivel " + pokemon.getLevel(),
                 distance,
                 biomeId,
                 spriteIdentifier
