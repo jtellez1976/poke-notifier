@@ -277,7 +277,7 @@ public class PokeNotifierClient implements ClientModInitializer {
                             pokemonText = Text.literal(formattedCategory + " " + payload.name())
                                     .styled(style -> style.withColor(payload.color()));
                         }
-                        title = Text.literal("A ").append(pokemonText).append(Text.literal(" has appeared"));
+                        title = Text.literal("A ").append(pokemonText).append(Text.literal(" ha aparecido"));
                     }
                     Text description = Text.empty();
                     NotificationHUD.show(title, description, payload.spriteIdentifier());
@@ -285,11 +285,11 @@ public class PokeNotifierClient implements ClientModInitializer {
 
                 if (ConfigManager.getClientConfig().alert_chat_enabled) {
                     MutableText prefix = Text.literal("[").formatted(Formatting.GREEN)
-                            .append(Text.literal("Poke Notifier").formatted(Formatting.GOLD))
+                            .append(Text.literal("Evento Pik-a-Mon").formatted(Formatting.GOLD))
                             .append(Text.literal("] ").formatted(Formatting.GREEN));
 
                     MutableText chatMessage = prefix
-                            .append(Text.literal("A wild ").formatted(Formatting.YELLOW));
+                            .append(Text.literal("Un ").formatted(Formatting.YELLOW));
 
                     if ("HUNT".equals(payload.rarityCategoryName())) {
                         chatMessage.append(Text.literal(payload.name()).formatted(Formatting.GREEN))
@@ -311,7 +311,7 @@ public class PokeNotifierClient implements ClientModInitializer {
                     }
                     chatMessage.append(Text.literal("]"));
 
-                    chatMessage.append(Text.literal(" (" + payload.level() + ") has appeared at ").formatted(Formatting.YELLOW));
+                    chatMessage.append(Text.literal(" (" + payload.level() + ") ha aparecido en ").formatted(Formatting.YELLOW));
                     
                     // Create waypoints only for NEW Pokémon or HUNT category (custom list)
                     String pokemonName = payload.name();
@@ -336,8 +336,8 @@ public class PokeNotifierClient implements ClientModInitializer {
                     }
                     
                     chatMessage.append(Text.literal(" (").formatted(Formatting.YELLOW));
-                    chatMessage.append(Text.literal(String.format("%.1f", payload.distance()) + " blocks away").formatted(Formatting.GREEN));
-                    chatMessage.append(Text.literal("). Hurry up!!").formatted(Formatting.YELLOW));
+                    chatMessage.append(Text.literal(String.format("%.1f", payload.distance()) + " bloques de distancia").formatted(Formatting.GREEN));
+                    chatMessage.append(Text.literal("). Suerte a todos").formatted(Formatting.YELLOW));
 
                     if (client.player != null) {
                         client.player.sendMessage(chatMessage, false);
@@ -382,7 +382,7 @@ public class PokeNotifierClient implements ClientModInitializer {
                     if (payload.updateType() == StatusUpdatePayload.UpdateType.DESPAWNED) {
                         if (ConfigManager.getClientConfig().alert_chat_enabled && client.player != null) {
                             MutableText prefix = Text.literal("[").formatted(Formatting.YELLOW)
-                                    .append(Text.literal("Poke Notifier").formatted(Formatting.GOLD))
+                                    .append(Text.literal("Evento Pik-A-Mon").formatted(Formatting.GOLD))
                                     .append(Text.literal("] ").formatted(Formatting.YELLOW));
 
                             MutableText despawnMessage = prefix

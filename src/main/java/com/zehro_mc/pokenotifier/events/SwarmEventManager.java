@@ -372,18 +372,18 @@ public class SwarmEventManager {
 
         List<Text> announcement = Arrays.asList(
             Text.literal("").formatted(Formatting.GOLD),
-            Text.literal("🌪️ ").formatted(Formatting.YELLOW)
-                .append(Text.literal("SWARM ALERT").formatted(Formatting.GOLD))
-                .append(Text.literal(" 🌪️").formatted(Formatting.YELLOW)),
-            Text.literal("A massive swarm of ").formatted(Formatting.WHITE)
+            Text.literal("").formatted(Formatting.YELLOW)
+                .append(Text.literal("-- Evento Enjambre --").formatted(Formatting.GOLD))
+                .append(Text.literal("").formatted(Formatting.YELLOW)),
+            Text.literal("Un enjambre masivo de ").formatted(Formatting.WHITE)
                 .append(Text.literal(pokemonName).formatted(Formatting.GOLD))
-                .append(Text.literal(" has been spotted!").formatted(Formatting.WHITE)),
-            Text.literal("📍 Location: ").formatted(Formatting.AQUA)
+                .append(Text.literal(" ha sido avistado!").formatted(Formatting.WHITE)),
+            Text.literal("Coordenadas: ").formatted(Formatting.AQUA)
                 .append(com.zehro_mc.pokenotifier.util.MessageUtils.createLocationText(pokemonName + " Swarm", location, com.zehro_mc.pokenotifier.util.MessageUtils.Colors.SWARM))
                 .append(Text.literal(" (" + biomeName + ")").formatted(Formatting.GRAY)),
-            Text.literal("⏰ Duration: ").formatted(Formatting.YELLOW)
+            Text.literal("Tiempo restante: ").formatted(Formatting.YELLOW)
                 .append(Text.literal(swarmConfig.duration_minutes + " minutes").formatted(Formatting.WHITE)),
-            Text.literal("✨ Increased spawn rate and shiny odds active!").formatted(Formatting.GREEN),
+            Text.literal("Posibilidad de Shiny aumentada en este evento!").formatted(Formatting.GREEN),
             Text.literal("").formatted(Formatting.GOLD)
         );
 

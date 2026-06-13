@@ -171,13 +171,13 @@ public class GlobalHuntEvent {
         String shinyText = isShiny ? "SHINY " : "";
         String worldName = getWorldDisplayName();
         
-        Text announcement = Text.literal("⚡ GLOBAL HUNT ALERT! ⚡").formatted(Formatting.RED)
-            .append(Text.literal("\nA " + shinyText + pokemonName + " Lvl " + dynamicLevel + " has been spotted!").formatted(Formatting.GOLD))
-            .append(Text.literal("\nLocation: ").formatted(Formatting.YELLOW))
+        Text announcement = Text.literal("-- Evento CazaRecompensas --").formatted(Formatting.RED)
+            .append(Text.literal("\nUn " + shinyText + pokemonName + " de nivel " + dynamicLevel + " ha sido avistado").formatted(Formatting.GOLD))
+            .append(Text.literal("\nCoordenadas: ").formatted(Formatting.YELLOW))
             .append(MessageUtils.createLocationText("Global Hunt " + pokemonName, coordinates, MessageUtils.Colors.GLOBAL_HUNT))
-            .append(Text.literal("\nWorld: " + worldName).formatted(Formatting.YELLOW))
-            .append(Text.literal("\nTime Limit: " + durationMinutes + " minutes!").formatted(Formatting.GREEN))
-            .append(Text.literal("\nFirst to capture wins!").formatted(Formatting.RED));
+            .append(Text.literal("\nMundo: " + worldName).formatted(Formatting.YELLOW))
+            .append(Text.literal("\nTiempo restante: " + durationMinutes + " minutes!").formatted(Formatting.GREEN))
+            .append(Text.literal("\nQue gane el más rápido").formatted(Formatting.RED));
         
         // Send personalized messages with distance info
         for (ServerPlayerEntity player : world.getServer().getPlayerManager().getPlayerList()) {
@@ -262,9 +262,9 @@ public class GlobalHuntEvent {
         if (!isActive || isCaptured) return;
         
         // Announce timeout with original format
-        Text timeoutAnnouncement = Text.literal("⏰ GLOBAL HUNT EXPIRED! ⏰").formatted(Formatting.RED)
-            .append(Text.literal("\nThe " + (isShiny ? "Shiny " : "") + pokemonName + " has escaped!").formatted(Formatting.YELLOW))
-            .append(Text.literal("\nBetter luck next time...").formatted(Formatting.GRAY));
+        Text timeoutAnnouncement = Text.literal("-- Evento CazaRecompensas Finalizado--").formatted(Formatting.RED)
+            .append(Text.literal("\nEl " + (isShiny ? "Shiny " : "") + pokemonName + " ha escapado").formatted(Formatting.YELLOW))
+            .append(Text.literal("\nMás suerte la próxima.").formatted(Formatting.GRAY));
         
         world.getServer().getPlayerManager().broadcast(timeoutAnnouncement, false);
         
